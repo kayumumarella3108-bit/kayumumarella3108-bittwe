@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Building2, MapPin, Zap, Info, Calendar, Power, CheckCircle, Shield } from 'lucide-react';
-import { MasterGardu, Penyulang } from '../../types';
+import { MasterGardu, Penyulang, MasterUnitPLN } from '../../types';
+import { getDynamicUnitList, getKodeUnitByUnitName } from '../../utils/unitConfig';
 
 interface MasterGarduModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface MasterGarduModalProps {
   onSave: (gardu: MasterGardu) => void;
   editingGardu?: MasterGardu | null;
   penyulangList?: Penyulang[];
+  masterUnitList?: MasterUnitPLN[];
 }
 
 export const MasterGarduModal: React.FC<MasterGarduModalProps> = ({
@@ -15,8 +17,10 @@ export const MasterGarduModal: React.FC<MasterGarduModalProps> = ({
   onClose,
   onSave,
   editingGardu,
-  penyulangList = []
+  penyulangList = [],
+  masterUnitList = []
 }) => {
+  const unitList = getDynamicUnitList(masterUnitList);
   const [formData, setFormData] = useState<Partial<MasterGardu>>({
     noBaru: '',
     noGarduLama: '',
@@ -202,6 +206,33 @@ export const MasterGarduModal: React.FC<MasterGarduModalProps> = ({
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white placeholder:text-slate-400 placeholder:font-normal"
               />
               <span className="text-[10px] text-slate-500 mt-0.5 block">Nomor gardu sebelumnya (legacy)</span>
+            </div>
+
+            {/* ULP / Unit Selection */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Unit ULP (Master Unit)
+              </label>
+              <select
+                value={formData.unit || 'ULP Baguala'}
+                onChange={(e) => {
+                  const selUnit = e.target.value;
+                  const matched = unitList.find((u) => u.namaUnit === selUnit);
+                  setFormData({
+                    ...formData,
+                    unit: selUnit,
+                    kodeUnit: matched ? matched.kodeUnit : getKodeUnitByUnitName(selUnit, masterUnitList)
+                  });
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+              >
+                {unitList.map((u, idx) => (
+                  <option key={`mg_u_${u.kodeUnit}_${idx}`} value={u.namaUnit}>
+                    {u.namaUnit} ({u.kodeUnit})
+                  </option>
+                ))}
+              </select>
+              <span className="text-[10px] text-slate-500 mt-0.5 block">Sinkron dengan Master Unit PLN</span>
             </div>
 
             {/* 4. PENYULANG */}

@@ -20,7 +20,8 @@ import {
   ChevronDown,
   Edit3
 } from 'lucide-react';
-import { GangguanLog, Penyulang, SectionJaringan, SectionRestoration } from '../../types';
+import { GangguanLog, Penyulang, SectionJaringan, SectionRestoration, MasterUnitPLN } from '../../types';
+import { getDynamicUnitList, getKodeUnitByUnitName } from '../../utils/unitConfig';
 
 interface InputGangguanModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ interface InputGangguanModalProps {
   sectionList: SectionJaringan[];
   editItem?: GangguanLog | null;
   initialPenyulangId?: string;
+  masterUnitList?: MasterUnitPLN[];
 }
 
 // Standard PLN Cause options categorized by Fault Code (Kode Gangguan)
@@ -120,10 +122,37 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   penyulangList,
   sectionList,
   editItem,
-  initialPenyulangId
+  initialPenyulangId,
+  masterUnitList = []
 }) => {
   const [tanggal, setTanggal] = useState('2026-08-08');
   const [penyulangId, setPenyulangId] = useState(initialPenyulangId || penyulangList[0]?.id || '17');
+  
+  const unitList = getDynamicUnitList(masterUnitList);
+  const [unit, setUnit] = useState<string>(editItem?.unit || 'ULP Baguala');
+  const [kodeUnit, setKodeUnit] = useState<string>(editItem?.kodeUnit || '54110');
+
+  useEffect(() => {
+    if (isOpen) {
+      if (editItem) {
+        setUnit(editItem.unit || 'ULP Baguala');
+        setKodeUnit(editItem.kodeUnit || '54110');
+      } else {
+        setUnit('ULP Baguala');
+        setKodeUnit('54110');
+      }
+    }
+  }, [isOpen, editItem]);
+
+  const handleUnitChange = (selectedUnitName: string) => {
+    setUnit(selectedUnitName);
+    const matched = unitList.find((u) => u.namaUnit === selectedUnitName);
+    if (matched) {
+      setKodeUnit(matched.kodeUnit);
+    } else {
+      setKodeUnit(getKodeUnitByUnitName(selectedUnitName, masterUnitList));
+    }
+  };
   const [jamKeluar, setJamKeluar] = useState('08:00');
   const [jamMasuk, setJamMasuk] = useState('09:30');
   const [relayBekerja, setRelayBekerja] = useState('OCR / GFR / RECLOSER');
@@ -874,7 +903,9 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       estimasiSaidiJam: Number(aggregateMetrics.totalSaidiJam.toFixed(5)),
       estimasiSaifi: Number(aggregateMetrics.totalSaifi.toFixed(5)),
       // Section restorations breakdown
-      sectionRestorations
+      sectionRestorations,
+      unit,
+      kodeUnit
     };
 
     onSave(newLog);
@@ -915,6 +946,38 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
 
         {/* Form Body - Scrollable */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto py-4 space-y-4 text-xs pr-1">
+          {/* ULP & Kode ULP Selection (Synchronized with Master Unit) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-blue-50/60 rounded-2xl border border-blue-200/80">
+            <div>
+              <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                Unit PLN (ULP) *
+              </label>
+              <select
+                value={unit}
+                onChange={(e) => handleUnitChange(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
+              >
+                {unitList.map((u, idx) => (
+                  <option key={`gangguan_u_${u.kodeUnit}_${idx}`} value={u.namaUnit}>
+                    {u.namaUnit} ({u.kodeUnit})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-800 mb-1">
+                Kode ULP (Sinkron Master)
+              </label>
+              <input
+                type="text"
+                value={kodeUnit}
+                readOnly
+                className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono font-bold"
+              />
+            </div>
+          </div>
+
           {/* Tanggal & Penyulang Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
