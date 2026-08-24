@@ -1,0 +1,188 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 22s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Custom scrollbar for dark theme tables and panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.8);
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: #0b1120 !important;
+}
+
+.custom-feeder-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Custom Leaflet Marker Cluster Styles for Gardu Trafo & Penyulang */
+.cluster-trafo-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.cluster-trafo-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #0f172a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65), 0 0 0 2px rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cluster-trafo-badge:hover {
+  transform: scale(1.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8), 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+.cluster-trafo-badge.status-critical {
+  border: 2.5px solid #f43f5e;
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.5), 0 4px 14px rgba(0, 0, 0, 0.65);
+}
+
+.cluster-trafo-badge.status-overload {
+  border: 2.5px solid #f59e0b;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.45), 0 4px 14px rgba(0, 0, 0, 0.65);
+}
+
+.cluster-trafo-badge.status-normal {
+  border: 2.5px solid #0ea5e9;
+  box-shadow: 0 0 14px rgba(14, 165, 233, 0.4), 0 4px 14px rgba(0, 0, 0, 0.65);
+}
+
+.cluster-feeder-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #0f172a;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65), 0 0 12px rgba(59, 130, 246, 0.4);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+
+.cluster-feeder-badge:hover {
+  transform: scale(1.12);
+}
+
+/* Custom leaflet dark popup styling */
+.leaflet-popup-content-wrapper {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+
+/* PRINT MEDIA STYLES */
+@media print {
+  /* Hide non-printable UI elements */
+  nav,
+  aside,
+  header,
+  .no-print,
+  .print\:hidden,
+  button,
+  iframe,
+  .sidebar {
+    display: none !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .printable-document {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+    color: #000000 !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    font-weight: bold !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+}
+
+
+

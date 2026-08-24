@@ -1,0 +1,197 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Catch-all default deny rules for non-explicit collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper validation functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    match /system_metadata/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /material_stok/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /material_pemakaian/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /alkerdan_apd/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /gangguan_logs/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /saidi_saifi_logs/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /app_users/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /online_users/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /broadcast_messages/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /penyulang_list/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /section_list/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /map_layers/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /activity_logs/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /pemeliharaan_row/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /pemeliharaan_tier1/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /pemeliharaan_tier2/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /pemeliharaan_monitoring/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /perintah_kerja_harian/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /kendaraan_operasional/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /master_gardu/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /pengukuran_gardu/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /aset_jaringan/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /jadwal_piket/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /inspeksi_tier1_jtm/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /inspeksi_tier1_gtt/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /inspeksi_tier1_switching/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+    match /inspeksi_tier2_thermovision/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+    match /inspeksi_tier2_ultrasound/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /surat_keluar/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /pohon_gis/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /konstruksi_gis/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /survey_pb_pd/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /chat_messages/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /chat_auto_replies/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /sld_data/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /master_unit_pln/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /helpdesk_messages/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+  }
+}

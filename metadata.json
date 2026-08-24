@@ -1,0 +1,6 @@
+{
+  "name": "Perang Padam Baguala",
+  "description": "PLN ULP Baguala - Sistem Keandalan & Monitoring Gangguan 20kV, Survey PB/PD & Peta GIS, ROW Pohon, Inspeksi, SAIDI/SAIFI, dan SLD Visio",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

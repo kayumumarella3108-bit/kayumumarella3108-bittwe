@@ -1,0 +1,620 @@
+{
+  "entities": {
+    "MaterialStokItem": {
+      "title": "MaterialStokItem",
+      "description": "Stock of material item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggalMasuk": { "type": "string" },
+        "namaMaterial": { "type": "string" },
+        "qty": { "type": "number" },
+        "satuan": { "type": "string" },
+        "keterangan": { "type": "string" },
+        "noDokumen": { "type": "string" }
+      },
+      "required": ["id", "tanggalMasuk", "namaMaterial", "qty", "satuan"]
+    },
+    "MaterialPemakaianItem": {
+      "title": "MaterialPemakaianItem",
+      "description": "Usage of material item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "namaMaterial": { "type": "string" },
+        "qty": { "type": "number" },
+        "satuan": { "type": "string" },
+        "lokasi": { "type": "string" },
+        "jenisPekerjaan": { "type": "string" },
+        "petugas": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "namaMaterial", "qty", "satuan", "lokasi"]
+    },
+    "AlkerApdItem": {
+      "title": "AlkerApdItem",
+      "description": "Tools and APD equipment status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "namaAlat": { "type": "string" },
+        "kategori": { "type": "string" },
+        "stok": { "type": "number" },
+        "satuan": { "type": "string" },
+        "kondisiBaik": { "type": "number" },
+        "kondisiRusak": { "type": "number" },
+        "keterangan": { "type": "string" },
+        "lastChecked": { "type": "string" }
+      },
+      "required": ["id", "namaAlat", "kategori", "stok", "satuan", "kondisiBaik", "kondisiRusak"]
+    },
+    "GangguanLog": {
+      "title": "GangguanLog",
+      "description": "Power disturbance log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "namaPenyulang": { "type": "string" },
+        "section": { "type": "string" },
+        "jamKeluar": { "type": "string" },
+        "jamMasuk": { "type": "string" },
+        "durasi": { "type": "string" },
+        "relayBekerja": { "type": "string" },
+        "kodeGangguan": { "type": "string" },
+        "arusR": { "type": "string" },
+        "arusS": { "type": "string" },
+        "arusT": { "type": "string" },
+        "arusIN": { "type": "string" },
+        "penyebab": { "type": "string" },
+        "detailLokasi": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "namaPenyulang", "section", "jamKeluar", "jamMasuk"]
+    },
+    "SaidiSaifiData": {
+      "title": "SaidiSaifiData",
+      "description": "SAIDI/SAIFI logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "pelangganPadam": { "type": "number" },
+        "durasiMenit": { "type": "number" },
+        "ensKwh": { "type": "number" },
+        "saidiContribution": { "type": "number" },
+        "saifiContribution": { "type": "number" }
+      },
+      "required": ["id", "tanggal", "penyulang", "pelangganPadam", "durasiMenit"]
+    },
+    "User": {
+      "title": "User",
+      "description": "App system user",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "avatar": { "type": "string" }
+      },
+      "required": ["username", "name", "role"]
+    },
+    "UserOnlinePresence": {
+      "title": "UserOnlinePresence",
+      "description": "Real-time online status and active session info of users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "unit": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "loginTime": { "type": "string" },
+        "lastActive": { "type": "string" },
+        "activeView": { "type": "string" },
+        "activeViewLabel": { "type": "string" },
+        "deviceInfo": { "type": "string" },
+        "browserInfo": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "username", "name", "role", "lastActive", "status"]
+    },
+    "SystemBroadcastMessage": {
+      "title": "SystemBroadcastMessage",
+      "description": "Broadcast message from owner/admin to online users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sender": { "type": "string" },
+        "senderRole": { "type": "string" },
+        "message": { "type": "string" },
+        "targetUsername": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "type": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "sender", "message", "createdAt", "active"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Live chat and intelligent bot auto-reply message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderUsername": { "type": "string" },
+        "senderRole": { "type": "string" },
+        "senderAvatar": { "type": "string" },
+        "recipient": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "isBotReply": { "type": "boolean" },
+        "botName": { "type": "string" },
+        "botType": { "type": "string" },
+        "isOwnerOnlineAtSend": { "type": "boolean" },
+        "topic": { "type": "string" }
+      },
+      "required": ["id", "senderName", "senderUsername", "recipient", "message", "timestamp"]
+    },
+    "Penyulang": {
+      "title": "Penyulang",
+      "description": "Feeder penyulang item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "bebanAmperMax": { "type": "number" },
+        "panjangKms": { "type": "number" },
+        "jumlahGardu": { "type": "number" },
+        "healthIndexScore": { "type": "number" },
+        "healthIndexStatus": { "type": "string" },
+        "statusPenyulang": { "type": "string" }
+      },
+      "required": ["id", "name", "healthIndexStatus", "statusPenyulang"]
+    },
+    "SectionJaringan": {
+      "title": "SectionJaringan",
+      "description": "Section network detail",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "penyulangId": { "type": "string" },
+        "namaSection": { "type": "string" },
+        "panjangKms": { "type": "number" },
+        "jumlahGardu": { "type": "number" },
+        "kondisiKritis": { "type": "boolean" }
+      },
+      "required": ["id", "penyulangId", "namaSection"]
+    },
+    "MapLayerItem": {
+      "title": "MapLayerItem",
+      "description": "GIS map overlay layer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "color": { "type": "string" },
+        "featuresCount": { "type": "number" }
+      },
+      "required": ["id", "name", "type", "visible"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "SCADA Operator activity audit log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "waktu": { "type": "string" },
+        "user": { "type": "string" },
+        "aktivitas": { "type": "string" },
+        "modul": { "type": "string" }
+      },
+      "required": ["id", "waktu", "user", "aktivitas", "modul"]
+    },
+    "ROWItem": {
+      "title": "ROWItem",
+      "description": "Pohon dan dahan tree trimming log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "section": { "type": "string" },
+        "jumlahTemuanInspeksi": { "type": "string" },
+        "realisasiPangkas": { "type": "string" },
+        "perluIzin": { "type": "string" },
+        "perluPadam": { "type": "string" },
+        "pohonBesar": { "type": "string" },
+        "luarTemuan": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "penyulang", "section"]
+    },
+    "Tier1Item": {
+      "title": "Tier1Item",
+      "description": "Visual inspection of ROW & construction details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "section": { "type": "string" },
+        "temuanRow": { "type": "string" },
+        "konstruksi": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "penyulang", "section"]
+    },
+    "Tier2Item": {
+      "title": "Tier2Item",
+      "description": "Thermovision and Ultrasound specialized inspections",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "section": { "type": "string" },
+        "jenisTier2": { "type": "string" },
+        "temuanThermoUltrasound": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "penyulang", "section", "jenisTier2"]
+    },
+    "MonitoringPemeliharaanItem": {
+      "title": "MonitoringPemeliharaanItem",
+      "description": "Maintenance work monitoring logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "section": { "type": "string" },
+        "jenisPemeliharaan": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "keterangan": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "penyulang", "section"]
+    },
+    "PerintahKerja": {
+      "title": "PerintahKerja",
+      "description": "Daily work order (SPK) document",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "noSpk": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "jenisPekerjaan": { "type": "string" },
+        "namaPenyulang": { "type": "string" },
+        "section": { "type": "string" },
+        "target": { "type": "string" },
+        "jumlahPersonil": { "type": "number" },
+        "status": { "type": "string" },
+        "timAtauPetugas": { "type": "string" },
+        "catatan": { "type": "string" }
+      },
+      "required": ["id", "noSpk", "tanggal", "jenisPekerjaan", "namaPenyulang", "section", "target", "jumlahPersonil"]
+    },
+    "AsetJaringan": {
+      "title": "AsetJaringan",
+      "description": "Network asset inventory (JTM/JTR)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "namaPenyulang": { "type": "string" },
+        "panjangJtmSutm": { "type": "number" },
+        "panjangJtmSktm": { "type": "number" },
+        "panjangJtmMvtic": { "type": "number" },
+        "panjangJtmTotal": { "type": "number" },
+        "lbsManual": { "type": "number" },
+        "lbsMotorized": { "type": "number" },
+        "lbsThreeWay": { "type": "number" },
+        "recloser": { "type": "number" },
+        "garduHubung": { "type": "number" },
+        "pmcb": { "type": "number" },
+        "autoLink": { "type": "number" },
+        "fco": { "type": "number" },
+        "scada": { "type": "number" },
+        "nonScada": { "type": "number" },
+        "panjangJtr": { "type": "number" },
+        "lastUpdate": { "type": "string" }
+      },
+      "required": ["id", "namaPenyulang"]
+    },
+    "JadwalPiket": {
+      "title": "JadwalPiket",
+      "description": "Officer shift schedule",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "namaPetugas": { "type": "string" },
+        "noHp": { "type": "string" },
+        "unit": { "type": "string" },
+        "jadwal": { "type": "object" },
+        "lastUpdate": { "type": "string" }
+      },
+      "required": ["id", "namaPetugas"]
+    },
+    "InspeksiTier1JTM": {
+      "title": "InspeksiTier1JTM",
+      "description": "Detailed JTM Checklist inspection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tglPelaksanaan": { "type": "string" },
+        "noTiang": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "section": { "type": "string" },
+        "pelaksana": { "type": "string" }
+      },
+      "required": ["id", "tglPelaksanaan", "noTiang", "penyulang", "section"]
+    },
+    "InspeksiTier1GTT": {
+      "title": "InspeksiTier1GTT",
+      "description": "Detailed GTT Checklist inspection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tglPelaksanaan": { "type": "string" },
+        "noGtt": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "alamat": { "type": "string" },
+        "pelaksana": { "type": "string" }
+      },
+      "required": ["id", "tglPelaksanaan", "noGtt", "penyulang"]
+    },
+    "InspeksiTier1Switching": {
+      "title": "InspeksiTier1Switching",
+      "description": "Detailed Switching Equipment Checklist inspection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tglPelaksanaan": { "type": "string" },
+        "noTiang": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "namaSwitching": { "type": "string" },
+        "pelaksana": { "type": "string" }
+      },
+      "required": ["id", "tglPelaksanaan", "namaSwitching", "penyulang"]
+    },
+    "InspeksiTier2Thermovision": {
+      "title": "InspeksiTier2Thermovision",
+      "description": "Thermovision inspection data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tglPelaksanaan": { "type": "string" },
+        "noTiang": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "pelaksana": { "type": "string" }
+      },
+      "required": ["id", "tglPelaksanaan", "noTiang", "penyulang"]
+    },
+    "InspeksiTier2Ultrasound": {
+      "title": "InspeksiTier2Ultrasound",
+      "description": "Ultrasound inspection data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tglPelaksanaan": { "type": "string" },
+        "noTiang": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "pelaksana": { "type": "string" }
+      },
+      "required": ["id", "tglPelaksanaan", "noTiang", "penyulang"]
+    },
+    "SuratItem": {
+      "title": "SuratItem",
+      "description": "Custom office letter document (Cuti, Alker, CMC, Panggilan, Material)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nomorSurat": { "type": "string" },
+        "jenisSurat": { "type": "string" },
+        "tanggalSurat": { "type": "string" },
+        "perihal": { "type": "string" },
+        "kepada": { "type": "string" },
+        "pembuat": { "type": "string" },
+        "unit": { "type": "string" },
+        "status": { "type": "string" },
+        "payload": { "type": "object" },
+        "catatan": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "nomorSurat", "jenisSurat", "tanggalSurat", "perihal", "kepada"]
+    },
+    "SurveyPbPdItem": {
+      "title": "SurveyPbPdItem",
+      "description": "Technical survey records for Pasang Baru (PB) and Perubahan Daya (PD) including feeder, substation, voltages, phase, and connection points",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "noAgenda": { "type": "string" },
+        "idPelanggan": { "type": "string" },
+        "namaPelanggan": { "type": "string" },
+        "noHpPelanggan": { "type": "string" },
+        "jenisTransaksi": { "type": "string" },
+        "tarifLama": { "type": "string" },
+        "dayaLamaVa": { "type": "number" },
+        "tarifBaru": { "type": "string" },
+        "dayaBaruVa": { "type": "number" },
+        "peruntukan": { "type": "string" },
+        "penyulang": { "type": "string" },
+        "noGardu": { "type": "string" },
+        "jurusanGardu": { "type": "string" },
+        "lokasi": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "titikSambungLat": { "type": "number" },
+        "titikSambungLng": { "type": "number" },
+        "tegPangkal": { "type": "number" },
+        "tegTetangga": { "type": "number" },
+        "fasaYangDiambil": { "type": "string" },
+        "titikSambung": { "type": "string" },
+        "panjangSrMeter": { "type": "number" },
+        "jenisKabelSr": { "type": "string" },
+        "statusKelayakan": { "type": "string" },
+        "perkiraanDropTeganganVolt": { "type": "number" },
+        "petugasSurvey": { "type": "string" },
+        "tanggalSurvey": { "type": "string" },
+        "tanggalPenyambungan": { "type": "string" },
+        "rekomendasiTeknis": { "type": "string" },
+        "catatan": { "type": "string" },
+        "fotoBangunan": { "type": "string" },
+        "fotoLokasi": { "type": "string" },
+        "fotoPengukuranTegangan": { "type": "string" },
+        "fotoTitikSambung": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "namaPelanggan", "jenisTransaksi", "penyulang", "noGardu", "lokasi", "tegPangkal", "tegTetangga", "fasaYangDiambil", "titikSambung", "statusKelayakan", "petugasSurvey", "tanggalSurvey"]
+    },
+    "SldData": {
+      "title": "SldData",
+      "description": "SCADA and Single Line Diagram layout state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "substations": { "type": "array", "items": { "type": "object" } },
+        "tieSwitches": { "type": "array", "items": { "type": "object" } },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id"]
+    },
+    "KendaraanOperasional": {
+      "title": "KendaraanOperasional",
+      "description": "Operational vehicles with live GPS tracking data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "namaKendaraan": { "type": "string" },
+        "noPolisi": { "type": "string" },
+        "jenisKendaraan": { "type": "string" },
+        "unit": { "type": "string" },
+        "penanggungJawab": { "type": "string" },
+        "kondisiKendaraan": { "type": "string" },
+        "kondisiBan": { "type": "string" },
+        "kondisiAki": { "type": "string" },
+        "kebersihan": { "type": "string" },
+        "gpsTrack": { "type": "object" }
+      },
+      "required": ["id", "namaKendaraan", "noPolisi"]
+    }
+  },
+  "firestore": {
+    "material_stok": {
+      "schema": "MaterialStokItem",
+      "description": "Incoming material records"
+    },
+    "material_pemakaian": {
+      "schema": "MaterialPemakaianItem",
+      "description": "Material usage logs"
+    },
+    "alkerdan_apd": {
+      "schema": "AlkerApdItem",
+      "description": "Sistem monitoring APD and tools equipment conditions"
+    },
+    "gangguan_logs": {
+      "schema": "GangguanLog",
+      "description": "Live SCADA disturbance logs"
+    },
+    "saidi_saifi_logs": {
+      "schema": "SaidiSaifiData",
+      "description": "SAIDI, SAIFI, and ENS monthly tracking"
+    },
+    "app_users": {
+      "schema": "User",
+      "description": "Verified system user list"
+    },
+    "penyulang_list": {
+      "schema": "Penyulang",
+      "description": "Active feeder penyulang list"
+    },
+    "section_list": {
+      "schema": "SectionJaringan",
+      "description": "Active network section details"
+    },
+    "map_layers": {
+      "schema": "MapLayerItem",
+      "description": "GIS map feeder layers"
+    },
+    "activity_logs": {
+      "schema": "ActivityLog",
+      "description": "Real-time activity audit log"
+    },
+    "pemeliharaan_row": {
+      "schema": "ROWItem",
+      "description": "ROW tree trimming maintenance collection"
+    },
+    "pemeliharaan_tier1": {
+      "schema": "Tier1Item",
+      "description": "Tier 1 visual inspection records"
+    },
+    "pemeliharaan_tier2": {
+      "schema": "Tier2Item",
+      "description": "Tier 2 specialized thermovision and ultrasound records"
+    },
+    "pemeliharaan_monitoring": {
+      "schema": "MonitoringPemeliharaanItem",
+      "description": "20kV network repair and preventive maintenance monitoring records"
+    },
+    "perintah_kerja_harian": {
+      "schema": "PerintahKerja",
+      "description": "Daily work order (SPK) records"
+    },
+    "aset_jaringan": {
+      "schema": "AsetJaringan",
+      "description": "Network asset inventory for JTM and JTR"
+    },
+    "jadwal_piket": {
+      "schema": "JadwalPiket",
+      "description": "Staff shift schedules"
+    },
+    "inspeksi_tier1_jtm": {
+      "schema": "InspeksiTier1JTM",
+      "description": "Detailed JTM checklist records"
+    },
+    "inspeksi_tier1_gtt": {
+      "schema": "InspeksiTier1GTT",
+      "description": "Detailed GTT checklist records"
+    },
+    "inspeksi_tier1_switching": {
+      "schema": "InspeksiTier1Switching",
+      "description": "Detailed Switching equipment checklist records"
+    },
+    "inspeksi_tier2_thermovision": {
+      "schema": "InspeksiTier2Thermovision",
+      "description": "Thermovision inspection records"
+    },
+    "inspeksi_tier2_ultrasound": {
+      "schema": "InspeksiTier2Ultrasound",
+      "description": "Ultrasound inspection records"
+    },
+    "surat_keluar": {
+      "schema": "SuratItem",
+      "description": "Generated official letters and requests (Cuti, Alker, CMC, Panggilan, Material)"
+    },
+    "pohon_gis": {
+      "schema": "PohonGisItem",
+      "description": "GIS locations of trees and ROW clearance hazards"
+    },
+    "konstruksi_gis": {
+      "schema": "KonstruksiGisItem",
+      "description": "GIS locations and status of 20kV construction and asset projects"
+    },
+    "survey_pb_pd": {
+      "schema": "SurveyPbPdItem",
+      "description": "Technical survey for Pasang Baru and Perubahan Daya (PB/PD) records"
+    },
+    "sld_data": {
+      "schema": "SldData",
+      "description": "SCADA Single Line Diagram substations and tie switches state data"
+    },
+    "kendaraan_operasional": {
+      "schema": "KendaraanOperasional",
+      "description": "Operational vehicles with live GPS tracking data"
+    }
+  }
+}
