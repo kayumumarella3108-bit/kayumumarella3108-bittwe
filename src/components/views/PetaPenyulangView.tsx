@@ -88,7 +88,7 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'Semua' | 'ROW' | 'Inspeksi' | 'Maintenance'>('Semua');
+  const [selectedCategory, setSelectedCategory] = useState<'Semua' | 'SUTM' | 'Gardu' | 'Percabangan' | 'ROW' | 'Inspeksi' | 'Maintenance'>('Semua');
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
   const [fileImporting, setFileImporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -1033,7 +1033,7 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
 
             {/* Category Filter Pills */}
             <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[10px] font-bold">
-              {(['Semua', 'ROW', 'Inspeksi', 'Maintenance'] as const).map((cat) => (
+              {(['Semua', 'SUTM', 'Gardu', 'Percabangan', 'ROW', 'Inspeksi', 'Maintenance'] as const).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
