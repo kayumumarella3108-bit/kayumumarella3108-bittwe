@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import 'leaflet.markercluster';
 import JSZip from 'jszip';
 import {
   Upload,
@@ -130,7 +129,6 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const polylineGroupRef = useRef<L.FeatureGroup | null>(null);
   const markerGroupRef = useRef<L.FeatureGroup | null>(null);
-  const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
 
   const layersRef = useRef(layers);
   const onUpdateLayerRef = useRef(onUpdateLayer);
@@ -395,86 +393,7 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
       // 2. RENDER MARKERS DENGAN ICON DEFAULT LEAFLET YANG RINGAN & CEPAT
       markerFg.clearLayers();
 
-      if (clusterGroupRef.current) {
-        map.removeLayer(clusterGroupRef.current);
-        clusterGroupRef.current = null;
-      }
-
-      let clusterGroup: L.MarkerClusterGroup | null = null;
-      if (curDensity === 'cluster') {
-        clusterGroup = L.markerClusterGroup({
-          chunkedLoading: true,
-          chunkInterval: 50,
-          chunkDelay: 10,
-          maxClusterRadius: 50,
-          spiderfyOnMaxZoom: true,
-          showCoverageOnHover: true,
-          zoomToBoundsOnClick: true,
-          animate: true,
-          disableClusteringAtZoom: 18,
-          iconCreateFunction: (cluster) => {
-            const count = cluster.getChildCount();
-            const childMarkers = cluster.getAllChildMarkers();
-            
-            // Check for transformers or alerts in this cluster
-            let trafoCount = 0;
-            let hasAlert = false;
-
-            childMarkers.forEach((m: any) => {
-              const iconT = m._activeIconType || '';
-              const stat = m._manualStatus || '';
-              if (iconT.includes('gardu') || iconT.includes('trafo') || iconT.includes('beton') || iconT.includes('cantol') || iconT.includes('portal')) {
-                trafoCount++;
-              }
-              if (stat === 'GANGGUAN' || stat === 'POHON' || stat === 'KONSTRUKSI') {
-                hasAlert = true;
-              }
-            });
-
-            let size = 40;
-            let fontSize = '11px';
-            if (count < 10) {
-              size = 36;
-              fontSize = '10.5px';
-            } else if (count > 50) {
-              size = 46;
-              fontSize = '12px';
-            }
-
-            const borderColor = hasAlert ? '#f43f5e' : '#3b82f6';
-            const glowColor = hasAlert ? 'rgba(244, 63, 94, 0.5)' : 'rgba(59, 130, 246, 0.4)';
-
-            const html = `
-              <div class="cluster-feeder-badge" style="
-                width: ${size}px;
-                height: ${size}px;
-                border: 2px solid ${borderColor};
-                box-shadow: 0 4px 12px rgba(0,0,0,0.7), 0 0 12px ${glowColor};
-                position: relative;
-              ">
-                ${trafoCount > 0 ? `<span style="position: absolute; top: -3px; right: -3px; background: #eab308; color: #000; font-size: 8px; font-weight: 900; padding: 1px 3.5px; border-radius: 9999px; border: 1px solid #000;" title="${trafoCount} Gardu Trafo">⚡${trafoCount}</span>` : ''}
-                <div style="color: #f8fafc; font-weight: 900; font-size: ${fontSize}; line-height: 1;">
-                  ${count}
-                </div>
-                <div style="font-size: 7px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; text-transform: uppercase;">
-                  Titik
-                </div>
-              </div>
-            `;
-
-            return L.divIcon({
-              html: html,
-              className: 'cluster-trafo-icon',
-              iconSize: [size, size],
-              iconAnchor: [size / 2, size / 2]
-            });
-          }
-        });
-        clusterGroupRef.current = clusterGroup;
-        map.addLayer(clusterGroup);
-      }
-
-      const targetMarkerLayer = curDensity === 'cluster' && clusterGroup ? clusterGroup : markerFg;
+       const targetMarkerLayer = markerFg;
 
       const currentZoom = map.getZoom();
       const bounds = map.getBounds().pad(0.15); // Buffer 15% di luar viewport layar

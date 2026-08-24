@@ -1078,15 +1078,20 @@ export default function App() {
   };
 
   const handleAddMapLayer = async (layer: MapLayerItem) => {
-    setMapLayers((prev) => [layer, ...prev]);
-    await syncPenyulangLength(layer.nama, layer.coordinates);
+    const layerWithUnit = {
+      ...layer,
+      unit: layer.unit || user.unit || DEFAULT_UNIT,
+      kodeUnit: layer.kodeUnit || user.kodeUnit || getKodeUnitByUnitName(user.unit || DEFAULT_UNIT)
+    };
+    setMapLayers((prev) => [layerWithUnit, ...prev]);
+    await syncPenyulangLength(layerWithUnit.nama, layerWithUnit.coordinates);
     try {
       const firestoreDoc = sanitizeForFirestore({
-        ...layer,
-        coordinates: layer.coordinates.map((c) => ({ lat: c[0], lng: c[1] }))
+        ...layerWithUnit,
+        coordinates: layerWithUnit.coordinates.map((c) => ({ lat: c[0], lng: c[1] }))
       });
-      await setDoc(doc(db, 'map_layers', layer.id), firestoreDoc);
-      logActivity(`Mengimpor peta feeder baru: ${layer.nama}`, 'Peta Feeder');
+      await setDoc(doc(db, 'map_layers', layerWithUnit.id), firestoreDoc);
+      logActivity(`Mengimpor peta feeder baru: ${layerWithUnit.nama}`, 'Peta Feeder');
     } catch (err) {
       console.error('Error adding map layer to Firestore:', err);
     }
@@ -1265,6 +1270,10 @@ export default function App() {
   const filteredSurveyList = useMemo(() => {
     return surveyList.filter((s) => isDataAccessibleByUser(s, user, ownerSelectedUnitFilter));
   }, [surveyList, user, ownerSelectedUnitFilter]);
+
+  const filteredMapLayers = useMemo(() => {
+    return mapLayers.filter((l) => isDataAccessibleByUser(l, user, ownerSelectedUnitFilter));
+  }, [mapLayers, user, ownerSelectedUnitFilter]);
 
   // Handlers for Gangguan (Cloud Firestore synced)
   const handleAddGangguan = async (rawLog: GangguanLog) => {
@@ -2459,7 +2468,7 @@ export default function App() {
 
           {(activeView === 'peta_penyulang' || activeView === 'peta') && (
             <PetaPenyulangView
-              layers={mapLayers}
+              layers={filteredMapLayers}
               onToggleLayer={handleToggleMapLayer}
               onDeleteLayer={handleDeleteMapLayer}
               onAddLayer={handleAddMapLayer}
@@ -2471,7 +2480,7 @@ export default function App() {
 
           {activeView === 'input_peta_penyulang' && (
             <InputPetaPenyulangView
-              layers={mapLayers}
+              layers={filteredMapLayers}
               onAddLayer={handleAddMapLayer}
               onDeleteLayer={handleDeleteMapLayer}
               masterUnits={masterUnitList}
@@ -2563,7 +2572,7 @@ export default function App() {
               onAddSection={handleAddSection}
               onDeleteSection={handleDeleteSection}
               masterUnitList={masterUnitList}
-              mapLayers={mapLayers}
+              mapLayers={filteredMapLayers}
               onAddMapLayer={handleAddMapLayer}
               onDeleteMapLayer={handleDeleteMapLayer}
               onSelectView={setActiveView}

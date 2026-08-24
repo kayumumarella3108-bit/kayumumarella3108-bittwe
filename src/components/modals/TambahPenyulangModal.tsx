@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Factory, Plus, Building2, Zap, Server } from 'lucide-react';
 import { Penyulang, MasterUnitPLN } from '../../types';
 import { getDynamicUnitList } from '../../utils/unitConfig';
+import { addToOfflineQueue } from '../../lib/offlineQueue';
 
 interface TambahPenyulangModalProps {
   isOpen: boolean;
@@ -126,6 +127,9 @@ export const TambahPenyulangModal: React.FC<TambahPenyulangModalProps> = ({
     };
 
     onSave(savedPenyulang);
+    if (!navigator.onLine) {
+      addToOfflineQueue('save_penyulang', savedPenyulang);
+    }
     onClose();
   };
 

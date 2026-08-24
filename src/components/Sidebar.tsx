@@ -47,10 +47,14 @@ import {
   ShieldCheck,
   Palette,
   Filter,
-  Upload
+  Upload,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from 'lucide-react';
 import { ViewType, User } from '../types';
 import { canManageUsers, isPemasaranUser, isInspeksiUser, isPetugasRowUser, canAccessMenu, canEditData, isOwnerUser } from '../utils/permissions';
+import { getOfflineQueue, clearOfflineQueue } from '../lib/offlineQueue';
 
 import { LoginBackgroundModal } from './LoginBackgroundModal';
 import { DAFTAR_UNIT_PLN, getKodeUnitByUnitName } from '../utils/unitConfig';
@@ -92,6 +96,61 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [monitoringYantekOpen, setMonitoringYantekOpen] = useState(
     ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'alker_apd', 'material', 'jadwal_piket', 'kendaraan_operasional'].includes(activeView)
   );
+
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [offlineQueueCount, setOfflineQueueCount] = useState<number>(0);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const updateQueueCount = async () => {
+      try {
+        const queue = await getOfflineQueue();
+        setOfflineQueueCount(queue.length);
+      } catch (e) {
+        setOfflineQueueCount(0);
+      }
+    };
+
+    updateQueueCount();
+    window.addEventListener('papeda-offline-queue-updated', updateQueueCount);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('papeda-offline-queue-updated', updateQueueCount);
+    };
+  }, []);
+
+  const handleSyncOfflineData = async () => {
+    if (!navigator.onLine) {
+      alert('Koneksi internet masih terputus. Pastikan Anda online untuk menyinkronkan data.');
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const queue = await getOfflineQueue();
+      if (queue.length === 0) {
+        alert('Tidak ada data offline yang perlu disinkronkan.');
+        setIsSyncing(false);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await clearOfflineQueue();
+      setOfflineQueueCount(0);
+      alert(`Berhasil menyinkronkan ${queue.length} input data offline ke server & IndexedDB.`);
+    } catch (e) {
+      console.error('Sync failed:', e);
+      alert('Gagal menyinkronkan data offline.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Auto expand active accordion on activeView change
   useEffect(() => {
@@ -892,6 +951,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </button>
           )}
+
+          {/* Connection Status & IndexedDB Queue Widget */}
+          <div className="pt-2.5 border-t border-teal-700/60 mt-3 px-1">
+            <div className={`p-2.5 rounded-xl border flex flex-col gap-2 transition-all ${
+              isOnline ? 'bg-emerald-950/40 border-emerald-600/40 text-emerald-100' : 'bg-amber-950/50 border-amber-500/50 text-amber-100 shadow-lg'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400 animate-ping'}`} />
+                  <span className="text-[11px] font-black tracking-wide uppercase">
+                    {isOnline ? 'Online (Connected)' : 'Offline (IndexedDB Mode)'}
+                  </span>
+                </div>
+                {isOnline ? (
+                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <WifiOff className="w-3.5 h-3.5 text-amber-400" />
+                )}
+              </div>
+
+              {offlineQueueCount > 0 && (
+                <div className="flex items-center justify-between text-[10px] bg-black/30 px-2 py-1 rounded-lg border border-white/10">
+                  <span>Queue: <strong>{offlineQueueCount}</strong> data</span>
+                  <button
+                    onClick={handleSyncOfflineData}
+                    disabled={isSyncing || !isOnline}
+                    className="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold rounded flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Sinkronkan data offline ke server"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* 14. Tombol Keluar / Log Out */}
           <div className="pt-2.5 border-t border-teal-700/60 mt-3">
