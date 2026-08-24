@@ -350,52 +350,22 @@ const getIconSvgHtml = (iconType?: string) => {
 };
 
 const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolean, color: string = '#3b82f6') => {
-  // ALWAYS use a very lightweight CSS circle for standard nodes to maximize performance (60 FPS)
-  // regardless of the layer's iconType setting. Complex SVGs are only for manually customized nodes.
-  if (!isCustomNode) {
-    const html = `
-      <div style="
-        width: 10px;
-        height: 10px;
-        background-color: ${color};
-        border: 1.5px solid #ffffff;
-        border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-      "></div>
-    `;
-    return L.divIcon({
-      html: html,
-      className: 'lightweight-dot-icon',
-      iconSize: [10, 10],
-      iconAnchor: [5, 5],
-      popupAnchor: [0, -5]
-    });
-  }
-
-  const svgHtml = getIconSvgHtml(iconType);
-
   const html = `
     <div style="
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: transparent !important;
-      border: none !important;
-      cursor: pointer;
-      transform-origin: bottom center;
-      transition: transform 0.15s ease;
-      ${isCustomNode ? 'transform: scale(1.15);' : ''}
-    ">
-      ${svgHtml}
-    </div>
+      width: 12px;
+      height: 12px;
+      background-color: ${color};
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+    "></div>
   `;
-
   return L.divIcon({
     html: html,
-    className: 'custom-feeder-realistic-icon',
-    iconSize: [28, 32],
-    iconAnchor: [14, 30],
-    popupAnchor: [0, -28]
+    className: 'lightweight-dot-icon',
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+    popupAnchor: [0, -6]
   });
 };
 
@@ -419,28 +389,10 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
 
       const visibleLayers = curLayers.filter((l) => l.visible);
 
-      // 1. RENDER JALUR KABEL PENYULANG DENGAN CANVAS RENDERER - RINGAN, 60 FPS & HALUS
+      // 1. GARIS FEEDER DIHILANGKAN SESUAI PERMINTAAN AGAR PETA RINGAN
       polyFg.clearLayers();
-      if (curShowPoly) {
-        visibleLayers.forEach((layer) => {
-          if (!layer.coordinates || layer.coordinates.length <= 1) return;
-          const polyline = L.polyline(layer.coordinates, {
-            renderer: canvasRendererRef.current || undefined,
-            color: layer.color || '#3b82f6',
-            weight: 3.5,
-            opacity: 0.85,
-            smoothFactor: 1.2
-          });
-          polyline.bindTooltip(`Rute Feeder: ${layer.nama}`, {
-            permanent: false,
-            direction: 'center',
-            className: 'font-bold text-[10px] px-2 py-0.5 rounded-lg bg-slate-900/80 text-white border-none'
-          });
-          polyFg.addLayer(polyline);
-        });
-      }
 
-      // 2. RENDER MARKERS WITH CLUSTERING / SMART LOD / RAW
+      // 2. RENDER MARKERS DENGAN ICON DEFAULT LEAFLET YANG RINGAN & CEPAT
       markerFg.clearLayers();
 
       if (clusterGroupRef.current) {
@@ -1372,67 +1324,8 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
           )}
         </div>
 
-        {/* Top Right Controls: Performance Engine & Map Base Style */}
+        {/* Top Right Controls: Map Base Style Only */}
         <div className="absolute top-4 right-4 z-10 flex flex-wrap items-center gap-2">
-          {/* Performance & Clustering Badge / Selector */}
-          <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-md">
-            <button
-              onClick={() => setDensityMode('cluster')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                densityMode === 'cluster'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-              title="Mode Cluster: Mengelompokkan tiang dan gardu trafo yang padat secara dinamis untuk performa zoom super mulus (60 FPS)"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Cluster (60 FPS)</span>
-            </button>
-
-            <button
-              onClick={() => setDensityMode('smart')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                densityMode === 'smart'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-              title="Smart LOD: Level of Detail adaptif berdasarkan tingkat zoom peta"
-            >
-              <Target className="w-3.5 h-3.5" />
-              <span>Smart LOD</span>
-            </button>
-
-            <button
-              onClick={() => setDensityMode('all')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                densityMode === 'all'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-              title="Semua Titik: Render seluruh titik tiang dan gardu tanpa sampling/pengelompokan"
-            >
-              <span>Semua Tiang</span>
-            </button>
-
-            <button
-              onClick={() => setShowPolyline(!showPolyline)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                showPolyline
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Aktifkan/Nonaktifkan garis rute feeder kabel (Canvas Hardware Accelerated)"
-            >
-              <GitBranch className="w-3.5 h-3.5" />
-              <span>Garis Feeder</span>
-            </button>
-
-            <div className="px-2 py-1 text-[11px] font-bold text-slate-500 border-l border-slate-200 flex items-center gap-1">
-              <span>{visibleMarkerCount}</span>
-              <span className="font-medium text-slate-400">tiang</span>
-            </div>
-          </div>
-
           {/* Map Base Style Selector */}
           <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-md">
             <button

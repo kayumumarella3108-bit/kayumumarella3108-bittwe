@@ -1041,8 +1041,45 @@ export default function App() {
     }
   };
 
+  const calculateDistanceKms = (coords: [number, number][]): number => {
+    if (!coords || coords.length <= 1) return 0;
+    let totalKm = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const [lat1, lon1] = coords[i];
+      const [lat2, lon2] = coords[i + 1];
+      const R = 6371;
+      const dLat = (lat2 - lat1) * (Math.PI / 180);
+      const dLon = (lon2 - lon1) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      totalKm += R * c;
+    }
+    return Number(totalKm.toFixed(2));
+  };
+
+  const syncPenyulangLength = async (layerName: string, coords: [number, number][]) => {
+    const kms = calculateDistanceKms(coords);
+    if (kms <= 0) return;
+    const matched = penyulangList.find(
+      (p) => p.namaPenyulang.trim().toUpperCase() === layerName.trim().toUpperCase() || p.id === layerName
+    );
+    if (matched) {
+      const updatedPenyulang = { ...matched, panjangJaringanKms: kms };
+      setPenyulangList((prev) => prev.map((p) => (p.id === matched.id ? updatedPenyulang : p)));
+      try {
+        await setDoc(doc(db, 'penyulang_list', matched.id), sanitizeForFirestore(updatedPenyulang));
+      } catch (e) {
+        console.error('Error syncing penyulang length to Firestore:', e);
+      }
+    }
+  };
+
   const handleAddMapLayer = async (layer: MapLayerItem) => {
     setMapLayers((prev) => [layer, ...prev]);
+    await syncPenyulangLength(layer.nama, layer.coordinates);
     try {
       const firestoreDoc = sanitizeForFirestore({
         ...layer,
@@ -1057,6 +1094,7 @@ export default function App() {
 
   const handleUpdateMapLayer = async (updatedLayer: MapLayerItem) => {
     setMapLayers((prev) => prev.map((l) => (l.id === updatedLayer.id ? updatedLayer : l)));
+    await syncPenyulangLength(updatedLayer.nama, updatedLayer.coordinates);
     try {
       const firestoreDoc = sanitizeForFirestore({
         ...updatedLayer,
