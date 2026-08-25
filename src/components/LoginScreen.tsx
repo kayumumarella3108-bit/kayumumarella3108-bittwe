@@ -458,11 +458,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onLoginSucces
           </form>
 
           {/* Bottom info text */}
-          <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Keandalan 20kV Baguala</span>
-            <span className="text-emerald-600 font-bold flex items-center gap-1">
-              <Leaf className="w-3 h-3" /> EBT Integrated
-            </span>
+          <div className="mt-6 pt-3 border-t border-slate-100 flex flex-col items-center text-center">
+            <span className="font-['Dancing_Script',cursive] text-lg text-slate-700">Papeda</span>
+            <span className="text-[10px] text-slate-400 font-medium">Aplikasi Perang Padam</span>
           </div>
         </div>
 

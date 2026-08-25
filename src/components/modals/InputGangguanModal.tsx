@@ -18,7 +18,8 @@ import {
   Layers,
   GitBranch,
   ChevronDown,
-  Edit3
+  Edit3,
+  Building2
 } from 'lucide-react';
 import { GangguanLog, Penyulang, SectionJaringan, SectionRestoration, MasterUnitPLN } from '../../types';
 import { getDynamicUnitList, getKodeUnitByUnitName } from '../../utils/unitConfig';

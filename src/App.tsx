@@ -72,6 +72,7 @@ import { sendWaNotification } from './utils/whatsappNotifier';
 import { updatePresenceInFirestore, markPresenceOfflineInFirestore, calculatePresenceStatus } from './utils/presenceTracker';
 import { isDataAccessibleByUser, DEFAULT_UNIT, DEFAULT_KODE_UNIT, getKodeUnitByUnitName } from './utils/unitConfig';
 import { Lock, Bell, AlertTriangle, X, CheckCircle2, Radio } from 'lucide-react';
+import { AnimatePresence, motion } from "motion/react";
 import { LoginScreen } from './components/LoginScreen';
 import { TopHeader } from './components/TopHeader';
 import { Sidebar } from './components/Sidebar';
@@ -2467,182 +2468,310 @@ export default function App() {
           )}
 
           {(activeView === 'peta_penyulang' || activeView === 'peta') && (
-            <PetaPenyulangView
-              layers={filteredMapLayers}
-              onToggleLayer={handleToggleMapLayer}
-              onDeleteLayer={handleDeleteMapLayer}
-              onAddLayer={handleAddMapLayer}
-              onUpdateLayer={handleUpdateMapLayer}
-              masterUnits={masterUnitList}
-              masterPenyulangs={penyulangList}
-            />
+            <motion.div
+              key="peta_penyulang"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PetaPenyulangView
+                layers={filteredMapLayers}
+                onToggleLayer={handleToggleMapLayer}
+                onDeleteLayer={handleDeleteMapLayer}
+                onAddLayer={handleAddMapLayer}
+                onUpdateLayer={handleUpdateMapLayer}
+                masterUnits={masterUnitList}
+                masterPenyulangs={penyulangList}
+              />
+            </motion.div>
           )}
 
           {activeView === 'input_peta_penyulang' && (
-            <InputPetaPenyulangView
-              layers={filteredMapLayers}
-              onAddLayer={handleAddMapLayer}
-              onDeleteLayer={handleDeleteMapLayer}
-              masterUnits={masterUnitList}
-              masterPenyulangs={penyulangList}
-              onSelectView={setActiveView}
-            />
+            <motion.div
+              key="input_peta_penyulang"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <InputPetaPenyulangView
+                layers={filteredMapLayers}
+                onAddLayer={handleAddMapLayer}
+                onDeleteLayer={handleDeleteMapLayer}
+                masterUnits={masterUnitList}
+                masterPenyulangs={penyulangList}
+                onSelectView={setActiveView}
+              />
+            </motion.div>
           )}
 
           {activeView === 'peta_pohon' && (
-            <PetaPohonView
-              currentUser={user}
-              pohonList={filteredPohonGisList}
-              penyulangList={filteredPenyulangList}
-              layers={mapLayers}
-              onAddPohon={handleAddPohonGis}
-              onImportBatch={handleBatchAddPohonGis}
-              onUpdatePohon={handleUpdatePohonGis}
-              onDeletePohon={handleDeletePohonGis}
-            />
+            <motion.div
+              key="peta_pohon"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PetaPohonView
+                currentUser={user}
+                pohonList={filteredPohonGisList}
+                penyulangList={filteredPenyulangList}
+                layers={mapLayers}
+                onAddPohon={handleAddPohonGis}
+                onImportBatch={handleBatchAddPohonGis}
+                onUpdatePohon={handleUpdatePohonGis}
+                onDeletePohon={handleDeletePohonGis}
+              />
+            </motion.div>
           )}
 
           {activeView === 'peta_konstruksi' && (
-            <PetaKonstruksiView
-              currentUser={user}
-              konstruksiList={filteredKonstruksiGisList}
-              penyulangList={filteredPenyulangList}
-              onAddKonstruksi={handleAddKonstruksiGis}
-              onImportBatch={handleBatchAddKonstruksiGis}
-              onUpdateKonstruksi={handleUpdateKonstruksiGis}
-              onDeleteKonstruksi={handleDeleteKonstruksiGis}
-            />
+            <motion.div
+              key="peta_konstruksi"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PetaKonstruksiView
+                currentUser={user}
+                konstruksiList={filteredKonstruksiGisList}
+                penyulangList={filteredPenyulangList}
+                onAddKonstruksi={handleAddKonstruksiGis}
+                onImportBatch={handleBatchAddKonstruksiGis}
+                onUpdateKonstruksi={handleUpdateKonstruksiGis}
+                onDeleteKonstruksi={handleDeleteKonstruksiGis}
+              />
+            </motion.div>
           )}
 
           {activeView === 'sld_visio' && (
-            <SldVisioView />
+            <motion.div
+              key="sld_visio"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <SldVisioView />
+            </motion.div>
           )}
 
           {activeView === 'health_index' && (
-            <HealthIndexView
-              penyulangList={filteredPenyulangList}
-              gangguanList={filteredGangguanList}
-              sectionList={filteredSectionList}
-              onAddGangguan={handleAddGangguan}
-            />
+            <motion.div
+              key="health_index"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <HealthIndexView
+                penyulangList={filteredPenyulangList}
+                gangguanList={filteredGangguanList}
+                sectionList={filteredSectionList}
+                onAddGangguan={handleAddGangguan}
+              />
+            </motion.div>
           )}
 
           {(activeView === 'matriks_gangguan' || activeView === 'gangguan') && (
-            <GangguanTripView
-              currentUser={user}
-              gangguanList={filteredGangguanList}
-              penyulangList={filteredPenyulangList}
-              sectionList={filteredSectionList}
-              onAddGangguan={handleAddGangguan}
-              onDeleteGangguan={handleDeleteGangguan}
-            />
+            <motion.div
+              key="matriks_gangguan"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <GangguanTripView
+                currentUser={user}
+                gangguanList={filteredGangguanList}
+                penyulangList={filteredPenyulangList}
+                sectionList={filteredSectionList}
+                onAddGangguan={handleAddGangguan}
+                onDeleteGangguan={handleDeleteGangguan}
+              />
+            </motion.div>
           )}
 
           {activeView === 'monitoring_target_realisasi' && (
-            <MonitoringTargetRealisasiView
-              currentUser={user}
-              rowList={filteredRowList}
-              tier1List={filteredTier1List}
-              tier2List={filteredTier2List}
-            />
+            <motion.div
+              key="monitoring_target_realisasi"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <MonitoringTargetRealisasiView
+                currentUser={user}
+                rowList={filteredRowList}
+                tier1List={filteredTier1List}
+                tier2List={filteredTier2List}
+              />
+            </motion.div>
           )}
 
           {(activeView === 'row' ||
             activeView === 'inspeksi_tier1' ||
             activeView === 'inspeksi_tier2' ||
             activeView === 'pemeliharaan_20kv') && (
-            <PemeliharaanView
-              currentUser={user}
-              currentSubView={activeView}
-              rowList={filteredRowList}
-              tier1List={filteredTier1List}
-              tier2List={filteredTier2List}
-              monitoringList={filteredMonitoringList}
-              onSelectSubView={setActiveView}
-            />
+            <motion.div
+              key="pemeliharaan"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PemeliharaanView
+                currentUser={user}
+                currentSubView={activeView}
+                rowList={filteredRowList}
+                tier1List={filteredTier1List}
+                tier2List={filteredTier2List}
+                monitoringList={filteredMonitoringList}
+                onSelectSubView={setActiveView}
+              />
+            </motion.div>
           )}
 
           {activeView === 'master_data' && (
-            <MasterDataView
-              penyulangList={filteredPenyulangList}
-              sectionList={filteredSectionList}
-              activities={activities}
-              onAddPenyulang={handleAddPenyulang}
-              onDeletePenyulang={handleDeletePenyulang}
-              onAddSection={handleAddSection}
-              onDeleteSection={handleDeleteSection}
-              masterUnitList={masterUnitList}
-              mapLayers={filteredMapLayers}
-              onAddMapLayer={handleAddMapLayer}
-              onDeleteMapLayer={handleDeleteMapLayer}
-              onSelectView={setActiveView}
-            />
+            <motion.div
+              key="master_data"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <MasterDataView
+                penyulangList={filteredPenyulangList}
+                sectionList={filteredSectionList}
+                activities={activities}
+                onAddPenyulang={handleAddPenyulang}
+                onDeletePenyulang={handleDeletePenyulang}
+                onAddSection={handleAddSection}
+                onDeleteSection={handleDeleteSection}
+                masterUnitList={masterUnitList}
+                mapLayers={filteredMapLayers}
+                onAddMapLayer={handleAddMapLayer}
+                onDeleteMapLayer={handleDeleteMapLayer}
+                onSelectView={setActiveView}
+              />
+            </motion.div>
           )}
 
           {activeView === 'master_unit' && (
-            <MasterUnitView
-              currentUser={user}
-              unitList={masterUnitList}
-              onAddUnit={handleAddMasterUnit}
-              onUpdateUnit={handleUpdateMasterUnit}
-              onDeleteUnit={handleDeleteMasterUnit}
-            />
+            <motion.div
+              key="master_unit"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <MasterUnitView
+                currentUser={user}
+                unitList={masterUnitList}
+                onAddUnit={handleAddMasterUnit}
+                onUpdateUnit={handleUpdateMasterUnit}
+                onDeleteUnit={handleDeleteMasterUnit}
+              />
+            </motion.div>
           )}
 
           {activeView === 'helpdesk' && (
-            <HelpDeskView
-              currentUser={user}
-              messages={helpDeskMessages}
-              onSendMessage={handleSendHelpDeskMessage}
-              onUpdateStatus={handleUpdateHelpDeskStatus}
-              onDeleteMessage={handleDeleteHelpDeskMessage}
-            />
+            <motion.div
+              key="helpdesk"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <HelpDeskView
+                currentUser={user}
+                messages={helpDeskMessages}
+                onSendMessage={handleSendHelpDeskMessage}
+                onUpdateStatus={handleUpdateHelpDeskStatus}
+                onDeleteMessage={handleDeleteHelpDeskMessage}
+              />
+            </motion.div>
           )}
 
           {activeView === 'saidi_saifi' && (
-            <SaidiSaifiView
-              currentUser={user}
-              saidiList={filteredSaidiList}
-              penyulangList={filteredPenyulangList}
-              onAddSaidi={handleAddSaidi}
-              onDeleteSaidi={handleDeleteSaidi}
-              ownerSelectedUnitFilter={ownerSelectedUnitFilter}
-              onSelectUnitFilter={setOwnerSelectedUnitFilter}
-            />
+            <motion.div
+              key="saidi_saifi"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <SaidiSaifiView
+                currentUser={user}
+                saidiList={filteredSaidiList}
+                penyulangList={filteredPenyulangList}
+                onAddSaidi={handleAddSaidi}
+                onDeleteSaidi={handleDeleteSaidi}
+                ownerSelectedUnitFilter={ownerSelectedUnitFilter}
+                onSelectUnitFilter={setOwnerSelectedUnitFilter}
+              />
+            </motion.div>
           )}
 
           {activeView === 'estimasi_saidi_saifi' && (
-            <EstimasiSaidiSaifiView
-              currentUser={user}
-              gangguanList={filteredGangguanList}
-              penyulangList={filteredPenyulangList}
-              sectionList={filteredSectionList}
-              onSelectView={setActiveView}
-            />
+            <motion.div
+              key="estimasi_saidi_saifi"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <EstimasiSaidiSaifiView
+                currentUser={user}
+                gangguanList={filteredGangguanList}
+                penyulangList={filteredPenyulangList}
+                sectionList={filteredSectionList}
+                onSelectView={setActiveView}
+              />
+            </motion.div>
           )}
 
           {activeView === 'material' && (
-            <MaterialView
-              currentUser={user}
-              stokList={filteredStokList}
-              pemakaianList={filteredPemakaianList}
-              onAddStok={handleAddStok}
-              onUpdateStok={handleUpdateStok}
-              onDeleteStok={handleDeleteStok}
-              onAddPemakaian={handleAddPemakaian}
-              onUpdatePemakaian={handleUpdatePemakaian}
-              onDeletePemakaian={handleDeletePemakaian}
-            />
+            <motion.div
+              key="material"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <MaterialView
+                currentUser={user}
+                stokList={filteredStokList}
+                pemakaianList={filteredPemakaianList}
+                onAddStok={handleAddStok}
+                onUpdateStok={handleUpdateStok}
+                onDeleteStok={handleDeleteStok}
+                onAddPemakaian={handleAddPemakaian}
+                onUpdatePemakaian={handleUpdatePemakaian}
+                onDeletePemakaian={handleDeletePemakaian}
+              />
+            </motion.div>
           )}
 
           {activeView === 'alker_apd' && (
-            <AlkerApdView
-              currentUser={user}
-              alkerApdList={filteredAlkerApdList}
-              onAddAlkerApd={handleAddAlkerApd}
-              onUpdateAlkerApd={handleUpdateAlkerApd}
-              onDeleteAlkerApd={handleDeleteAlkerApd}
-            />
+            <motion.div
+              key="alker_apd"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AlkerApdView
+                currentUser={user}
+                alkerApdList={filteredAlkerApdList}
+                onAddAlkerApd={handleAddAlkerApd}
+                onUpdateAlkerApd={handleUpdateAlkerApd}
+                onDeleteAlkerApd={handleDeleteAlkerApd}
+              />
+            </motion.div>
           )}
 
           {activeView === 'kendaraan_operasional' && (

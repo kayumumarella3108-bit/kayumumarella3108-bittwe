@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'motion/react';
 import {
   Zap,
   ClipboardList,
@@ -569,7 +570,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           { label: 'Yantek SPK Harian', value: yantekPerformanceStats.totalSpk.toString(), desc: 'Penanganan Terbit', icon: Wrench, color: 'text-purple-600 bg-purple-50 border-purple-200' },
           { label: 'Survey Agenda', value: surveyStatsData.totalSurvey.toString(), desc: 'Pasang Baru & PD', icon: FileSpreadsheet, color: 'text-rose-600 bg-rose-50 border-rose-200' }
         ].map((item, idx) => (
-          <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-3xs flex flex-col justify-between hover:shadow-2xs transition-all">
+          <motion.div
+            key={idx}
+            whileHover={{ y: -5, scale: 1.02 }}
+            className="bg-white p-4 rounded-xl border border-slate-200 shadow-3xs flex flex-col justify-between hover:shadow-2xs transition-all"
+          >
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider leading-none">{item.label}</span>
               <div className={`p-1.5 rounded-lg border ${item.color}`}><item.icon className="w-3.5 h-3.5" /></div>
@@ -578,7 +583,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <p className="text-xl md:text-2xl font-black text-slate-900 leading-none">{item.value}</p>
               <p className="text-[9px] font-bold text-slate-500 mt-1">{item.desc}</p>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
