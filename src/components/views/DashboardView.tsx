@@ -536,14 +536,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Global Unit Filter & Date Range Filter & Print Button inside the Dashboard Header */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl backdrop-blur-xs shadow-inner">
-            <span className="text-[10px] font-black text-teal-200 uppercase tracking-widest whitespace-nowrap">Filter Unit:</span>
+            <span className="text-[10px] font-black text-teal-200 uppercase tracking-widest whitespace-nowrap">Filter ULP:</span>
             <select
               value={ownerSelectedUnitFilter}
               onChange={(e) => onSelectUnitFilter && onSelectUnitFilter(e.target.value)}
               className="bg-slate-900 text-white border border-teal-700 text-xs font-extrabold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs min-w-[170px]"
             >
               <option value="SEMUA">🌐 Semua Unit ULP</option>
-              {DAFTAR_UNIT_PLN.map((u, idx) => (
+              {DAFTAR_UNIT_PLN.filter(u => u.tipe === 'ULP').map((u, idx) => (
                 <option key={`dash_unit_opt_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-slate-900 text-white text-xs">
                   {u.namaUnit} ({u.kodeUnit})
                 </option>
@@ -703,7 +703,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold">
+                    <tr className="border-b border-slate-700 bg-[#022e2a] text-teal-100 font-bold">
                       <th className="p-3">Nama Penyulang (Feeder)</th>
                       <th className="p-3 text-center">Jumlah Outage (Trip)</th>
                       <th className="p-3 text-center">Total Durasi Padam</th>
@@ -714,21 +714,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <tbody>
                     {gangguanPangkalStats.map((item, idx) => {
                       let kerawanan = 'RENDAH';
-                      let color = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+                      let color = 'text-emerald-300 bg-emerald-950 border-emerald-800';
                       if (item.jumlahGangguan >= 7) {
                         kerawanan = 'KRITIS / TINGGI';
-                        color = 'text-rose-700 bg-rose-50 border-rose-200';
+                        color = 'text-rose-300 bg-rose-950 border-rose-800';
                       } else if (item.jumlahGangguan >= 4) {
                         kerawanan = 'SEDANG';
-                        color = 'text-amber-700 bg-amber-50 border-amber-200';
+                        color = 'text-amber-300 bg-amber-950 border-amber-800';
                       }
 
                       return (
-                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
-                          <td className="p-3 font-extrabold text-slate-800">{item.name}</td>
-                          <td className="p-3 text-center font-black text-slate-900">{item.jumlahGangguan} kali</td>
-                          <td className="p-3 text-center font-bold text-slate-600">{item.totalDurasiMenit} Menit</td>
-                          <td className="p-3 text-center font-mono font-bold text-slate-700">{item.arusMaksimum} Ampere</td>
+                        <tr key={idx} className="border-b border-slate-700 hover:bg-[#033c36] text-white">
+                          <td className="p-3 font-extrabold text-white">{item.name}</td>
+                          <td className="p-3 text-center font-black text-white">{item.jumlahGangguan} kali</td>
+                          <td className="p-3 text-center font-bold text-teal-100">{item.totalDurasiMenit} Menit</td>
+                          <td className="p-3 text-center font-mono font-bold text-teal-100">{item.arusMaksimum} Ampere</td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${color}`}>
                               {kerawanan}
