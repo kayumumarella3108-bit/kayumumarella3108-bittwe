@@ -257,7 +257,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onLoginSucces
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col justify-between items-center text-slate-900 bg-slate-950 overflow-x-hidden font-sans">
+    <div className="relative min-h-screen w-full flex flex-col justify-between items-center text-white bg-[#022e2a] overflow-x-hidden font-sans">
       {/* Top Right Quick Action: Ganti Latar Belakang Login */}
       <div className="absolute top-4 right-4 z-30">
         <button
@@ -374,23 +374,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onLoginSucces
       {/* Main Container */}
       <div className="relative z-10 w-full max-w-xl px-4 py-8 my-auto flex flex-col items-center text-center">
         
-        {/* Title */}
-        <div className="mb-3">
-          <h1 className="text-4xl md:text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-amber-300 drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] uppercase">
-            PAPEDA
-          </h1>
+        {/* Title / Header */}
+        <div className="mb-6 flex flex-col items-center">
+            <h1 className="text-4xl md:text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-amber-300 drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] uppercase">
+              PAPEDA
+            </h1>
+            <span className="text-sm md:text-base text-white/90 font-bold tracking-widest uppercase">Aplikasi Perang Padam</span>
         </div>
 
-
         {/* Centered Login Form Card */}
-        <div className="w-full max-w-md bg-white/95 rounded-2xl p-7 shadow-2xl border border-emerald-500/20 backdrop-blur-md text-left">
+        <div className="w-full max-w-md bg-[#022e2a]/95 rounded-2xl p-7 shadow-2xl border border-teal-500/30 backdrop-blur-md text-left">
           <div className="mb-4">
-            <h2 className="text-base font-extrabold text-slate-900">Masuk Akun Sistem</h2>
-            <p className="text-xs text-slate-500">Gunakan username dan password Anda</p>
+            <h2 className="text-base font-extrabold text-white">Login</h2>
           </div>
 
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+            <div className="mb-4 p-3 rounded-xl bg-rose-500/20 border border-rose-500/50 text-white text-xs font-semibold">
               {errorMsg}
             </div>
           )}
@@ -398,11 +397,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onLoginSucces
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Username Field */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label className="block text-xs font-bold text-teal-100 mb-1.5">
                 Username / User ID
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-teal-300">
                   <UserIcon className="w-4 h-4" />
                 </div>
                 <input
@@ -410,24 +409,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onLoginSucces
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Masukkan username..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#012521] border border-teal-700 rounded-xl text-xs text-white placeholder-teal-500 focus:outline-none focus:bg-[#02312b] focus:border-teal-400 focus:ring-2 focus:ring-teal-500/30 transition-all font-medium"
                 />
               </div>
-              {matchedUser && (
-                <div className="mt-1 flex items-center justify-between text-[11px] text-teal-700 bg-teal-50 px-2 py-1 rounded-lg border border-teal-200">
-                  <span>Nama: <strong>{matchedUser.name}</strong> ({matchedUser.role})</span>
-                  <span className="font-mono font-bold">Kode: {matchedUser.kodeUnit || getKodeUnitByUnitName(matchedUser.unit)}</span>
-                </div>
-              )}
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label className="block text-xs font-bold text-teal-100 mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-teal-300">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -435,12 +428,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onLoginSucces
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password..."
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                  className="w-full pl-10 pr-10 py-2.5 bg-[#012521] border border-teal-700 rounded-xl text-xs text-white placeholder-teal-500 focus:outline-none focus:bg-[#02312b] focus:border-teal-400 focus:ring-2 focus:ring-teal-500/30 transition-all font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-teal-300 hover:text-white transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -450,29 +443,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onLoginSucces
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 active:from-teal-800 active:to-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-teal-500/20 transition-all cursor-pointer"
+              className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 active:from-teal-800 active:to-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-teal-950/40 transition-all cursor-pointer border border-teal-500/50"
             >
               <Lock className="w-4 h-4" />
-              Masuk Aplikasi ({activeUnitName})
+              Login
             </button>
           </form>
 
-          {/* Bottom info text */}
-          <div className="mt-6 pt-3 border-t border-slate-100 flex flex-col items-center text-center">
-            <span className="font-['Dancing_Script',cursive] text-lg text-slate-700">Papeda</span>
-            <span className="text-[10px] text-slate-400 font-medium">Aplikasi Perang Padam</span>
-          </div>
+          {/* Removed Support Badge */}
         </div>
-
-        {/* Support Badges moved below login form */}
-        <div className="mt-6 flex items-center gap-2 flex-wrap justify-center">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/30 text-blue-300 text-xs font-semibold backdrop-blur-md shadow-xs">
-            <Zap className="w-3.5 h-3.5 text-blue-400 fill-blue-400" />
-            <span>Support by THE TUKIMEN</span>
-          </div>
-        </div>
-
-
       </div>
 
       {/* Floating Bottom Left Badge */}

@@ -97,6 +97,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   // Active Tab for the 5 requested dashboards
   const [activeTab, setActiveTab] = useState<'pangkal' | 'kode' | 'gardu' | 'yantek' | 'survey'>('pangkal');
+  const [dateRange, setDateRange] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
 
   // 1. UNIT DETAILS & BRANDING
   const unitInfo = useMemo(() => {
@@ -532,7 +533,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Global Unit Filter & Print Button inside the Dashboard Header */}
+        {/* Global Unit Filter & Date Range Filter & Print Button inside the Dashboard Header */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl backdrop-blur-xs shadow-inner">
             <span className="text-[10px] font-black text-teal-200 uppercase tracking-widest whitespace-nowrap">Filter Unit:</span>
@@ -547,6 +548,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {u.namaUnit} ({u.kodeUnit})
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl backdrop-blur-xs shadow-inner">
+            <span className="text-[10px] font-black text-teal-200 uppercase tracking-widest whitespace-nowrap">Rentang:</span>
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value as any)}
+              className="bg-slate-900 text-white border border-teal-700 text-xs font-extrabold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs"
+            >
+              <option value="weekly">📅 Mingguan</option>
+              <option value="monthly">📅 Bulanan</option>
+              <option value="yearly">📅 Tahunan</option>
             </select>
           </div>
 

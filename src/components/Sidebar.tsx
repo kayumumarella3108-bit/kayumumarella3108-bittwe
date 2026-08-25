@@ -215,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {isOwnerUser(currentUser) ? (
                     <div className="mt-1">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/20 border border-amber-400/60 text-amber-300 text-[9px] font-black uppercase tracking-tight shadow-xs">
-                        👑 OWNER (AKSES SEMUA UNIT)
+                        👑 OWNER
                       </span>
                     </div>
                   ) : (
@@ -1028,7 +1028,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Apakah Anda yakin ingin keluar dari sistem Digitalisasi Monitoring PLN ULP Baguala?
+              Apakah Anda yakin ingin keluar dari sistem?
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
@@ -1036,7 +1036,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => setShowLogoutConfirm(false)}
                 className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
               >
-                Batal
+                Cancel
               </button>
               <button
                 onClick={() => {
@@ -1048,7 +1048,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-rose-600/20"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>Ya, Keluar</span>
+                <span>Log Out</span>
               </button>
             </div>
           </div>
