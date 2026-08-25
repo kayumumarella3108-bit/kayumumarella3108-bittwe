@@ -76,6 +76,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { LoginScreen } from './components/LoginScreen';
 import { TopHeader } from './components/TopHeader';
 import { Sidebar } from './components/Sidebar';
+import { SearchProvider } from './context/SearchContext';
 
 // Views
 import { DashboardView } from './components/views/DashboardView';
@@ -120,6 +121,7 @@ export default function App() {
 
   // Unit Access & Filter State for Owner & Multi-Unit
   const [ownerSelectedUnitFilter, setOwnerSelectedUnitFilter] = useState<string>('SEMUA');
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Active view & navigation state
   const [activeView, setActiveView] = useState<ViewType>('matriks_gangguan');
@@ -2356,18 +2358,19 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
-      {/* Top Header Navigation */}
-      <TopHeader
-        user={user}
-        onLogout={handleLogout}
-        activeView={activeView}
-        onSelectView={setActiveView}
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
-        onlineCount={onlineUsersList.filter((p) => calculatePresenceStatus(p).status === 'online').length}
-        ownerSelectedUnitFilter={ownerSelectedUnitFilter}
-        onSelectUnitFilter={setOwnerSelectedUnitFilter}
-      />
+      <SearchProvider>
+        {/* Top Header Navigation */}
+        <TopHeader
+          user={user}
+          onLogout={handleLogout}
+          activeView={activeView}
+          onSelectView={setActiveView}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+          onlineCount={onlineUsersList.filter((p) => calculatePresenceStatus(p).status === 'online').length}
+          ownerSelectedUnitFilter={ownerSelectedUnitFilter}
+          onSelectUnitFilter={setOwnerSelectedUnitFilter}
+        />
 
       {/* Broadcast Message Banner (Top System Notification) */}
       {activeBroadcast && !dismissedBroadcastIds.includes(activeBroadcast.id) && (
@@ -2978,6 +2981,7 @@ export default function App() {
           )}
         </main>
       </div>
+    </SearchProvider>
     </div>
   );
 }

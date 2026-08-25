@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Menu, MessageSquare } from 'lucide-react';
 import { User as UserType, ViewType } from '../types';
-import { PLN_LOGO_BASE64 } from '../utils/plnLogo';
 import { HssePlnLogo } from './HssePlnLogo';
 import { isOwnerUser } from '../utils/permissions';
+import { useSearch } from '../context/SearchContext';
 
 interface TopHeaderProps {
   user?: UserType;
@@ -26,6 +26,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onlineCount
 }) => {
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
+  const { searchTerm, setSearchTerm } = useSearch();
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -61,8 +62,19 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         </div>
       </div>
 
-      {/* Middle/Right Section: Live Chat, Online Monitoring, K3 Logo */}
+      {/* Middle/Right Section: Search, Live Chat, Online Monitoring, K3 Logo */}
       <div className="flex items-center gap-2.5 md:gap-4">
+        
+        {/* Search Input */}
+        <div className="hidden md:flex items-center bg-[#012521] border border-teal-700 rounded-xl px-3 py-2 shadow-inner">
+          <input
+            type="text"
+            placeholder="Cari penyulang, section, ID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="bg-transparent text-xs text-white placeholder-teal-400 focus:outline-none w-48"
+          />
+        </div>
 
         <button
           onClick={() => onSelectView('live_chat')}

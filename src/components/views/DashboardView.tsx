@@ -59,6 +59,7 @@ import {
 } from '../../types';
 import { DAFTAR_UNIT_PLN, getUnitDetails } from '../../utils/unitConfig';
 import { isOwnerUser } from '../../utils/permissions';
+import { useSearch } from '../../context/SearchContext';
 
 interface DashboardViewProps {
   currentUser?: User | null;
@@ -98,6 +99,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Active Tab for the 5 requested dashboards
   const [activeTab, setActiveTab] = useState<'pangkal' | 'kode' | 'gardu' | 'yantek' | 'survey'>('pangkal');
   const [dateRange, setDateRange] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [selectedFeeder, setSelectedFeeder] = useState<string | null>(null);
+  const { searchTerm } = useSearch();
+
+  const filteredGangguanList = useMemo(() => {
+    if (!searchTerm) return gangguanList;
+    const lowerSearch = searchTerm.toLowerCase();
+    return gangguanList.filter(g => 
+      (g.namaPenyulang || '').toLowerCase().includes(lowerSearch) ||
+      (g.section || '').toLowerCase().includes(lowerSearch) ||
+      (g.id || '').toLowerCase().includes(lowerSearch)
+    );
+  }, [gangguanList, searchTerm]);
 
   // 1. UNIT DETAILS & BRANDING
   const unitInfo = useMemo(() => {
@@ -117,7 +130,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const gangguanPangkalStats = useMemo(() => {
     // Group outages by feeder (penyulang)
     const feederMap: { [key: string]: { count: number; duration: number; maxCurrent: number } } = {};
-    gangguanList.forEach(g => {
+    filteredGangguanList.forEach(g => {
       const pName = g.namaPenyulang || 'Penyulang Tidak Dikenal';
       const durMin = parseFloat(g.durasi) || 45; // default estimation
       const maxArus = Math.max(g.arusR || 0, g.arusS || 0, g.arusT || 0);
@@ -160,7 +173,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     };
 
     let classifiedCount = 0;
-    gangguanList.forEach(g => {
+    filteredGangguanList.forEach(g => {
       const code = (g.kodeGangguan || '').trim().toUpperCase();
       const p = (g.penyebab || '').toLowerCase();
 
@@ -278,8 +291,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const prosesSpk = spkList.filter(s => s.status === 'Dalam Proses').length;
     const rencanaSpk = spkList.filter(s => s.status === 'Terencana' || s.status === 'Draft').length;
 
-    const totalGangguan = gangguanList.length;
-    const selesaiGangguan = gangguanList.filter(g => g.jamMasuk && g.jamMasuk !== '-' && g.jamMasuk !== '').length;
+    const totalGangguan = filteredGangguanList.length;
+    const selesaiGangguan = filteredGangguanList.filter(g => g.jamMasuk && g.jamMasuk !== '-' && g.jamMasuk !== '').length;
     const pendingGangguan = totalGangguan - selesaiGangguan;
 
     const completionRate = totalSpk > 0 ? Math.round((selesaiSpk / totalSpk) * 100) : 100;
@@ -700,6 +713,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {/* Outage Pangkal Summary Table */}
             <div className="bg-[#022e2a]/80 p-5 rounded-2xl border border-teal-500/30 backdrop-blur-md shadow-lg">
               <h3 className="text-sm font-black text-teal-100 mb-4 tracking-wider uppercase">Daftar Frekuensi Trip &amp; Durasi Pemulihan Feeder</h3>
+              
+              {/* Chart Visualization */}
+              <div className="h-64 mb-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={gangguanPangkalStats} onClick={(data) => {
+                    if (data && data.activePayload && data.activePayload[0]) {
+                        const name = data.activePayload[0].payload.name;
+                        setSelectedFeeder(selectedFeeder === name ? null : name);
+                    }
+                  }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize: 10}} />
+                    <YAxis stroke="#94a3b8" tick={{fontSize: 10}} />
+                    <Tooltip contentStyle={{backgroundColor: '#022e2a', borderColor: '#0d9488'}} />
+                    <Bar dataKey="jumlahGangguan" radius={[4, 4, 0, 0]} cursor="pointer">
+                       {gangguanPangkalStats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={selectedFeeder === entry.name ? '#f59e0b' : '#14b8a6'} />
+                       ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
@@ -712,7 +748,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {gangguanPangkalStats.map((item, idx) => {
+                    {gangguanPangkalStats.filter(item => !selectedFeeder || item.name === selectedFeeder).map((item, idx) => {
                       let kerawanan = 'RENDAH';
                       let color = 'text-emerald-700 bg-emerald-50 border-emerald-200';
                       if (item.jumlahGangguan >= 7) {
