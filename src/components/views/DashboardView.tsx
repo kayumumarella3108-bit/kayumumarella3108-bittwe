@@ -535,28 +535,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Global Unit Filter & Date Range Filter & Print Button inside the Dashboard Header */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl backdrop-blur-xs shadow-inner">
+          <div className="flex items-center gap-2 bg-[#022e2a] border border-teal-500/30 px-3.5 py-2 rounded-xl backdrop-blur-md shadow-lg">
             <span className="text-[10px] font-black text-teal-200 uppercase tracking-widest whitespace-nowrap">Filter ULP:</span>
             <select
               value={ownerSelectedUnitFilter}
               onChange={(e) => onSelectUnitFilter && onSelectUnitFilter(e.target.value)}
-              className="bg-slate-900 text-white border border-teal-700 text-xs font-extrabold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs min-w-[170px]"
+              className="bg-[#012521] text-white border border-teal-700 text-xs font-extrabold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs min-w-[170px]"
             >
               <option value="SEMUA">🌐 Semua Unit ULP</option>
               {DAFTAR_UNIT_PLN.filter(u => u.tipe === 'ULP').map((u, idx) => (
-                <option key={`dash_unit_opt_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-slate-900 text-white text-xs">
+                <option key={`dash_unit_opt_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-[#012521] text-white text-xs">
                   {u.namaUnit} ({u.kodeUnit})
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl backdrop-blur-xs shadow-inner">
+          <div className="flex items-center gap-2 bg-[#022e2a] border border-teal-500/30 px-3.5 py-2 rounded-xl backdrop-blur-md shadow-lg">
             <span className="text-[10px] font-black text-teal-200 uppercase tracking-widest whitespace-nowrap">Rentang:</span>
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value as any)}
-              className="bg-slate-900 text-white border border-teal-700 text-xs font-extrabold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs"
+              className="bg-[#012521] text-white border border-teal-700 text-xs font-extrabold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs"
             >
               <option value="weekly">📅 Mingguan</option>
               <option value="monthly">📅 Bulanan</option>
@@ -587,15 +587,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <motion.div
             key={idx}
             whileHover={{ y: -5, scale: 1.02 }}
-            className="bg-white p-4 rounded-xl border border-slate-200 shadow-3xs flex flex-col justify-between hover:shadow-2xs transition-all"
+            className="bg-[#022e2a]/80 p-4 rounded-xl border border-teal-500/30 backdrop-blur-md shadow-lg flex flex-col justify-between hover:shadow-xl transition-all"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider leading-none">{item.label}</span>
-              <div className={`p-1.5 rounded-lg border ${item.color}`}><item.icon className="w-3.5 h-3.5" /></div>
+              <span className="text-[10px] uppercase font-black text-teal-300 tracking-wider leading-none">{item.label}</span>
+              <div className="p-1.5 rounded-lg bg-teal-900/50 border border-teal-500/30 text-teal-200"><item.icon className="w-3.5 h-3.5" /></div>
             </div>
             <div className="mt-3">
-              <p className="text-xl md:text-2xl font-black text-slate-900 leading-none">{item.value}</p>
-              <p className="text-[9px] font-bold text-slate-500 mt-1">{item.desc}</p>
+              <p className="text-xl md:text-2xl font-black text-white leading-none">{item.value}</p>
+              <p className="text-[9px] font-bold text-teal-200/70 mt-1">{item.desc}</p>
             </div>
           </motion.div>
         ))}
@@ -698,12 +698,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             {/* Outage Pangkal Summary Table */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-              <h3 className="text-sm font-black text-slate-800 mb-4">Daftar Frekuensi Trip &amp; Durasi Pemulihan Feeder</h3>
+            <div className="bg-[#022e2a]/80 p-5 rounded-2xl border border-teal-500/30 backdrop-blur-md shadow-lg">
+              <h3 className="text-sm font-black text-teal-100 mb-4 tracking-wider uppercase">Daftar Frekuensi Trip &amp; Durasi Pemulihan Feeder</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-700 bg-[#022e2a] text-teal-100 font-bold">
+                    <tr className="border-b border-teal-800 bg-[#022e2a] text-teal-100 font-bold">
                       <th className="p-3">Nama Penyulang (Feeder)</th>
                       <th className="p-3 text-center">Jumlah Outage (Trip)</th>
                       <th className="p-3 text-center">Total Durasi Padam</th>
@@ -714,21 +714,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <tbody>
                     {gangguanPangkalStats.map((item, idx) => {
                       let kerawanan = 'RENDAH';
-                      let color = 'text-emerald-300 bg-emerald-950 border-emerald-800';
+                      let color = 'text-emerald-700 bg-emerald-50 border-emerald-200';
                       if (item.jumlahGangguan >= 7) {
                         kerawanan = 'KRITIS / TINGGI';
-                        color = 'text-rose-300 bg-rose-950 border-rose-800';
+                        color = 'text-rose-700 bg-rose-50 border-rose-200';
                       } else if (item.jumlahGangguan >= 4) {
                         kerawanan = 'SEDANG';
-                        color = 'text-amber-300 bg-amber-950 border-amber-800';
+                        color = 'text-amber-700 bg-amber-50 border-amber-200';
                       }
 
                       return (
-                        <tr key={idx} className="border-b border-slate-700 hover:bg-[#033c36] text-white">
-                          <td className="p-3 font-extrabold text-white">{item.name}</td>
-                          <td className="p-3 text-center font-black text-white">{item.jumlahGangguan} kali</td>
-                          <td className="p-3 text-center font-bold text-teal-100">{item.totalDurasiMenit} Menit</td>
-                          <td className="p-3 text-center font-mono font-bold text-teal-100">{item.arusMaksimum} Ampere</td>
+                        <tr key={idx} className="border-b border-teal-800/50 hover:bg-teal-900/20">
+                          <td className="p-3 font-extrabold text-teal-50">{item.name}</td>
+                          <td className="p-3 text-center font-black text-teal-200">{item.jumlahGangguan} kali</td>
+                          <td className="p-3 text-center font-bold text-teal-200">{item.totalDurasiMenit} Menit</td>
+                          <td className="p-3 text-center font-mono font-bold text-teal-200">{item.arusMaksimum} Ampere</td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${color}`}>
                               {kerawanan}

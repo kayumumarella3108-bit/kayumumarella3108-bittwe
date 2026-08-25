@@ -1121,9 +1121,9 @@ export const DistributionEquipmentMasterSection: React.FC<DistributionEquipmentM
         </div>
 
         {/* Tabel Data Peralatan */}
-        <div className="overflow-x-auto rounded-2xl border border-slate-200">
-          <table className="w-full text-left text-xs text-slate-800">
-            <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
+        <div className="overflow-x-auto rounded-2xl border border-teal-500/30 bg-[#022e2a]/80 backdrop-blur-md shadow-lg">
+          <table className="w-full text-left text-xs text-teal-50">
+            <thead className="bg-[#022e2a] text-teal-100 font-bold uppercase text-[11px] tracking-wider border-b border-teal-800">
               <tr>
                 <th className="px-4 py-3.5 text-center w-12">No</th>
                 <th className="px-4 py-3.5">Lokasi / Tiang Jaringan</th>
@@ -1132,37 +1132,37 @@ export const DistributionEquipmentMasterSection: React.FC<DistributionEquipmentM
                 <th className="px-4 py-3.5 text-center w-24">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
+            <tbody className="divide-y divide-teal-800/50 font-medium">
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-slate-400">
+                  <td colSpan={5} className="text-center py-10 text-teal-300">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <AlertCircle className="w-8 h-8 text-slate-300" />
+                      <AlertCircle className="w-8 h-8 text-teal-500" />
                       <span>Belum ada data master peralatan {meta.shortTitle} yang tersimpan atau sesuai pencarian.</span>
                     </div>
                   </td>
                 </tr>
               ) : (
                 filteredList.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="px-4 py-3.5 text-center font-mono text-slate-400 font-bold">
+                  <tr key={item.id} className="hover:bg-teal-900/20 transition-colors">
+                    <td className="px-4 py-3.5 text-center font-mono text-teal-400 font-bold">
                       {idx + 1}
                     </td>
 
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
-                        <MapPin className={`w-4 h-4 ${meta.colorText} shrink-0`} />
-                        <span className="font-extrabold text-slate-900">{item.lokasi}</span>
+                        <MapPin className={`w-4 h-4 text-teal-300 shrink-0`} />
+                        <span className="font-extrabold text-white">{item.lokasi}</span>
                       </div>
                     </td>
 
                     <td className="px-4 py-3.5">
                       {item.latitude && item.longitude ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg font-mono text-[11px] font-bold">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-900/50 text-teal-100 rounded-lg font-mono text-[11px] font-bold">
                           <span>{item.latitude.toFixed(6)}, {item.longitude.toFixed(6)}</span>
                         </div>
                       ) : (
-                        <span className="text-slate-400">-</span>
+                        <span className="text-teal-600">-</span>
                       )}
                     </td>
 
@@ -1172,15 +1172,15 @@ export const DistributionEquipmentMasterSection: React.FC<DistributionEquipmentM
                           item.peralatanList.map((eq, pIdx) => (
                             <div
                               key={eq.id || pIdx}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs border border-slate-200"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-900/50 text-white rounded-lg text-xs border border-teal-700"
                             >
-                              <span className="font-extrabold text-slate-900">{eq.namaPeralatan}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="text-blue-700 font-bold">{eq.penyulang}</span>
+                              <span className="font-extrabold text-white">{eq.namaPeralatan}</span>
+                              <span className="text-teal-600">•</span>
+                              <span className="text-teal-200 font-bold">{eq.penyulang}</span>
                             </div>
                           ))
                         ) : (
-                          <span className="text-slate-400 italic">Belum ada unit terdaftar</span>
+                          <span className="text-teal-600 italic">Belum ada unit terdaftar</span>
                         )}
                       </div>
                     </td>
@@ -1190,7 +1190,7 @@ export const DistributionEquipmentMasterSection: React.FC<DistributionEquipmentM
                         <button
                           type="button"
                           onClick={() => handleStartEdit(item)}
-                          className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                          className="p-2 rounded-xl text-teal-400 hover:text-white hover:bg-teal-800 transition-colors cursor-pointer"
                           title="Edit Data Peralatan"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -1198,7 +1198,7 @@ export const DistributionEquipmentMasterSection: React.FC<DistributionEquipmentM
                         <button
                           type="button"
                           onClick={() => handleRequestDelete(item)}
-                          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          className="p-2 rounded-xl text-teal-400 hover:text-rose-400 hover:bg-rose-900/30 transition-colors cursor-pointer"
                           title="Hapus Data Peralatan"
                         >
                           <Trash2 className="w-4 h-4" />
