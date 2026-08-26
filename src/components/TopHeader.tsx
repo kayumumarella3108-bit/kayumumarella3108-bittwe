@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, MessageSquare } from 'lucide-react';
 import { User as UserType, ViewType } from '../types';
-import { HssePlnLogo } from './HssePlnLogo';
 import { isOwnerUser } from '../utils/permissions';
 import { useSearch } from '../context/SearchContext';
 
@@ -43,39 +42,40 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
   return (
     <header className="min-h-[96px] md:h-28 py-3.5 md:py-4 w-full bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-b-2 border-teal-600/70 px-4 md:px-7 flex items-center justify-between z-30 shrink-0 shadow-2xl relative text-white transition-all">
-      {/* Left section: Hamburger, Clean PLN Logo, Title */}
-      <div className="flex items-center gap-3.5 md:gap-5">
-        {onToggleSidebar && (
-          <button
-            onClick={onToggleSidebar}
-            className="p-3 rounded-2xl text-teal-100 hover:text-white hover:bg-teal-800/70 border border-teal-600/50 transition-all cursor-pointer shadow-md active:scale-95 group"
-            title="Toggle Navigation Menu"
-          >
-            <Menu className="w-6 h-6 group-hover:scale-110 transition-transform" />
-          </button>
-        )}
+      {/* Left section: Hamburger, Clean PLN Logo, Title & Search */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3.5 md:gap-5">
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className="p-3 rounded-2xl text-teal-100 hover:text-white hover:bg-teal-800/70 border border-teal-600/50 transition-all cursor-pointer shadow-md active:scale-95 group"
+              title="Toggle Navigation Menu"
+            >
+              <Menu className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            </button>
+          )}
 
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl md:text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-amber-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] uppercase">
-            PAPEDA
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl md:text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-amber-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] uppercase">
+              PAPEDA
+            </h1>
+          </div>
         </div>
-      </div>
-
-      {/* Middle/Right Section: Search, Live Chat, Online Monitoring, K3 Logo */}
-      <div className="flex items-center gap-2.5 md:gap-4">
         
-        {/* Search Input */}
-        <div className="hidden md:flex items-center bg-[#012521] border border-teal-700 rounded-xl px-3 py-2 shadow-inner">
+        {/* Search Input - Moved here */}
+        <div className="items-center bg-[#012521] border border-teal-700 rounded-xl px-3 py-1.5 shadow-inner hidden md:flex w-64">
           <input
             type="text"
             placeholder="Cari penyulang, section, ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-transparent text-xs text-white placeholder-teal-400 focus:outline-none w-48"
+            className="bg-transparent text-xs text-white placeholder-teal-400 focus:outline-none w-full"
           />
         </div>
+      </div>
 
+      {/* Right Section: Live Chat, Online Monitoring */}
+      <div className="flex items-center gap-2.5 md:gap-4">
         <button
           onClick={() => onSelectView('live_chat')}
           className={`hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-md backdrop-blur-xs ${
@@ -109,12 +109,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             </span>
           </button>
         )}
-
-        {/* Logo K3 HSSE PLN */}
-        <div className="p-2 md:p-2.5 rounded-2xl bg-[#022320]/70 border border-teal-500/40 shadow-md backdrop-blur-xs">
-          <HssePlnLogo size="lg" showText={true} />
-        </div>
       </div>
+
     </header>
   );
 };
