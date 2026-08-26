@@ -7,13 +7,10 @@ import {
   Sliders, 
   Check, 
   X, 
-  Info, 
-  Save, 
   Settings, 
   RefreshCw, 
   AlertTriangle,
   Radio,
-  Eye,
   Minimize2,
   Maximize2,
   Trash2,
@@ -22,45 +19,19 @@ import {
   ToggleLeft,
   Shield,
   ZapOff,
-  Unlink
+  Unlink,
+  Server,
+  PlusCircle,
+  HelpCircle,
+  Trash,
+  SlidersHorizontal,
+  Power,
+  Layers,
+  ChevronDown,
+  LayoutGrid
 } from 'lucide-react';
 
 // Interfaces for DCC State
-export interface BreakerState {
-  id: string;
-  name: string;
-  status: 'CLOSED' | 'TRIP';
-  type: 'PMT_150' | 'PMT_TNC' | 'PMT_KOPEL' | 'FEEDER_BREAKER';
-}
-
-export interface TrafoState {
-  id: string;
-  name: string;
-  loadMw: number;
-  capacityMva: number;
-  tap: number;
-  tapMax: number;
-  tempWdy: number;
-  isAutoTap: boolean;
-}
-
-export interface BusState {
-  id: string;
-  name: string;
-  voltageKv: number;
-}
-
-export interface FeederState {
-  id: string;
-  code: string;
-  name: string;
-  status: 'ENERGIZED' | 'TRIP';
-  currentA: number;
-  powerMw: number;
-  voltageKv: number;
-  cosPhi: number;
-}
-
 export interface DownstreamNode {
   id: string;
   name: string;
@@ -69,7 +40,43 @@ export interface DownstreamNode {
   children?: DownstreamNode[];
 }
 
-// Tree helper functions for recursive nested JTM equipment
+export interface StationBus {
+  id: string;
+  name: string;
+  voltageKv: number;
+  incomerBreakerStatus: 'CLOSED' | 'TRIP';
+  incomerName: string; // e.g., "Trafo 1 (60MVA)", "Generator G1", etc.
+}
+
+export interface StationFeeder {
+  id: string;
+  busId: string;
+  code: string;
+  name: string;
+  status: 'CLOSED' | 'TRIP'; // Feeder breaker status
+  currentA: number;
+  powerMw: number;
+  voltageKv: number;
+  cosPhi: number;
+}
+
+export interface StationConfig {
+  id: string;
+  name: string;
+  type: 'GI' | 'PLTD' | 'GH';
+  buses: StationBus[];
+  feeders: StationFeeder[];
+  pmtKopelStatus: 'CLOSED' | 'TRIP';
+  downstreamNodes: Record<string, DownstreamNode[]>;
+}
+
+export interface DccConfigState {
+  activeStationId: string;
+  stations: Record<string, StationConfig>;
+  telemetryOn: boolean;
+}
+
+// Tree helper functions for recursive JTM equipment
 export const addNodeToTree = (nodes: DownstreamNode[], parentId: string, newNode: DownstreamNode): boolean => {
   for (let i = 0; i < nodes.length; i++) {
     if (nodes[i].id === parentId) {
@@ -115,68 +122,87 @@ export const deleteNodeFromTree = (nodes: DownstreamNode[], id: string): boolean
   return false;
 };
 
-export interface DccConfigState {
-  breakers: Record<string, BreakerState>;
-  trafos: Record<string, TrafoState>;
-  buses: Record<string, BusState>;
-  feeders: Record<string, FeederState>;
-  telemetryOn: boolean;
-  downstreamNodes?: Record<string, DownstreamNode[]>;
-}
+// Pristine default stations matching realistic systems in Indonesia
+const DEFAULT_STATIONS: Record<string, StationConfig> = {
+  'gandul': {
+    id: 'gandul',
+    name: 'GI GANDUL 150/20kV',
+    type: 'GI',
+    buses: [
+      { id: 'bus_gandul_a', name: 'BUS 20kV - A', voltageKv: 20.04, incomerBreakerStatus: 'CLOSED', incomerName: 'Trafo Daya 1 (60 MVA)' },
+      { id: 'bus_gandul_b', name: 'BUS 20kV - B', voltageKv: 20.00, incomerBreakerStatus: 'CLOSED', incomerName: 'Trafo Daya 2 (60 MVA)' }
+    ],
+    feeders: [
+      { id: 'fed_gandul_1', busId: 'bus_gandul_a', code: 'F-01', name: 'Penyulang Merapi', status: 'CLOSED', currentA: 285, powerMw: 9.44, voltageKv: 20.1, cosPhi: 0.955 },
+      { id: 'fed_gandul_2', busId: 'bus_gandul_a', code: 'F-02', name: 'Penyulang Ciremai', status: 'TRIP', currentA: 0, powerMw: 0.00, voltageKv: 0.0, cosPhi: 1.000 },
+      { id: 'fed_gandul_3', busId: 'bus_gandul_a', code: 'F-03', name: 'Penyulang Garuda', status: 'CLOSED', currentA: 212, powerMw: 7.05, voltageKv: 20.2, cosPhi: 0.962 },
+      { id: 'fed_gandul_4', busId: 'bus_gandul_b', code: 'F-04', name: 'Penyulang Rajawali', status: 'CLOSED', currentA: 289, powerMw: 9.51, voltageKv: 20.1, cosPhi: 0.955 },
+      { id: 'fed_gandul_5', busId: 'bus_gandul_b', code: 'F-05', name: 'Penyulang Diponegoro', status: 'CLOSED', currentA: 242, powerMw: 8.01, voltageKv: 20.1, cosPhi: 0.957 },
+      { id: 'fed_gandul_6', busId: 'bus_gandul_b', code: 'F-06', name: 'Penyulang Khatulistiwa', status: 'CLOSED', currentA: 411, powerMw: 12.64, voltageKv: 20.1, cosPhi: 0.959 }
+    ],
+    pmtKopelStatus: 'TRIP',
+    downstreamNodes: {
+      'fed_gandul_1': [
+        { id: 'ds_gandul_1_1', name: 'GH Merapi 1', type: 'GH', status: 'CLOSED' },
+        { id: 'ds_gandul_1_2', name: 'LBS Kaliurang', type: 'LBS', status: 'CLOSED' }
+      ],
+      'fed_gandul_2': [
+        { id: 'ds_gandul_2_1', name: 'Recloser Ciremai', type: 'RECLOSER', status: 'TRIP' }
+      ],
+      'fed_gandul_3': [
+        { id: 'ds_gandul_3_1', name: 'PMCB Garuda', type: 'PMCB', status: 'CLOSED' }
+      ],
+      'fed_gandul_4': [
+        { id: 'ds_gandul_4_1', name: 'CO Rajawali', type: 'CO', status: 'CLOSED' }
+      ],
+      'fed_gandul_5': [
+        { id: 'ds_gandul_5_1', name: 'DS Diponegoro', type: 'DS', status: 'CLOSED' }
+      ],
+      'fed_gandul_6': []
+    }
+  },
+  'senayan': {
+    id: 'senayan',
+    name: 'PLTD SENAYAN',
+    type: 'PLTD',
+    buses: [
+      { id: 'bus_senayan_main', name: 'BUS Utama PLTD', voltageKv: 20.15, incomerBreakerStatus: 'CLOSED', incomerName: 'Generator Diesel G1 (12MW)' }
+    ],
+    feeders: [
+      { id: 'fed_sen_1', busId: 'bus_senayan_main', code: 'F-PLTD1', name: 'Penyulang GBK', status: 'CLOSED', currentA: 195, powerMw: 6.40, voltageKv: 20.1, cosPhi: 0.950 },
+      { id: 'fed_sen_2', busId: 'bus_senayan_main', code: 'F-PLTD2', name: 'Penyulang Sudirman', status: 'CLOSED', currentA: 210, powerMw: 6.90, voltageKv: 20.1, cosPhi: 0.950 }
+    ],
+    pmtKopelStatus: 'TRIP',
+    downstreamNodes: {
+      'fed_sen_1': [
+        { id: 'ds_sen_1_1', name: 'LBS GBK Barat', type: 'LBS', status: 'CLOSED' }
+      ],
+      'fed_sen_2': []
+    }
+  },
+  'kebon_sirih': {
+    id: 'kebon_sirih',
+    name: 'GH KEBON SIRIH',
+    type: 'GH',
+    buses: [
+      { id: 'bus_sirih_main', name: 'BUS 20kV GH Sirih', voltageKv: 20.08, incomerBreakerStatus: 'CLOSED', incomerName: 'Incomer Express GI Menteng' }
+    ],
+    feeders: [
+      { id: 'fed_sir_1', busId: 'bus_sirih_main', code: 'F-SIR1', name: 'Penyulang Sirih Mas', status: 'CLOSED', currentA: 110, powerMw: 3.60, voltageKv: 20.0, cosPhi: 0.950 },
+      { id: 'fed_sir_2', busId: 'bus_sirih_main', code: 'F-SIR2', name: 'Penyulang Sirih Pratama', status: 'CLOSED', currentA: 155, powerMw: 5.10, voltageKv: 20.0, cosPhi: 0.950 }
+    ],
+    pmtKopelStatus: 'TRIP',
+    downstreamNodes: {
+      'fed_sir_1': [],
+      'fed_sir_2': []
+    }
+  }
+};
 
-// Initial defaults exactly matching the user's uploaded SLD
 const INITIAL_DCC_STATE: DccConfigState = {
-  breakers: {
-    'pmt_150_t1': { id: 'pmt_150_t1', name: 'PMT 150-T1', status: 'CLOSED', type: 'PMT_150' },
-    'pmt_150_t2': { id: 'pmt_150_t2', name: 'PMT 150-T2', status: 'CLOSED', type: 'PMT_150' },
-    'pmt_tnc_1': { id: 'pmt_tnc_1', name: 'PMT TNC-1', status: 'CLOSED', type: 'PMT_TNC' },
-    'pmt_tnc_2': { id: 'pmt_tnc_2', name: 'PMT TNC-2', status: 'CLOSED', type: 'PMT_TNC' },
-    'pmt_kopel': { id: 'pmt_kopel', name: 'PMT KOPEL', status: 'TRIP', type: 'PMT_KOPEL' },
-    'f01_brk': { id: 'f01_brk', name: 'PMT F-01', status: 'CLOSED', type: 'FEEDER_BREAKER' },
-    'f02_brk': { id: 'f02_brk', name: 'PMT F-02', status: 'TRIP', type: 'FEEDER_BREAKER' },
-    'f03_brk': { id: 'f03_brk', name: 'PMT F-03', status: 'CLOSED', type: 'FEEDER_BREAKER' },
-    'f04_brk': { id: 'f04_brk', name: 'PMT F-04', status: 'CLOSED', type: 'FEEDER_BREAKER' },
-    'f05_brk': { id: 'f05_brk', name: 'PMT F-05', status: 'CLOSED', type: 'FEEDER_BREAKER' },
-    'f06_brk': { id: 'f06_brk', name: 'PMT F-06', status: 'CLOSED', type: 'FEEDER_BREAKER' },
-  },
-  trafos: {
-    'trafo_1': { id: 'trafo_1', name: 'TRAFO 1 (60 MVA)', loadMw: 49.2, capacityMva: 60, tap: 9, tapMax: 17, tempWdy: 64.0, isAutoTap: true },
-    'trafo_2': { id: 'trafo_2', name: 'TRAFO 2 (60 MVA)', loadMw: 38.8, capacityMva: 60, tap: 9, tapMax: 17, tempWdy: 60.2, isAutoTap: true },
-  },
-  buses: {
-    'bus_150_a': { id: 'bus_150_a', name: 'BUS 150 kV - A', voltageKv: 151.2 },
-    'bus_150_b': { id: 'bus_150_b', name: 'BUS 150 kV - B', voltageKv: 150.8 },
-    'bus_20_a': { id: 'bus_20_a', name: 'BUS 20kV - A', voltageKv: 20.15 },
-    'bus_20_b': { id: 'bus_20_b', name: 'BUS 20kV - B', voltageKv: 20.10 },
-  },
-  feeders: {
-    'f01': { id: 'f01', code: 'F-01', name: 'Penyulang Merapi', status: 'ENERGIZED', currentA: 285, powerMw: 9.44, voltageKv: 20.1, cosPhi: 0.955 },
-    'f02': { id: 'f02', code: 'F-02', name: 'Penyulang Ciremai', status: 'TRIP', currentA: 0, powerMw: 0.00, voltageKv: 0.0, cosPhi: 1.000 },
-    'f03': { id: 'f03', code: 'F-03', name: 'Penyulang Garuda', status: 'ENERGIZED', currentA: 212, powerMw: 7.05, voltageKv: 20.2, cosPhi: 0.962 },
-    'f04': { id: 'f04', code: 'F-04', name: 'Penyulang Rajawali', status: 'ENERGIZED', currentA: 289, powerMw: 9.51, voltageKv: 20.1, cosPhi: 0.955 },
-    'f05': { id: 'f05', code: 'F-05', name: 'Penyulang Diponegoro', status: 'ENERGIZED', currentA: 242, powerMw: 8.01, voltageKv: 20.1, cosPhi: 0.957 },
-    'f06': { id: 'f06', code: 'F-06', name: 'Penyulang Khatulistiwa', status: 'ENERGIZED', currentA: 411, powerMw: 12.64, voltageKv: 20.1, cosPhi: 0.959 },
-  },
-  telemetryOn: true,
-  downstreamNodes: {
-    'f01': [
-      { id: 'ds_f01_1', name: 'GH Merapi 1', type: 'GH', status: 'CLOSED' },
-      { id: 'ds_f01_2', name: 'LBS Kaliurang', type: 'LBS', status: 'CLOSED' },
-    ],
-    'f02': [
-      { id: 'ds_f02_1', name: 'Recloser Ciremai', type: 'RECLOSER', status: 'TRIP' },
-    ],
-    'f03': [
-      { id: 'ds_f03_1', name: 'PMCB Garuda', type: 'PMCB', status: 'CLOSED' },
-    ],
-    'f04': [
-      { id: 'ds_f04_1', name: 'CO Rajawali', type: 'CO', status: 'CLOSED' },
-    ],
-    'f05': [
-      { id: 'ds_f05_1', name: 'DS Diponegoro', type: 'DS', status: 'CLOSED' },
-    ],
-    'f06': [],
-  },
+  activeStationId: 'gandul',
+  stations: DEFAULT_STATIONS,
+  telemetryOn: true
 };
 
 export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
@@ -186,7 +212,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
   
   // Modal Edit States
   const [editingComponent, setEditingComponent] = useState<{
-    type: 'trafo' | 'bus' | 'feeder' | 'breaker';
+    type: 'bus' | 'feeder' | 'incomer';
     id: string;
     data: any;
   } | null>(null);
@@ -203,13 +229,36 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
   const [newNodeType, setNewNodeType] = useState<'GH' | 'LBS' | 'RECLOSER' | 'PMCB' | 'CO' | 'DS'>('LBS');
   const [newNodeStatus, setNewNodeStatus] = useState<'CLOSED' | 'TRIP'>('CLOSED');
 
+  // Modals for Adding Stations, Busbars, and Feeders
+  const [showAddStationModal, setShowAddStationModal] = useState<boolean>(false);
+  const [newStationName, setNewStationName] = useState<string>('');
+  const [newStationType, setNewStationType] = useState<'GI' | 'PLTD' | 'GH'>('GI');
+
+  const [showAddBusbarModal, setShowAddBusbarModal] = useState<boolean>(false);
+  const [newBusbarName, setNewBusbarName] = useState<string>('');
+  const [newBusbarVoltage, setNewBusbarVoltage] = useState<number>(20.0);
+  const [newBusbarIncomer, setNewBusbarIncomer] = useState<string>('');
+
+  const [showAddFeederModal, setShowAddFeederModal] = useState<string | null>(null); // busId where to add feeder
+  const [newFeederCode, setNewFeederCode] = useState<string>('');
+  const [newFeederName, setNewFeederName] = useState<string>('');
+  const [newFeederCurrent, setNewFeederCurrent] = useState<number>(180);
+  const [newFeederCosPhi, setNewFeederCosPhi] = useState<number>(0.95);
+
   // Listen to Firestore for global state persistence
   useEffect(() => {
-    const docRef = doc(db, 'dcc_configs', 'gi_gandul_state');
+    const docRef = doc(db, 'dcc_configs', 'stations_multistate');
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const cloudData = docSnap.data() as DccConfigState;
-        setDccState(cloudData);
+        // Migration safeguard to prevent using old non-station schema
+        if (cloudData && cloudData.stations && cloudData.activeStationId) {
+          setDccState(cloudData);
+        } else {
+          setDoc(docRef, INITIAL_DCC_STATE).catch((err) => {
+            console.error("Gagal upgrade skema DCC di cloud:", err);
+          });
+        }
       } else {
         // Create initial config if it doesn't exist
         setDoc(docRef, INITIAL_DCC_STATE).catch((err) => {
@@ -219,7 +268,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
       setLoading(false);
     }, (error) => {
       console.warn("Firestore listener fallback to localStorage:", error);
-      const cached = localStorage.getItem('dcc_gi_gandul_state');
+      const cached = localStorage.getItem('dcc_stations_multistate');
       if (cached) {
         try {
           setDccState(JSON.parse(cached));
@@ -236,187 +285,318 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
   // Save changes helper
   const updateDccStateInDb = async (newState: DccConfigState) => {
     setSaveStatus('SAVING');
-    localStorage.setItem('dcc_gi_gandul_state', JSON.stringify(newState));
+    localStorage.setItem('dcc_stations_multistate', JSON.stringify(newState));
     try {
-      await setDoc(doc(db, 'dcc_configs', 'gi_gandul_state'), newState);
+      await setDoc(doc(db, 'dcc_configs', 'stations_multistate'), newState);
       setSaveStatus('SUCCESS');
       setTimeout(() => setSaveStatus('IDLE'), 2000);
     } catch (err) {
       setSaveStatus('ERROR');
       setTimeout(() => setSaveStatus('IDLE'), 3000);
-      handleFirestoreError(err, OperationType.WRITE, 'dcc_configs/gi_gandul_state');
+      handleFirestoreError(err, OperationType.WRITE, 'dcc_configs/stations_multistate');
     }
   };
 
   // Telemetry fluctuation simulator
   useEffect(() => {
-    if (!dccState.telemetryOn) return;
+    if (!dccState || !dccState.telemetryOn) return;
 
     const interval = setInterval(() => {
       setDccState((prev) => {
-        const updatedFeeders = { ...prev.feeders };
-        const updatedTrafos = { ...prev.trafos };
-        const updatedBuses = { ...prev.buses };
+        if (!prev || !prev.stations) return prev;
+        
+        const nextStations = { ...prev.stations };
+        const activeId = prev.activeStationId;
+        const currentStation = nextStations[activeId];
+        
+        if (!currentStation) return prev;
+        
+        // Calculate dynamic energized states for all busbars in the active station
+        const isAnyIncomerClosed = currentStation.buses.some(b => b.incomerBreakerStatus === 'CLOSED');
+        
+        const nextBuses = currentStation.buses.map(bus => {
+          const directEnergized = bus.incomerBreakerStatus === 'CLOSED';
+          const kopelEnergized = currentStation.pmtKopelStatus === 'CLOSED' && isAnyIncomerClosed;
+          const isEnergized = directEnergized || kopelEnergized;
 
-        // Fluctuate buses voltages slightly
-        updatedBuses.bus_150_a.voltageKv = parseFloat((150.0 + Math.random() * 2).toFixed(2));
-        updatedBuses.bus_150_b.voltageKv = parseFloat((149.8 + Math.random() * 2).toFixed(2));
-        updatedBuses.bus_20_a.voltageKv = parseFloat((20.0 + Math.random() * 0.3).toFixed(2));
-        updatedBuses.bus_20_b.voltageKv = parseFloat((20.0 + Math.random() * 0.25).toFixed(2));
-
-        // Fluctuate energized feeders
-        let trafo1LoadSum = 0;
-        let trafo2LoadSum = 0;
-
-        Object.keys(updatedFeeders).forEach((key) => {
-          const f = updatedFeeders[key];
-          // If breaker or feeder status is TRIP, then values are 0
-          const associatedBreakerId = `${key}_brk`;
-          const isBreakerOpen = prev.breakers[associatedBreakerId]?.status === 'TRIP';
-          const isFeederTripped = f.status === 'TRIP';
-
-          if (isBreakerOpen || isFeederTripped) {
-            f.currentA = 0;
-            f.powerMw = 0;
-            f.voltageKv = 0;
+          if (isEnergized) {
+            // Fluctuate voltage slightly around 20.0 kV
+            const baseVoltage = 20.0;
+            const fluctuation = (Math.random() - 0.5) * 0.15; // +/- 0.075 kV
+            return {
+              ...bus,
+              voltageKv: parseFloat((baseVoltage + fluctuation).toFixed(2))
+            };
           } else {
-            // Slight natural fluctuation (+/- 2%)
-            const currentBase = INITIAL_DCC_STATE.feeders[key].currentA;
-            const fluctuation = (Math.random() - 0.5) * 6; // range -3 to +3 A
-            f.currentA = Math.max(50, Math.round(currentBase + fluctuation));
-            
-            // Re-calc power based on actual active voltage & current (simplified power formula)
-            f.powerMw = parseFloat((Math.sqrt(3) * f.currentA * 20 * f.cosPhi / 1000).toFixed(2));
-            f.voltageKv = parseFloat((prev.buses[key <= 'f03' ? 'bus_20_a' : 'bus_20_b'].voltageKv).toFixed(2));
-
-            // Accumulate loads for trafos
-            if (key <= 'f03') {
-              trafo1LoadSum += f.powerMw;
-            } else {
-              trafo2LoadSum += f.powerMw;
-            }
+            return { ...bus, voltageKv: 0.0 };
           }
         });
 
-        // Update trafo loads from feeder sums
-        updatedTrafos.trafo_1.loadMw = parseFloat((trafo1LoadSum * 1.05).toFixed(1)); // Add 5% loss factor
-        updatedTrafos.trafo_1.tempWdy = parseFloat((55 + (updatedTrafos.trafo_1.loadMw / 60) * 15 + Math.random() * 0.8).toFixed(1));
-        
-        updatedTrafos.trafo_2.loadMw = parseFloat((trafo2LoadSum * 1.05).toFixed(1));
-        updatedTrafos.trafo_2.tempWdy = parseFloat((52 + (updatedTrafos.trafo_2.loadMw / 60) * 14 + Math.random() * 0.7).toFixed(1));
+        const nextFeeders = currentStation.feeders.map(feeder => {
+          const connectedBus = nextBuses.find(b => b.id === feeder.busId);
+          const isBusEnergized = connectedBus && connectedBus.voltageKv > 0;
+          const isFeederEnergized = isBusEnergized && feeder.status === 'CLOSED';
+
+          if (!isFeederEnergized) {
+            return {
+              ...feeder,
+              currentA: 0,
+              powerMw: 0.00,
+              voltageKv: 0.0
+            };
+          } else {
+            // Natural current fluctuation (+/- 3%)
+            const baseCurrent = feeder.id.includes('fed_gandul_1') ? 285 : feeder.id.includes('fed_gandul_3') ? 212 : feeder.id.includes('fed_gandul_4') ? 289 : feeder.id.includes('fed_gandul_5') ? 242 : 180;
+            const fluctuation = (Math.random() - 0.5) * 6; // range -3 to +3 A
+            const currentA = Math.max(10, Math.round(baseCurrent + fluctuation));
+            const voltageKv = connectedBus ? connectedBus.voltageKv : 20.0;
+            
+            // Re-calc power (Power = sqrt(3) * I * V * cosPhi / 1000)
+            const powerMw = parseFloat((Math.sqrt(3) * currentA * voltageKv * feeder.cosPhi / 1000).toFixed(2));
+            
+            return {
+              ...feeder,
+              currentA,
+              powerMw,
+              voltageKv
+            };
+          }
+        });
 
         return {
           ...prev,
-          feeders: updatedFeeders,
-          trafos: updatedTrafos,
-          buses: updatedBuses
+          stations: {
+            ...nextStations,
+            [activeId]: {
+              ...currentStation,
+              buses: nextBuses,
+              feeders: nextFeeders
+            }
+          }
         };
       });
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [dccState.telemetryOn]);
+  }, [dccState?.telemetryOn, dccState?.activeStationId]);
 
-  // Handle manual/telemetry component saves
-  const handleSaveComponentEdit = (e: React.FormEvent) => {
+  // Retrieve active station layout
+  const activeStation = useMemo(() => {
+    if (!dccState || !dccState.stations || !dccState.activeStationId) return null;
+    return dccState.stations[dccState.activeStationId] || null;
+  }, [dccState]);
+
+  // Derived energized states of active station components
+  const busEnergizedMap = useMemo(() => {
+    const mapping: Record<string, boolean> = {};
+    if (!activeStation) return mapping;
+
+    const isAnyIncomerClosed = activeStation.buses.some(b => b.incomerBreakerStatus === 'CLOSED');
+    activeStation.buses.forEach(bus => {
+      const directEnergized = bus.incomerBreakerStatus === 'CLOSED';
+      const kopelEnergized = activeStation.pmtKopelStatus === 'CLOSED' && isAnyIncomerClosed;
+      mapping[bus.id] = directEnergized || kopelEnergized;
+    });
+
+    return mapping;
+  }, [activeStation]);
+
+  // Dynamic station creations
+  const handleCreateStationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingComponent) return;
+    if (!newStationName.trim()) return;
 
-    const { type, id, data } = editingComponent;
-    const newState = { ...dccState };
+    const id = newStationName.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+    const buses: StationBus[] = [];
+    const feeders: StationFeeder[] = [];
+    const downstreamNodes: Record<string, DownstreamNode[]> = {};
 
-    if (type === 'trafo') {
-      newState.trafos[id] = { ...newState.trafos[id], ...data };
-    } else if (type === 'bus') {
-      newState.buses[id] = { ...newState.buses[id], ...data };
-    } else if (type === 'feeder') {
-      newState.feeders[id] = { ...newState.feeders[id], ...data };
-      // Sync feeder status with its dedicated breaker
-      const brkId = `${id}_brk`;
-      if (newState.breakers[brkId]) {
-        newState.breakers[brkId].status = data.status === 'ENERGIZED' ? 'CLOSED' : 'TRIP';
-      }
-    } else if (type === 'breaker') {
-      newState.breakers[id] = { ...newState.breakers[id], ...data };
-      // Sync associated feeder
-      const fedId = id.substring(0, 3);
-      if (newState.feeders[fedId]) {
-        newState.feeders[fedId].status = data.status === 'CLOSED' ? 'ENERGIZED' : 'TRIP';
-      }
+    if (newStationType === 'GI') {
+      buses.push(
+        { id: `bus_${id}_a`, name: 'BUS 20kV - A', voltageKv: 20.0, incomerBreakerStatus: 'CLOSED', incomerName: 'Trafo Daya 1 (60 MVA)' },
+        { id: `bus_${id}_b`, name: 'BUS 20kV - B', voltageKv: 20.0, incomerBreakerStatus: 'CLOSED', incomerName: 'Trafo Daya 2 (60 MVA)' }
+      );
+      feeders.push(
+        { id: `fed_${id}_1`, busId: `bus_${id}_a`, code: 'F-01', name: 'Penyulang Merapi', status: 'CLOSED', currentA: 285, powerMw: 9.44, voltageKv: 20.0, cosPhi: 0.95 },
+        { id: `fed_${id}_2`, busId: `bus_${id}_b`, code: 'F-02', name: 'Penyulang Rajawali', status: 'CLOSED', currentA: 210, powerMw: 7.00, voltageKv: 20.0, cosPhi: 0.95 }
+      );
+      downstreamNodes[`fed_${id}_1`] = [];
+      downstreamNodes[`fed_${id}_2`] = [];
+    } else if (newStationType === 'PLTD') {
+      buses.push(
+        { id: `bus_${id}_main`, name: 'BUS Utama PLTD', voltageKv: 20.0, incomerBreakerStatus: 'CLOSED', incomerName: 'Generator Diesel G1 (12MW)' }
+      );
+      feeders.push(
+        { id: `fed_${id}_1`, busId: `bus_${id}_main`, code: 'F-PL1', name: 'Penyulang GBK', status: 'CLOSED', currentA: 195, powerMw: 6.40, voltageKv: 20.0, cosPhi: 0.95 }
+      );
+      downstreamNodes[`fed_${id}_1`] = [];
+    } else { // GH
+      buses.push(
+        { id: `bus_${id}_gh`, name: 'BUS 20kV GH Sirih', voltageKv: 20.0, incomerBreakerStatus: 'CLOSED', incomerName: 'Incomer Express GI' }
+      );
+      feeders.push(
+        { id: `fed_${id}_1`, busId: `bus_${id}_gh`, code: 'F-SIR1', name: 'Penyulang Sirih Mas', status: 'CLOSED', currentA: 155, powerMw: 5.10, voltageKv: 20.0, cosPhi: 0.95 }
+      );
+      downstreamNodes[`fed_${id}_1`] = [];
     }
+
+    const newStation: StationConfig = {
+      id,
+      name: newStationName.toUpperCase(),
+      type: newStationType,
+      buses,
+      feeders,
+      pmtKopelStatus: 'TRIP',
+      downstreamNodes
+    };
+
+    const newState = {
+      ...dccState,
+      activeStationId: id,
+      stations: {
+        ...dccState.stations,
+        [id]: newStation
+      }
+    };
 
     setDccState(newState);
     updateDccStateInDb(newState);
-    setEditingComponent(null);
+    setShowAddStationModal(false);
+    setNewStationName('');
   };
 
-  // Toggle dynamic breaker state
-  const handleToggleBreaker = (breakerId: string) => {
-    const newState = { ...dccState };
-    const currentStatus = newState.breakers[breakerId].status;
-    const nextStatus = currentStatus === 'CLOSED' ? 'TRIP' : 'CLOSED';
-    
-    newState.breakers[breakerId].status = nextStatus;
+  // Delete Station
+  const handleDeleteStation = (stationId: string) => {
+    if (Object.keys(dccState.stations).length <= 1) {
+      alert("Gagal menghapus! Minimal harus menyisakan 1 sistem monitoring untuk aplikasi.");
+      return;
+    }
 
-    // Direct synchronization to downstream components
-    if (breakerId.endsWith('_brk')) {
-      const feederId = breakerId.substring(0, 3);
-      if (newState.feeders[feederId]) {
-        newState.feeders[feederId].status = nextStatus === 'CLOSED' ? 'ENERGIZED' : 'TRIP';
-        if (nextStatus === 'TRIP') {
-          newState.feeders[feederId].currentA = 0;
-          newState.feeders[feederId].powerMw = 0;
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus sistem "${dccState.stations[stationId].name}" beserta seluruh busbar dan feeder di dalamnya?`)) {
+      return;
+    }
+
+    const nextStations = { ...dccState.stations };
+    delete nextStations[stationId];
+
+    const fallbackId = Object.keys(nextStations)[0];
+    const newState = {
+      ...dccState,
+      activeStationId: fallbackId,
+      stations: nextStations
+    };
+
+    setDccState(newState);
+    updateDccStateInDb(newState);
+  };
+
+  // Toggle Incomer Breaker
+  const handleToggleIncomerBreaker = (busId: string) => {
+    if (!activeStation) return;
+
+    const updatedBuses = activeStation.buses.map(bus => {
+      if (bus.id === busId) {
+        return {
+          ...bus,
+          incomerBreakerStatus: bus.incomerBreakerStatus === 'CLOSED' ? 'TRIP' : 'CLOSED' as const
+        };
+      }
+      return bus;
+    });
+
+    const newState = {
+      ...dccState,
+      stations: {
+        ...dccState.stations,
+        [activeStation.id]: {
+          ...activeStation,
+          buses: updatedBuses
         }
       }
-    }
+    };
 
     setDccState(newState);
     updateDccStateInDb(newState);
   };
 
-  // Quick feeder simulation toggles (as shown at the bottom of the user's diagram)
-  const handleSimulateTripFeeder = (feederId: string) => {
-    const newState = { ...dccState };
-    const isCurrentlyTripped = newState.feeders[feederId].status === 'TRIP';
-    const nextStatus = isCurrentlyTripped ? 'ENERGIZED' : 'TRIP';
-    
-    newState.feeders[feederId].status = nextStatus;
-    
-    // Auto sync breaker
-    const breakerId = `${feederId}_brk`;
-    if (newState.breakers[breakerId]) {
-      newState.breakers[breakerId].status = nextStatus === 'ENERGIZED' ? 'CLOSED' : 'TRIP';
-    }
+  // Toggle Bus Tie / PMT Kopel
+  const handleToggleKopel = () => {
+    if (!activeStation) return;
 
-    if (nextStatus === 'TRIP') {
-      newState.feeders[feederId].currentA = 0;
-      newState.feeders[feederId].powerMw = 0;
-    } else {
-      const defaultData = INITIAL_DCC_STATE.feeders[feederId];
-      newState.feeders[feederId].currentA = defaultData.currentA;
-      newState.feeders[feederId].powerMw = defaultData.powerMw;
-    }
+    const nextStatus = activeStation.pmtKopelStatus === 'CLOSED' ? 'TRIP' : 'CLOSED';
+    const newState = {
+      ...dccState,
+      stations: {
+        ...dccState.stations,
+        [activeStation.id]: {
+          ...activeStation,
+          pmtKopelStatus: nextStatus
+        }
+      }
+    };
 
     setDccState(newState);
     updateDccStateInDb(newState);
   };
 
-  // Toggle status of a downstream node (CLOSED vs TRIP) recursive tree
+  // Toggle Feeder Breaker
+  const handleToggleFeederBreaker = (feederId: string) => {
+    if (!activeStation) return;
+
+    const updatedFeeders = activeStation.feeders.map(feeder => {
+      if (feeder.id === feederId) {
+        const nextStatus = feeder.status === 'CLOSED' ? 'TRIP' : 'CLOSED' as const;
+        return {
+          ...feeder,
+          status: nextStatus,
+          currentA: nextStatus === 'TRIP' ? 0 : 180,
+          powerMw: nextStatus === 'TRIP' ? 0.0 : parseFloat((Math.sqrt(3) * 180 * 20 * feeder.cosPhi / 1000).toFixed(2))
+        };
+      }
+      return feeder;
+    });
+
+    const newState = {
+      ...dccState,
+      stations: {
+        ...dccState.stations,
+        [activeStation.id]: {
+          ...activeStation,
+          feeders: updatedFeeders
+        }
+      }
+    };
+
+    setDccState(newState);
+    updateDccStateInDb(newState);
+  };
+
+  // Toggle status of JTM Equipment
   const handleToggleDownstreamNode = (feederId: string, nodeId: string) => {
-    const newState = { ...dccState };
-    if (!newState.downstreamNodes) {
-      newState.downstreamNodes = {};
-    }
-    const list = newState.downstreamNodes[feederId] ? JSON.parse(JSON.stringify(newState.downstreamNodes[feederId])) : [];
+    if (!activeStation) return;
+
+    const downstreamNodes = { ...activeStation.downstreamNodes };
+    const list = downstreamNodes[feederId] ? JSON.parse(JSON.stringify(downstreamNodes[feederId])) : [];
     const updated = toggleNodeInTree(list, nodeId);
+
     if (updated) {
-      newState.downstreamNodes[feederId] = list;
+      downstreamNodes[feederId] = list;
+      const newState = {
+        ...dccState,
+        stations: {
+          ...dccState.stations,
+          [activeStation.id]: {
+            ...activeStation,
+            downstreamNodes
+          }
+        }
+      };
       setDccState(newState);
       updateDccStateInDb(newState);
     }
   };
 
-  // Add a new downstream node (optionally under a parentNodeId for branches)
+  // Add JTM Node
   const handleAddDownstreamNode = (
     feederId: string, 
     parentNodeId: string | null, 
@@ -424,12 +604,11 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
     type: 'GH' | 'LBS' | 'RECLOSER' | 'PMCB' | 'CO' | 'DS', 
     status: 'CLOSED' | 'TRIP'
   ) => {
-    const newState = { ...dccState };
-    if (!newState.downstreamNodes) {
-      newState.downstreamNodes = {};
-    }
-    const list = newState.downstreamNodes[feederId] ? JSON.parse(JSON.stringify(newState.downstreamNodes[feederId])) : [];
-    
+    if (!activeStation) return;
+
+    const downstreamNodes = { ...activeStation.downstreamNodes };
+    const list = downstreamNodes[feederId] ? JSON.parse(JSON.stringify(downstreamNodes[feederId])) : [];
+
     const newNode: DownstreamNode = {
       id: `ds_${feederId}_${Date.now()}`,
       name: name || `${type} Baru`,
@@ -444,70 +623,225 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
       list.push(newNode);
     }
 
-    newState.downstreamNodes[feederId] = list;
+    downstreamNodes[feederId] = list;
+    const newState = {
+      ...dccState,
+      stations: {
+        ...dccState.stations,
+        [activeStation.id]: {
+          ...activeStation,
+          downstreamNodes
+        }
+      }
+    };
+
     setDccState(newState);
     updateDccStateInDb(newState);
   };
 
-  // Delete a downstream node recursive tree
+  // Delete JTM Node
   const handleDeleteDownstreamNode = (feederId: string, nodeId: string) => {
-    const newState = { ...dccState };
-    if (!newState.downstreamNodes) {
-      newState.downstreamNodes = {};
-    }
-    const list = newState.downstreamNodes[feederId] ? JSON.parse(JSON.stringify(newState.downstreamNodes[feederId])) : [];
+    if (!activeStation) return;
+
+    const downstreamNodes = { ...activeStation.downstreamNodes };
+    const list = downstreamNodes[feederId] ? JSON.parse(JSON.stringify(downstreamNodes[feederId])) : [];
     const deleted = deleteNodeFromTree(list, nodeId);
+
     if (deleted) {
-      newState.downstreamNodes[feederId] = list;
+      downstreamNodes[feederId] = list;
+      const newState = {
+        ...dccState,
+        stations: {
+          ...dccState.stations,
+          [activeStation.id]: {
+            ...activeStation,
+            downstreamNodes
+          }
+        }
+      };
       setDccState(newState);
       updateDccStateInDb(newState);
     }
   };
 
-  // Reset DCC diagram to pristine default parameters
+  // Add Dynamic Busbar to Station
+  const handleAddBusbarSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeStation || !newBusbarName.trim()) return;
+
+    const id = `bus_${activeStation.id}_${Date.now()}`;
+    const newBus: StationBus = {
+      id,
+      name: newBusbarName.toUpperCase(),
+      voltageKv: newBusbarVoltage,
+      incomerBreakerStatus: 'CLOSED',
+      incomerName: newBusbarIncomer.trim() || 'Sumber Incomer Baru'
+    };
+
+    const newState = {
+      ...dccState,
+      stations: {
+        ...dccState.stations,
+        [activeStation.id]: {
+          ...activeStation,
+          buses: [...activeStation.buses, newBus]
+        }
+      }
+    };
+
+    setDccState(newState);
+    updateDccStateInDb(newState);
+    setShowAddBusbarModal(false);
+    setNewBusbarName('');
+    setNewBusbarIncomer('');
+  };
+
+  // Delete Busbar
+  const handleDeleteBusbar = (busId: string) => {
+    if (!activeStation) return;
+
+    if (activeStation.buses.length <= 1) {
+      alert("Sistem harus memiliki minimal 1 Busbar utama.");
+      return;
+    }
+
+    if (!window.confirm("Menghapus busbar ini akan menghapus semua feeder dan peralatan JTM yang terhubung dengannya. Lanjutkan?")) {
+      return;
+    }
+
+    const remainingBuses = activeStation.buses.filter(b => b.id !== busId);
+    const remainingFeeders = activeStation.feeders.filter(f => f.busId !== busId);
+
+    const newState = {
+      ...dccState,
+      stations: {
+        ...dccState.stations,
+        [activeStation.id]: {
+          ...activeStation,
+          buses: remainingBuses,
+          feeders: remainingFeeders
+        }
+      }
+    };
+
+    setDccState(newState);
+    updateDccStateInDb(newState);
+  };
+
+  // Add Dynamic Feeder to Busbar
+  const handleAddFeederSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeStation || !showAddFeederModal || !newFeederCode.trim()) return;
+
+    const id = `fed_${activeStation.id}_${Date.now()}`;
+    const newFeeder: StationFeeder = {
+      id,
+      busId: showAddFeederModal,
+      code: newFeederCode.toUpperCase(),
+      name: newFeederName || `Feeder ${newFeederCode}`,
+      status: 'CLOSED',
+      currentA: newFeederCurrent,
+      powerMw: parseFloat((Math.sqrt(3) * newFeederCurrent * 20 * newFeederCosPhi / 1000).toFixed(2)),
+      voltageKv: 20.0,
+      cosPhi: newFeederCosPhi
+    };
+
+    const downstreamNodes = { ...activeStation.downstreamNodes };
+    downstreamNodes[id] = [];
+
+    const newState = {
+      ...dccState,
+      stations: {
+        ...dccState.stations,
+        [activeStation.id]: {
+          ...activeStation,
+          feeders: [...activeStation.feeders, newFeeder],
+          downstreamNodes
+        }
+      }
+    };
+
+    setDccState(newState);
+    updateDccStateInDb(newState);
+    setShowAddFeederModal(null);
+    setNewFeederCode('');
+    setNewFeederName('');
+    setNewFeederCurrent(180);
+  };
+
+  // Delete Feeder
+  const handleDeleteFeeder = (feederId: string) => {
+    if (!activeStation) return;
+
+    if (!window.confirm("Apakah Anda yakin ingin menghapus Feeder ini beserta seluruh sirkuit JTM hilirnya?")) {
+      return;
+    }
+
+    const remainingFeeders = activeStation.feeders.filter(f => f.id !== feederId);
+    const downstreamNodes = { ...activeStation.downstreamNodes };
+    delete downstreamNodes[feederId];
+
+    const newState = {
+      ...dccState,
+      stations: {
+        ...dccState.stations,
+        [activeStation.id]: {
+          ...activeStation,
+          feeders: remainingFeeders,
+          downstreamNodes
+        }
+      }
+    };
+
+    setDccState(newState);
+    updateDccStateInDb(newState);
+  };
+
+  // Edit Parameters Modal Saves
+  const handleSaveComponentEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeStation || !editingComponent) return;
+
+    const { type, id, data } = editingComponent;
+    const newState = { ...dccState };
+
+    if (type === 'bus') {
+      const updatedBuses = activeStation.buses.map(b => b.id === id ? { ...b, ...data } : b);
+      newState.stations[activeStation.id] = {
+        ...activeStation,
+        buses: updatedBuses
+      };
+    } else if (type === 'incomer') {
+      const updatedBuses = activeStation.buses.map(b => b.id === id ? { ...b, incomerName: data.incomerName } : b);
+      newState.stations[activeStation.id] = {
+        ...activeStation,
+        buses: updatedBuses
+      };
+    } else if (type === 'feeder') {
+      const updatedFeeders = activeStation.feeders.map(f => f.id === id ? { ...f, ...data } : f);
+      newState.stations[activeStation.id] = {
+        ...activeStation,
+        feeders: updatedFeeders
+      };
+    }
+
+    setDccState(newState);
+    updateDccStateInDb(newState);
+    setEditingComponent(null);
+  };
+
+  // Reset to Pristine Defaults
   const handleResetToDefaults = () => {
-    if (window.confirm("Apakah Anda yakin ingin menyetel ulang seluruh SLD ke kondisi standar?")) {
+    if (window.confirm("Apakah Anda yakin ingin mengatur ulang seluruh data multi-sistem DCC ke pengaturan awal?")) {
       setDccState(INITIAL_DCC_STATE);
       updateDccStateInDb(INITIAL_DCC_STATE);
     }
   };
 
-  // Path analysis to determine energized flows dynamically (to change stroke lines from green to red!)
-  const isSutt1Energized = dccState.breakers.pmt_150_t1.status === 'CLOSED';
-  const isSutt2Energized = dccState.breakers.pmt_150_t2.status === 'CLOSED';
-
-  const isTrafo1Energized = isSutt1Energized;
-  const isTrafo2Energized = isSutt2Energized;
-
-  const isTnc1Closed = dccState.breakers.pmt_tnc_1.status === 'CLOSED';
-  const isTnc2Closed = dccState.breakers.pmt_tnc_2.status === 'CLOSED';
-  const isKopelClosed = dccState.breakers.pmt_kopel.status === 'CLOSED';
-
-  // Real electric power grid logic:
-  let isBusAEnergized = isTrafo1Energized && isTnc1Closed;
-  let isBusBEnergized = isTrafo2Energized && isTnc2Closed;
-
-  // Kopel power share logic:
-  if (isKopelClosed) {
-    if (isBusAEnergized || isBusBEnergized) {
-      isBusAEnergized = true;
-      isBusBEnergized = true;
-    }
-  }
-
-  // Feeder power flows
-  const isF01Active = isBusAEnergized && dccState.breakers.f01_brk.status === 'CLOSED';
-  const isF02Active = isBusAEnergized && dccState.breakers.f02_brk.status === 'CLOSED';
-  const isF03Active = isBusAEnergized && dccState.breakers.f03_brk.status === 'CLOSED';
-
-  const isF04Active = isBusBEnergized && dccState.breakers.f04_brk.status === 'CLOSED';
-  const isF05Active = isBusBEnergized && dccState.breakers.f05_brk.status === 'CLOSED';
-  const isF06Active = isBusBEnergized && dccState.breakers.f06_brk.status === 'CLOSED';
-
-  // Helper to retrieve Lucide icons for each JTM node type
+  // Node Icon Helper
   const getNodeIcon = (type: string, isActive: boolean) => {
     const colorClass = isActive ? 'text-emerald-400' : 'text-rose-400';
-    const size = "w-5 h-5";
+    const size = "w-4 h-4";
     
     switch (type) {
       case 'GH':
@@ -527,7 +861,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
     }
   };
 
-  // Recursive JTM Node rendering tree helper for nesting support
+  // Recursive JTM Tree Renderer
   const renderJtmNodeTree = (
     nodes: DownstreamNode[], 
     isParentPathActive: boolean, 
@@ -536,10 +870,14 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
   ): React.ReactNode => {
     if (!nodes || nodes.length === 0) return null;
 
+    let runningFlowActive = isParentPathActive;
+
     return (
-      <div className={`w-full ${depth > 0 ? 'pl-3 border-l border-teal-900/40 mt-2.5 space-y-2' : 'space-y-3'}`}>
+      <div className={`w-full flex flex-col items-center ${depth > 0 ? 'mt-2 space-y-3' : 'space-y-4'}`}>
         {nodes.map((node, index) => {
-          const isNodeActive = isParentPathActive && node.status === 'CLOSED';
+          const incomingLineActive = runningFlowActive;
+          const isNodeActive = incomingLineActive && node.status === 'CLOSED';
+          runningFlowActive = isNodeActive;
 
           const typeStyles = {
             GH: 'border-blue-500/30 bg-blue-950/40 text-blue-300',
@@ -552,15 +890,18 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
 
           return (
             <div key={node.id} className="flex flex-col items-center relative w-full">
-              
-              {/* Connector Line between sibling nodes or from parent */}
-              {depth === 0 && index > 0 && (
-                <div className={`w-0.5 h-3 border-l-2 border-dashed mb-1.5 transition-all duration-300 ${
-                  isParentPathActive ? 'border-emerald-500' : 'border-rose-500/60'
-                }`} />
+              {/* Solid Connector Line */}
+              {index > 0 && (
+                <div className="w-full flex justify-center -mt-2 mb-2">
+                  <div className={`w-[3px] h-6 transition-all duration-300 rounded-full ${
+                    incomingLineActive 
+                      ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.85)] animate-pulse' 
+                      : 'bg-rose-600 shadow-[0_0_4px_rgba(239,68,68,0.55)]'
+                  }`} />
+                </div>
               )}
 
-              {/* JTM node card */}
+              {/* JTM Card */}
               <div className={`w-full rounded-xl border p-2 bg-[#011412] shadow-md transition-all relative ${
                 node.status === 'CLOSED'
                   ? isNodeActive 
@@ -568,15 +909,13 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                     : 'border-emerald-800/40'
                   : 'border-rose-800/60 shadow-md shadow-rose-950/30'
               }`}>
-                
-                {/* Control Actions Top-Right */}
+                {/* Actions Top-Right */}
                 <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-10">
-                  {/* "+" Add Child button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setAddingNodeForFeeder(feederId);
-                      setAddingNodeParentId(node.id); // set parent as this node!
+                      setAddingNodeParentId(node.id);
                       setNewNodeName('');
                       setNewNodeType('LBS');
                       setNewNodeStatus('CLOSED');
@@ -586,8 +925,6 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                   >
                     <Plus className="w-2.5 h-2.5" />
                   </button>
-
-                  {/* Delete button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -602,24 +939,22 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                   </button>
                 </div>
 
-                {/* Node Symbol Header: Icon centered */}
-                <div className="flex flex-col items-center justify-center pt-2 pb-1.5">
-                  <div className={`p-1.5 rounded-lg bg-teal-950/40 border border-teal-900/30 flex items-center justify-center mb-1.5`}>
+                {/* Header Info */}
+                <div className="flex flex-col items-center justify-center pt-1.5 pb-1">
+                  <div className="p-1.5 rounded-lg bg-teal-950/40 border border-teal-900/30 flex items-center justify-center mb-1">
                     {getNodeIcon(node.type, isNodeActive)}
                   </div>
-                  
-                  {/* Equipment Type Text Label BENEATH the Icon */}
-                  <span className={`text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider border ${typeStyles}`}>
-                    {node.type}
+                  <span className={`text-[7px] font-black px-1 py-0.5 rounded uppercase tracking-wider border ${typeStyles}`}>
+                     {node.type}
                   </span>
                 </div>
 
-                {/* Node name */}
-                <div className="text-[9px] font-bold text-slate-200 mb-1.5 text-center truncate px-1" title={node.name}>
+                {/* Name */}
+                <div className="text-[9px] font-bold text-slate-200 mb-1 text-center truncate px-1" title={node.name}>
                   {node.name}
                 </div>
 
-                {/* Status Switch Control */}
+                {/* Control Action Switch */}
                 <button
                   onClick={() => handleToggleDownstreamNode(feederId, node.id)}
                   className={`w-full py-1 rounded text-[8px] font-black tracking-wider transition-all cursor-pointer ${
@@ -631,19 +966,30 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                   {node.status === 'CLOSED' ? '🔴 CLOSED' : '🟢 TRIP'}
                 </button>
 
-                {/* Line Flow color bar */}
-                <div className={`h-1 w-full rounded-full mt-2 ${
-                  isNodeActive ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                {/* Flow indicator bar */}
+                <div className={`h-1 w-full rounded-full mt-1.5 ${
+                  isNodeActive ? 'bg-emerald-500 animate-pulse shadow-[0_0_4px_rgba(16,185,129,0.85)]' : 'bg-rose-600'
                 }`} />
               </div>
 
-              {/* Recursively render child branches */}
+              {/* Children Nodes */}
               {node.children && node.children.length > 0 && (
-                <div className="w-full flex flex-col items-stretch mt-2 pl-1.5 border-l border-teal-900/30">
-                  <div className="text-[7.5px] font-black text-teal-500/60 ml-1 mb-1 tracking-wider uppercase">
-                    ↳ Cabang ({node.children.length})
+                <div className="w-full flex flex-col items-center mt-2 relative">
+                  <div className={`w-[3px] h-3 transition-all duration-300 ${
+                    isNodeActive ? 'bg-emerald-500' : 'bg-rose-600'
+                  }`} />
+                  <div className={`w-1.5 h-1.5 rounded-full z-10 ${
+                    isNodeActive ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,1.0)] animate-ping' : 'bg-rose-500'
+                  }`} />
+                  <div className={`w-[85%] h-[2px] rounded-full -mt-[3px] transition-all duration-300 ${
+                    isNodeActive ? 'bg-emerald-500' : 'bg-rose-600'
+                  }`} />
+                  <div className={`w-[3px] h-3 transition-all duration-300 ${
+                    isNodeActive ? 'bg-emerald-500' : 'bg-rose-600'
+                  }`} />
+                  <div className="w-full pl-2 border-l border-teal-950/40">
+                    {renderJtmNodeTree(node.children, isNodeActive, feederId, depth + 1)}
                   </div>
-                  {renderJtmNodeTree(node.children, isNodeActive, feederId, depth + 1)}
                 </div>
               )}
             </div>
@@ -653,38 +999,50 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#010e0c] text-teal-400 p-8 h-screen font-sans">
+        <RefreshCw className="w-10 h-10 animate-spin mb-4 text-teal-500" />
+        <span className="text-sm font-bold tracking-wider animate-pulse">Memuat Sistem Monitoring SCADA DCC...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex flex-col bg-[#010e0c] text-slate-100 min-h-screen transition-all duration-300 font-mono select-none ${
+    <div className={`flex flex-col bg-[#010e0c] text-slate-100 min-h-screen transition-all duration-300 font-sans select-none ${
       isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen' : 'relative w-full'
     }`}>
-      {/* Styles for grid background and SCADA flow animation */}
+      {/* Dynamic Glow CSS styles */}
       <style>{`
         .scada-grid {
-          background-image: radial-gradient(rgba(13, 148, 136, 0.15) 1px, transparent 1px);
-          background-size: 20px 20px;
+          background-image: radial-gradient(rgba(13, 148, 136, 0.08) 1.5px, transparent 1.5px);
+          background-size: 24px 24px;
         }
-        @keyframes marchAnts {
-          0% { stroke-dashoffset: 24; }
-          100% { stroke-dashoffset: 0; }
+        @keyframes flowPulse {
+          0%, 100% { opacity: 0.95; transform: scaleY(1); }
+          50% { opacity: 0.75; transform: scaleY(1.05); }
         }
-        .flow-active {
-          stroke-dasharray: 6, 4;
-          animation: marchAnts 2s linear infinite;
+        .glowing-flow-green {
+          box-shadow: 0 0 14px rgba(16, 185, 129, 0.85);
+        }
+        .glowing-flow-red {
+          box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
         }
       `}</style>
 
-      {/* Control Cockpit Header */}
-      <div className="bg-[#021815] border-b border-teal-950 px-5 py-3 flex flex-wrap items-center justify-between gap-4 shrink-0 shadow-lg">
+      {/* 1. Cockpit Header Row */}
+      <div className="bg-[#021815] border-b border-teal-950 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4 shrink-0 shadow-lg relative z-20">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-teal-950 border border-teal-500/30 text-teal-400 animate-pulse">
+          <div className="p-2.5 rounded-xl bg-[#012521] border border-teal-500/30 text-teal-400 animate-pulse shadow-[0_0_10px_rgba(20,184,166,0.15)]">
             <Radio className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-sm font-black tracking-wider text-teal-300 uppercase">Single Line Diagram (SLD) Interaktif</h1>
-            <p className="text-[10px] text-teal-400/80 font-bold">Standar SPLN / IEC 60870-5-104 - Gardu Induk 150/20 kV</p>
+            <h1 className="text-sm font-black tracking-wider text-teal-300 uppercase">Single Line Diagram (SLD) 20kV Interaktif</h1>
+            <p className="text-[10px] text-teal-400/80 font-bold tracking-wide">Monitoring Kompartemen Busbar & Penyulang Sistem Tenaga Listrik Ril-Time</p>
           </div>
         </div>
 
+        {/* Global Action Tools */}
         <div className="flex items-center gap-2">
           {/* Telemetri Live Mode Toggle */}
           <button
@@ -695,18 +1053,20 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
               dccState.telemetryOn 
-                ? 'bg-teal-500/20 border-teal-400 text-teal-300 shadow-xs' 
-                : 'bg-slate-900 border-slate-700 text-slate-400'
+                ? 'bg-teal-500/20 border-teal-400 text-teal-300 shadow-[0_0_10px_rgba(20,184,166,0.25)]' 
+                : 'bg-slate-900 border-slate-800 text-slate-500'
             }`}
           >
             <Activity className={`w-3.5 h-3.5 ${dccState.telemetryOn ? 'animate-bounce' : ''}`} />
-            <span>Telemetri {dccState.telemetryOn ? 'ON' : 'OFF'}</span>
+            <span>Telemetri {dccState.telemetryOn ? 'AKTIF' : 'MATI'}</span>
           </button>
 
           {/* Legend Button */}
           <button
             onClick={() => setShowLegenda(!showLegenda)}
-            className="px-3 py-1.5 rounded-xl bg-[#012823] hover:bg-teal-900/60 border border-teal-800 text-teal-300 text-xs font-black cursor-pointer transition-all"
+            className={`px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer border transition-all ${
+              showLegenda ? 'bg-teal-600 text-teal-950 border-teal-400 font-extrabold' : 'bg-[#012823] hover:bg-teal-900/60 border-teal-800 text-teal-300'
+            }`}
           >
             <span>Legenda</span>
           </button>
@@ -714,7 +1074,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
           {/* Zoom Controls */}
           <div className="flex items-center bg-[#011a17] border border-teal-900/80 rounded-xl px-2.5 py-1 text-xs gap-2">
             <button 
-              onClick={() => setZoomLevel(Math.max(80, zoomLevel - 10))} 
+              onClick={() => setZoomLevel(Math.max(60, zoomLevel - 10))} 
               className="font-extrabold text-teal-400 hover:text-white px-1 active:scale-90"
               title="Perkecil"
             >
@@ -734,7 +1094,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
           <button
             onClick={handleResetToDefaults}
             className="p-1.5 rounded-xl bg-[#012823] hover:bg-rose-950/45 border border-teal-800 hover:border-rose-800 text-teal-400 hover:text-rose-400 cursor-pointer transition-all active:scale-95"
-            title="Sebut Ulang Parameter Awal"
+            title="Setel Ulang Struktur"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -750,574 +1110,483 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Saving status notification bar */}
+      {/* Cloud status bar */}
       {saveStatus !== 'IDLE' && (
-        <div className={`px-4 py-1.5 text-[11px] font-bold text-center flex items-center justify-center gap-1.5 transition-all ${
-          saveStatus === 'SAVING' ? 'bg-amber-600/35 text-amber-200' :
-          saveStatus === 'SUCCESS' ? 'bg-emerald-600/35 text-emerald-200' : 'bg-rose-600/35 text-rose-200'
+        <div className={`px-4 py-1 text-[11px] font-bold text-center flex items-center justify-center gap-1.5 transition-all relative z-15 ${
+          saveStatus === 'SAVING' ? 'bg-amber-600/30 text-amber-200 border-b border-amber-900/30' :
+          saveStatus === 'SUCCESS' ? 'bg-emerald-600/30 text-emerald-200 border-b border-emerald-900/30' : 'bg-rose-600/30 text-rose-200 border-b border-rose-900/30'
         }`}>
-          {saveStatus === 'SAVING' && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-          {saveStatus === 'SUCCESS' && <Check className="w-3.5 h-3.5" />}
-          {saveStatus === 'ERROR' && <AlertTriangle className="w-3.5 h-3.5" />}
+          {saveStatus === 'SAVING' && <RefreshCw className="w-3 h-3 animate-spin" />}
+          {saveStatus === 'SUCCESS' && <Check className="w-3 h-3" />}
+          {saveStatus === 'ERROR' && <AlertTriangle className="w-3 h-3" />}
           <span>
-            {saveStatus === 'SAVING' && 'Sinkronisasi status DCC ke cloud...'}
-            {saveStatus === 'SUCCESS' && 'Kondisi DCC tersimpan permanen di Cloud!'}
-            {saveStatus === 'ERROR' && 'Koneksi lambat. Perubahan disimpan di penyimpanan lokal.'}
+            {saveStatus === 'SAVING' && 'Menyinkronkan status SLD ke Cloud database...'}
+            {saveStatus === 'SUCCESS' && 'Kondisi sirkuit & pilihan gardu berhasil disimpan permanen di Cloud!'}
+            {saveStatus === 'ERROR' && 'Perubahan berhasil dicadangkan di penyimpanan lokal (offline).'}
           </span>
         </div>
       )}
 
-      {/* Main Cockpit Workspace Area */}
+      {/* 2. STATION OPTION SELECTOR (GI / PLTD / GH Selection Switcher) */}
+      <div className="bg-[#011412] border-b border-teal-950 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4 shrink-0 relative z-10">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-black text-teal-400 tracking-wider mr-2 uppercase">Sistem Monitoring Terpilih:</span>
+          
+          {(Object.values(dccState.stations) as StationConfig[]).map((station) => {
+            const isActive = station.id === dccState.activeStationId;
+            const typeBadgeColor = {
+              GI: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+              PLTD: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+              GH: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+            }[station.type];
+
+            return (
+              <div key={station.id} className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    const newState = { ...dccState, activeStationId: station.id };
+                    setDccState(newState);
+                    updateDccStateInDb(newState);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl border text-[11px] font-black tracking-wide flex items-center gap-2 transition-all cursor-pointer ${
+                    isActive 
+                      ? 'bg-gradient-to-r from-teal-950 to-emerald-950 text-teal-200 border-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.3)] hover:brightness-110 scale-105' 
+                      : 'bg-teal-950/20 border-teal-950 text-teal-500/75 hover:bg-teal-950/40 hover:text-teal-400'
+                  }`}
+                >
+                  {station.type === 'GI' && <Shield className="w-3.5 h-3.5" />}
+                  {station.type === 'PLTD' && <SlidersHorizontal className="w-3.5 h-3.5" />}
+                  {station.type === 'GH' && <Network className="w-3.5 h-3.5" />}
+                  <span>{station.name}</span>
+                  <span className={`text-[8px] px-1 rounded-md border tracking-tighter ${typeBadgeColor}`}>{station.type}</span>
+                </button>
+
+                {/* Individual Station deletion button if > 1 station exists */}
+                {Object.keys(dccState.stations).length > 1 && (
+                  <button
+                    onClick={() => handleDeleteStation(station.id)}
+                    className="p-1 rounded bg-[#0b211d] border border-teal-950 hover:bg-rose-950/40 hover:text-rose-400 text-slate-500 transition-all cursor-pointer active:scale-90"
+                    title={`Hapus Sistem ${station.name}`}
+                  >
+                    <Trash className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Create Station Button */}
+          <button
+            onClick={() => setShowAddStationModal(true)}
+            className="px-3 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-[11px] font-black flex items-center gap-1.5 cursor-pointer shadow-md shadow-teal-500/10 active:scale-95 transition-all"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Buat Gardu Baru (GI/PLTD/GH)</span>
+          </button>
+        </div>
+
+        {/* Action button inside the Active Station: Add Busbar */}
+        {activeStation && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setNewBusbarName(`BUS 20kV - ${String.fromCharCode(65 + activeStation.buses.length)}`);
+                setNewBusbarVoltage(20.0);
+                setNewBusbarIncomer(activeStation.type === 'GI' ? `Trafo Daya ${activeStation.buses.length + 1} (60 MVA)` : activeStation.type === 'PLTD' ? `Generator G${activeStation.buses.length + 1}` : `Incomer Express Line ${activeStation.buses.length + 1}`);
+                setShowAddBusbarModal(true);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-[#022e28] hover:bg-[#03443a] border border-teal-600/50 text-teal-300 text-[11px] font-extrabold flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Busbar 20kV</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Main Cockpit Grid Workspace */}
       <div className="flex-1 flex overflow-hidden scada-grid relative">
         
-        {/* SCADA Diagram Container */}
-        <div className="flex-1 overflow-auto p-6 flex justify-center items-start">
-          <div 
-            className="relative bg-[#02110f]/90 border border-teal-950 shadow-2xl rounded-3xl p-8 transition-transform duration-200 origin-top w-[1200px] min-h-[1150px]"
-            style={{ transform: `scale(${zoomLevel / 100})` }}
-          >
+        {/* Dynamic single line diagram workspace canvas */}
+        {activeStation ? (
+          <div className="flex-1 overflow-auto p-6 flex flex-col justify-start items-center">
             
-            {/* SVG Lines with Real-time flow and color representation */}
-            {/* TRIP = Red (#ef4444), CLOSED = Green (#22c55e) */}
-            <div className="absolute inset-0 pointer-events-none z-0">
-              <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
-                  <filter id="glow-red" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
-                </defs>
-                
-                {/* 1. SUTT 1 to BUS 150-A Line */}
-                <path 
-                  d="M 280 20 L 280 120" 
-                  stroke={isSutt1Energized ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="4" 
-                  fill="none" 
-                  filter={isSutt1Energized ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isSutt1Energized ? 'flow-active' : ''}
-                />
+            {/* Station Status Info Summary */}
+            <div className="w-full max-w-7xl bg-[#021c19]/65 border border-teal-950/80 p-4 rounded-2xl mb-6 flex flex-wrap justify-between items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-teal-950 text-teal-400">
+                  <Server className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-bold text-slate-200">INFORMASI INSTALASI</h2>
+                  <p className="text-[10px] text-teal-400 font-extrabold">
+                    {activeStation.name} &bull; Tipe: {activeStation.type === 'GI' ? 'GARDU INDUK 150kV/20kV' : activeStation.type === 'PLTD' ? 'PEMBANGKIT DIESEL 20kV' : 'GARDU HUBUNG 20kV'}
+                  </p>
+                </div>
+              </div>
 
-                {/* 2. SUTT 2 to BUS 150-B Line */}
-                <path 
-                  d="M 920 20 L 920 120" 
-                  stroke={isSutt2Energized ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="4" 
-                  fill="none" 
-                  filter={isSutt2Energized ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isSutt2Energized ? 'flow-active' : ''}
-                />
-
-                {/* 3. BUS 150-A to Trafo 1 Line */}
-                <path 
-                  d="M 280 145 L 280 240" 
-                  stroke={isSutt1Energized ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3.5" 
-                  fill="none"
-                  filter={isSutt1Energized ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isSutt1Energized ? 'flow-active' : ''}
-                />
-
-                {/* 4. BUS 150-B to Trafo 2 Line */}
-                <path 
-                  d="M 920 145 L 920 240" 
-                  stroke={isSutt2Energized ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3.5" 
-                  fill="none"
-                  filter={isSutt2Energized ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isSutt2Energized ? 'flow-active' : ''}
-                />
-
-                {/* 5. Trafo 1 to Bus 20kV-A Connection (through PMT TNC-1) */}
-                <path 
-                  d="M 280 340 L 280 500" 
-                  stroke={isTrafo1Energized && isTnc1Closed ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3.5" 
-                  fill="none"
-                  filter={isTrafo1Energized && isTnc1Closed ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isTrafo1Energized && isTnc1Closed ? 'flow-active' : ''}
-                />
-
-                {/* 6. Trafo 2 to Bus 20kV-B Connection (through PMT TNC-2) */}
-                <path 
-                  d="M 920 340 L 920 500" 
-                  stroke={isTrafo2Energized && isTnc2Closed ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3.5" 
-                  fill="none"
-                  filter={isTrafo2Energized && isTnc2Closed ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isTrafo2Energized && isTnc2Closed ? 'flow-active' : ''}
-                />
-
-                {/* 7. Bus Kopel (Horizontal links between Bus A and Bus B) */}
-                <path 
-                  d="M 280 500 L 530 500 M 570 500 L 920 500" 
-                  stroke={isBusAEnergized || isBusBEnergized ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="4" 
-                  fill="none"
-                  filter={isBusAEnergized || isBusBEnergized ? 'url(#glow-green)' : 'url(#glow-red)'}
-                />
-
-                {/* 8. Kopel Bridge Breaker (Middle connector) */}
-                <path 
-                  d="M 530 500 L 570 500" 
-                  stroke={isKopelClosed ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="4.5" 
-                  fill="none"
-                  filter={isKopelClosed ? 'url(#glow-green)' : 'url(#glow-red)'}
-                />
-
-                {/* 9. Feeder F-01 Downwards */}
-                <path 
-                  d="M 120 500 L 120 700" 
-                  stroke={isF01Active ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3" 
-                  fill="none"
-                  filter={isF01Active ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isF01Active ? 'flow-active' : ''}
-                />
-
-                {/* 10. Feeder F-02 Downwards */}
-                <path 
-                  d="M 280 500 L 280 700" 
-                  stroke={isF02Active ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3" 
-                  fill="none"
-                  filter={isF02Active ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isF02Active ? 'flow-active' : ''}
-                />
-
-                {/* 11. Feeder F-03 Downwards */}
-                <path 
-                  d="M 440 500 L 440 700" 
-                  stroke={isF03Active ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3" 
-                  fill="none"
-                  filter={isF03Active ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isF03Active ? 'flow-active' : ''}
-                />
-
-                {/* 12. Feeder F-04 Downwards */}
-                <path 
-                  d="M 760 500 L 760 700" 
-                  stroke={isF04Active ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3" 
-                  fill="none"
-                  filter={isF04Active ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isF04Active ? 'flow-active' : ''}
-                />
-
-                {/* 13. Feeder F-05 Downwards */}
-                <path 
-                  d="M 920 500 L 920 700" 
-                  stroke={isF05Active ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3" 
-                  fill="none"
-                  filter={isF05Active ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isF05Active ? 'flow-active' : ''}
-                />
-
-                {/* 14. Feeder F-06 Downwards */}
-                <path 
-                  d="M 1080 500 L 1080 700" 
-                  stroke={isF06Active ? '#22c55e' : '#ef4444'} 
-                  strokeWidth="3" 
-                  fill="none"
-                  filter={isF06Active ? 'url(#glow-green)' : 'url(#glow-red)'}
-                  className={isF06Active ? 'flow-active' : ''}
-                />
-              </svg>
+              <div className="flex gap-4 text-xs font-bold text-slate-300">
+                <div className="px-3 py-1 bg-slate-900/30 rounded-lg border border-teal-950 flex flex-col items-center min-w-[70px]">
+                  <span className="text-[9px] text-teal-500/70">Busbar</span>
+                  <span className="text-amber-300 font-black text-sm">{activeStation.buses.length}</span>
+                </div>
+                <div className="px-3 py-1 bg-slate-900/30 rounded-lg border border-teal-950 flex flex-col items-center min-w-[70px]">
+                  <span className="text-[9px] text-teal-500/70">Penyulang</span>
+                  <span className="text-amber-300 font-black text-sm">{activeStation.feeders.length}</span>
+                </div>
+                <div className="px-3 py-1 bg-slate-900/30 rounded-lg border border-teal-950 flex flex-col items-center min-w-[70px]">
+                  <span className="text-[9px] text-teal-500/70">PMT Kopel</span>
+                  <span className={`font-black text-xs px-1.5 py-0.5 rounded mt-0.5 ${
+                    activeStation.pmtKopelStatus === 'CLOSED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                  }`}>
+                    {activeStation.pmtKopelStatus === 'CLOSED' ? 'CLOSED' : 'OPEN'}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Interactive Grid Elements Overlay */}
-            <div className="relative z-10 w-full h-full">
+            {/* Layout Canvas inside standard container */}
+            <div 
+              className="relative bg-[#02110f]/90 border border-teal-950/80 shadow-2xl rounded-3xl p-6 md:p-10 transition-transform duration-200 origin-top w-full max-w-7xl"
+              style={{ transform: `scale(${zoomLevel / 100})` }}
+            >
               
-              {/* TOP: SUTT Headers */}
-              {/* SUTT 1 Header */}
-              <div className="absolute top-[20px] flex flex-col items-center" style={{ left: '280px', transform: 'translateX(-50%)' }}>
-                <span className="text-[10px] font-black text-teal-400">SUTT 150kV SUTET/GANDUL - 1</span>
-                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-rose-500 mt-1 animate-bounce" />
-              </div>
-
-              {/* SUTT 2 Header */}
-              <div className="absolute top-[20px] flex flex-col items-center" style={{ left: '920px', transform: 'translateX(-50%)' }}>
-                <span className="text-[10px] font-black text-teal-400">SUTT 150kV SUTET/GANDUL - 2</span>
-                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-rose-500 mt-1 animate-bounce" />
-              </div>
-
-              {/* BUS 150kV Bars */}
-              {/* BUS 150kV - A */}
-              <div 
-                onClick={() => setEditingComponent({ type: 'bus', id: 'bus_150_a', data: dccState.buses.bus_150_a })}
-                className="absolute top-[95px] bg-teal-950/90 border-2 border-teal-500/80 hover:border-amber-400 px-4 py-1.5 rounded-xl shadow-lg cursor-pointer transition-all hover:scale-105 active:scale-95"
-                style={{ left: '280px', transform: 'translateX(-50%)' }}
-              >
-                <span className="text-[9px] font-bold block text-teal-300">BUS 150 kV - A</span>
-                <span className="text-xs font-black text-teal-100">{dccState.buses.bus_150_a.voltageKv} kV</span>
-              </div>
-
-              {/* BUS 150kV - B */}
-              <div 
-                onClick={() => setEditingComponent({ type: 'bus', id: 'bus_150_b', data: dccState.buses.bus_150_b })}
-                className="absolute top-[95px] bg-teal-950/90 border-2 border-teal-500/80 hover:border-amber-400 px-4 py-1.5 rounded-xl shadow-lg cursor-pointer transition-all hover:scale-105 active:scale-95"
-                style={{ left: '920px', transform: 'translateX(-50%)' }}
-              >
-                <span className="text-[9px] font-bold block text-teal-300">BUS 150 kV - B</span>
-                <span className="text-xs font-black text-teal-100">{dccState.buses.bus_150_b.voltageKv} kV</span>
-              </div>
-
-              {/* PMT 150-T1 & PMT 150-T2 Breakers */}
-              {/* PMT 150-T1 */}
-              <div 
-                className="absolute top-[175px] flex items-center gap-2 bg-[#021815] p-1 border border-teal-900 rounded-xl"
-                style={{ left: '280px', transform: 'translateX(-50%)' }}
-              >
-                <button 
-                  onClick={() => handleToggleBreaker('pmt_150_t1')}
-                  className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-90 ${
-                    dccState.breakers.pmt_150_t1.status === 'CLOSED'
-                      ? 'bg-emerald-500 text-slate-950 border border-emerald-300'
-                      : 'bg-rose-500 text-white border border-rose-300 animate-pulse'
-                  }`}
-                >
-                  {dccState.breakers.pmt_150_t1.status === 'CLOSED' ? 'C' : 'T'}
-                </button>
-                <span className="text-[9px] font-extrabold text-teal-400 pr-1.5">PMT 150-T1</span>
-              </div>
-
-              {/* PMT 150-T2 */}
-              <div 
-                className="absolute top-[175px] flex items-center gap-2 bg-[#021815] p-1 border border-teal-900 rounded-xl"
-                style={{ left: '920px', transform: 'translateX(-50%)' }}
-              >
-                <button 
-                  onClick={() => handleToggleBreaker('pmt_150_t2')}
-                  className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-90 ${
-                    dccState.breakers.pmt_150_t2.status === 'CLOSED'
-                      ? 'bg-emerald-500 text-slate-950 border border-emerald-300'
-                      : 'bg-rose-500 text-white border border-rose-300 animate-pulse'
-                  }`}
-                >
-                  {dccState.breakers.pmt_150_t2.status === 'CLOSED' ? 'C' : 'T'}
-                </button>
-                <span className="text-[9px] font-extrabold text-teal-400 pr-1.5">PMT 150-T2</span>
-              </div>
-
-              {/* Transformers TRAFO 1 & TRAFO 2 */}
-              {/* TRAFO 1 */}
-              <div 
-                onClick={() => setEditingComponent({ type: 'trafo', id: 'trafo_1', data: dccState.trafos.trafo_1 })}
-                className="absolute top-[235px] bg-[#02201b] border-2 border-teal-500 hover:border-amber-400 p-3.5 rounded-2xl shadow-xl w-[250px] cursor-pointer transition-all hover:scale-105"
-                style={{ left: '280px', transform: 'translateX(-50%)' }}
-              >
-                <div className="flex justify-between items-center border-b border-teal-900 pb-1.5 mb-2">
-                  <span className="text-[10px] font-black text-teal-300">{dccState.trafos.trafo_1.name}</span>
-                  <span className="text-[8px] bg-teal-500/10 text-teal-300 px-1.5 py-0.5 rounded border border-teal-500/30">150/20 kV</span>
-                </div>
+              {/* Dynamic Grid of Busbars arranged side-by-side as distinct vertical columns! */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative">
                 
-                <div className="space-y-1 text-[10px]">
-                  <div className="flex justify-between">
-                    <span className="text-teal-400/80">Pembebanan:</span>
-                    <span className="font-extrabold text-teal-100">{dccState.trafos.trafo_1.loadMw} MW ({((dccState.trafos.trafo_1.loadMw / dccState.trafos.trafo_1.capacityMva) * 100).toFixed(1)}%)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-teal-400/80">Posisi Tap:</span>
-                    <span className="font-extrabold text-teal-100">{dccState.trafos.trafo_1.tap}/{dccState.trafos.trafo_1.tapMax} ({dccState.trafos.trafo_1.isAutoTap ? 'AUTO' : 'MANUAL'})</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-teal-400/80">Suhu Winding:</span>
-                    <span className={`font-extrabold ${dccState.trafos.trafo_1.tempWdy > 65 ? 'text-amber-400' : 'text-teal-100'}`}>{dccState.trafos.trafo_1.tempWdy}°C - ONAF</span>
-                  </div>
-                </div>
+                {/* Loop buses in the station */}
+                {activeStation.buses.map((bus, busIdx) => {
+                  const isBusEnergized = busEnergizedMap[bus.id];
+                  const busFeeders = activeStation.feeders.filter(f => f.busId === bus.id);
 
-                {/* Dual circles SCADA icon */}
-                <div className="flex justify-center mt-3 gap-0.5 relative h-8">
-                  <div className="w-7 h-7 rounded-full border border-teal-400 flex items-center justify-center text-[7px] text-teal-300 font-extrabold bg-[#02201b]/80 z-10 shadow-md">150kV</div>
-                  <div className="w-7 h-7 rounded-full border border-teal-400 flex items-center justify-center text-[7px] text-teal-300 font-extrabold bg-[#02201b]/80 z-0 -ml-2.5 shadow-md">20kV</div>
-                </div>
-              </div>
+                  return (
+                    <div key={bus.id} className="flex flex-col items-center border border-teal-950/35 bg-[#011412]/30 p-4 rounded-2xl relative">
+                      
+                      {/* INCOMING SOURCE HEADER */}
+                      <div className="w-full flex flex-col items-center mb-6">
+                        {/* Source representation card */}
+                        <div 
+                          onClick={() => setEditingComponent({ type: 'incomer', id: bus.id, data: { incomerName: bus.incomerName } })}
+                          className="px-3 py-2 bg-slate-900 border-2 border-teal-800 hover:border-amber-400 rounded-xl flex flex-col items-center min-w-[150px] shadow-md cursor-pointer transition-all active:scale-95"
+                        >
+                          <span className="text-[8px] font-bold text-teal-400 uppercase tracking-widest">Incoming Sumber</span>
+                          <span className="text-[10px] font-extrabold text-slate-100 mt-1 flex items-center gap-1.5">
+                            {activeStation.type === 'GI' && <Layers className="w-3 h-3 text-teal-400" />}
+                            {activeStation.type === 'PLTD' && <SlidersHorizontal className="w-3 h-3 text-amber-400" />}
+                            {activeStation.type === 'GH' && <Power className="w-3 h-3 text-purple-400" />}
+                            <span>{bus.incomerName}</span>
+                          </span>
+                        </div>
 
-              {/* TRAFO 2 */}
-              <div 
-                onClick={() => setEditingComponent({ type: 'trafo', id: 'trafo_2', data: dccState.trafos.trafo_2 })}
-                className="absolute top-[235px] bg-[#02201b] border-2 border-teal-500 hover:border-amber-400 p-3.5 rounded-2xl shadow-xl w-[250px] cursor-pointer transition-all hover:scale-105"
-                style={{ left: '920px', transform: 'translateX(-50%)' }}
-              >
-                <div className="flex justify-between items-center border-b border-teal-900 pb-1.5 mb-2">
-                  <span className="text-[10px] font-black text-teal-300">{dccState.trafos.trafo_2.name}</span>
-                  <span className="text-[8px] bg-teal-500/10 text-teal-300 px-1.5 py-0.5 rounded border border-teal-500/30">150/20 kV</span>
-                </div>
-                
-                <div className="space-y-1 text-[10px]">
-                  <div className="flex justify-between">
-                    <span className="text-teal-400/80">Pembebanan:</span>
-                    <span className="font-extrabold text-teal-100">{dccState.trafos.trafo_2.loadMw} MW ({((dccState.trafos.trafo_2.loadMw / dccState.trafos.trafo_2.capacityMva) * 100).toFixed(1)}%)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-teal-400/80">Posisi Tap:</span>
-                    <span className="font-extrabold text-teal-100">{dccState.trafos.trafo_2.tap}/{dccState.trafos.trafo_2.tapMax} ({dccState.trafos.trafo_2.isAutoTap ? 'AUTO' : 'MANUAL'})</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-teal-400/80">Suhu Winding:</span>
-                    <span className={`font-extrabold ${dccState.trafos.trafo_2.tempWdy > 65 ? 'text-amber-400' : 'text-teal-100'}`}>{dccState.trafos.trafo_2.tempWdy}°C - ONAF</span>
-                  </div>
-                </div>
+                        {/* Solid Connecting Line from Source down to Incomer Breaker */}
+                        <div className={`w-[3px] h-6 transition-all duration-300 ${
+                          bus.incomerBreakerStatus === 'CLOSED' 
+                            ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' 
+                            : 'bg-rose-600 shadow-[0_0_4px_rgba(239,68,68,0.4)]'
+                        }`} />
 
-                {/* Dual circles SCADA icon */}
-                <div className="flex justify-center mt-3 gap-0.5 relative h-8">
-                  <div className="w-7 h-7 rounded-full border border-teal-400 flex items-center justify-center text-[7px] text-teal-300 font-extrabold bg-[#02201b]/80 z-10 shadow-md">150kV</div>
-                  <div className="w-7 h-7 rounded-full border border-teal-400 flex items-center justify-center text-[7px] text-teal-300 font-extrabold bg-[#02201b]/80 z-0 -ml-2.5 shadow-md">20kV</div>
-                </div>
-              </div>
+                        {/* Clickable Incomer Breaker (PMT Incomer) */}
+                        <div className="flex items-center gap-1.5 bg-[#021815] p-1 border border-teal-900 rounded-xl shadow-md">
+                          <button
+                            onClick={() => handleToggleIncomerBreaker(bus.id)}
+                            className={`w-6 h-6 rounded text-[9px] font-black flex items-center justify-center cursor-pointer transition-all ${
+                              bus.incomerBreakerStatus === 'CLOSED'
+                                ? 'bg-emerald-500 text-slate-950 border border-emerald-300'
+                                : 'bg-rose-500 text-white border border-rose-300 animate-pulse'
+                            }`}
+                          >
+                            {bus.incomerBreakerStatus === 'CLOSED' ? 'C' : 'T'}
+                          </button>
+                          <span className="text-[8px] font-black text-teal-400 pr-1 select-none">PMT INCOMER</span>
+                        </div>
 
-              {/* PMT TNC-1 & PMT TNC-2 & PMT KOPEL */}
-              {/* PMT TNC-1 */}
-              <div 
-                className="absolute top-[395px] flex items-center gap-2 bg-[#021815] p-1 border border-teal-900 rounded-xl"
-                style={{ left: '280px', transform: 'translateX(-50%)' }}
-              >
-                <button 
-                  onClick={() => handleToggleBreaker('pmt_tnc_1')}
-                  className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-90 ${
-                    dccState.breakers.pmt_tnc_1.status === 'CLOSED'
-                      ? 'bg-emerald-500 text-slate-950 border border-emerald-300'
-                      : 'bg-rose-500 text-white border border-rose-300 animate-pulse'
-                  }`}
-                >
-                  {dccState.breakers.pmt_tnc_1.status === 'CLOSED' ? 'C' : 'T'}
-                </button>
-                <div className="text-left">
-                  <span className="text-[9px] font-black text-teal-300 block">PMT TNC-1 (20kV)</span>
-                  <span className="text-[7px] bg-teal-500/10 text-teal-400 px-1 rounded border border-teal-500/20 uppercase">REL: OCR/GFR</span>
-                </div>
-              </div>
+                        {/* Line leading directly into the Busbar */}
+                        <div className={`w-[3px] h-6 transition-all duration-300 ${
+                          bus.incomerBreakerStatus === 'CLOSED'
+                            ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]'
+                            : 'bg-rose-600 shadow-[0_0_4px_rgba(239,68,68,0.4)]'
+                        }`} />
+                      </div>
 
-              {/* PMT KOPEL In the middle */}
-              <div 
-                className="absolute top-[480px] flex items-center gap-1.5 bg-[#021815] p-1 border border-teal-900 rounded-xl z-20"
-                style={{ left: '600px', transform: 'translateX(-50%)' }}
-              >
-                <button 
-                  onClick={() => handleToggleBreaker('pmt_kopel')}
-                  className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-90 ${
-                    dccState.breakers.pmt_kopel.status === 'CLOSED'
-                      ? 'bg-emerald-500 text-slate-950 border border-emerald-300'
-                      : 'bg-rose-500 text-white border border-rose-300 animate-pulse'
-                  }`}
-                  title="Kopel Bus A & Bus B"
-                >
-                  {dccState.breakers.pmt_kopel.status === 'CLOSED' ? 'C' : 'T'}
-                </button>
-                <span className="text-[8px] font-black text-teal-300 pr-1">PMT KOPEL</span>
-              </div>
+                      {/* BUSBAR COPPER BAR */}
+                      <div className="w-full relative px-2 mb-6">
+                        {/* Actual horizontal copper glowing bar representing the busbar! */}
+                        <div className={`w-full h-3.5 rounded-full transition-all duration-300 ${
+                          isBusEnergized 
+                            ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.9)]' 
+                            : 'bg-rose-600 shadow-[0_0_6px_rgba(239,68,68,0.5)]'
+                        }`} />
 
-              {/* PMT TNC-2 */}
-              <div 
-                className="absolute top-[395px] flex items-center gap-2 bg-[#021815] p-1 border border-teal-900 rounded-xl"
-                style={{ left: '920px', transform: 'translateX(-50%)' }}
-              >
-                <button 
-                  onClick={() => handleToggleBreaker('pmt_tnc_2')}
-                  className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-90 ${
-                    dccState.breakers.pmt_tnc_2.status === 'CLOSED'
-                      ? 'bg-emerald-500 text-slate-950 border border-emerald-300'
-                      : 'bg-rose-500 text-white border border-rose-300 animate-pulse'
-                  }`}
-                >
-                  {dccState.breakers.pmt_tnc_2.status === 'CLOSED' ? 'C' : 'T'}
-                </button>
-                <div className="text-left">
-                  <span className="text-[9px] font-black text-teal-300 block">PMT TNC-2 (20kV)</span>
-                  <span className="text-[7px] bg-teal-500/10 text-teal-400 px-1 rounded border border-teal-500/20 uppercase">REL: OCR/GFR</span>
-                </div>
-              </div>
+                        {/* Busbar Parameter Label Box */}
+                        <div className="w-full flex justify-between items-center mt-2.5 bg-teal-950/90 border border-teal-800 px-3 py-1.5 rounded-xl shadow-md">
+                          <div 
+                            onClick={() => setEditingComponent({ type: 'bus', id: bus.id, data: { name: bus.name, voltageKv: bus.voltageKv } })}
+                            className="text-left cursor-pointer hover:text-amber-300 transition-all"
+                            title="Edit parameter busbar"
+                          >
+                            <span className="text-[9px] font-bold block text-teal-300">{bus.name}</span>
+                            <span className={`text-[11px] font-black ${isBusEnergized ? 'text-teal-100' : 'text-rose-400'}`}>
+                              {bus.voltageKv} kV
+                            </span>
+                          </div>
 
-              {/* BUS 20kV Horizontal Busbar line indicators */}
-              {/* BUS 20kV - A Label */}
-              <div 
-                onClick={() => setEditingComponent({ type: 'bus', id: 'bus_20_a', data: dccState.buses.bus_20_a })}
-                className="absolute top-[480px] bg-teal-950/90 border border-teal-500/60 hover:border-amber-400 px-3 py-1 rounded-xl shadow-lg cursor-pointer transition-all hover:scale-105"
-                style={{ left: '280px', transform: 'translateX(-50%)' }}
-              >
-                <span className="text-[8px] font-bold block text-teal-300">BUS 20kV - A</span>
-                <span className="text-[10px] font-black text-teal-100">{dccState.buses.bus_20_a.voltageKv} kV</span>
-              </div>
+                          <div className="flex items-center gap-1.5">
+                            {/* Add Feeder button */}
+                            <button
+                              onClick={() => {
+                                setNewFeederCode(`F-${busFeeders.length + 1}`);
+                                setNewFeederName(`Penyulang Baru ${busFeeders.length + 1}`);
+                                setNewFeederCurrent(180);
+                                setNewFeederCosPhi(0.95);
+                                setShowAddFeederModal(bus.id);
+                              }}
+                              className="p-1 rounded bg-[#032e28] hover:bg-teal-600 hover:text-slate-950 text-teal-400 transition-all cursor-pointer border border-teal-500/30"
+                              title="Tambah Penyulang (Feeder)"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
 
-              {/* BUS 20kV - B Label */}
-              <div 
-                onClick={() => setEditingComponent({ type: 'bus', id: 'bus_20_b', data: dccState.buses.bus_20_b })}
-                className="absolute top-[480px] bg-teal-950/90 border border-teal-500/60 hover:border-amber-400 px-3 py-1 rounded-xl shadow-lg cursor-pointer transition-all hover:scale-105"
-                style={{ left: '920px', transform: 'translateX(-50%)' }}
-              >
-                <span className="text-[8px] font-bold block text-teal-300">BUS 20kV - B</span>
-                <span className="text-[10px] font-black text-teal-100">{dccState.buses.bus_20_b.voltageKv} kV</span>
-              </div>
+                            {/* Delete Busbar button */}
+                            <button
+                              onClick={() => handleDeleteBusbar(bus.id)}
+                              className="p-1 rounded bg-slate-900 hover:bg-rose-950/40 hover:text-rose-400 text-slate-500 transition-all cursor-pointer"
+                              title="Hapus Busbar ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
 
-              {/* 6 FEEDERS DISPLAY CARDS (F-01 through F-06) */}
-              {/* Loop F-01 to F-06 */}
-              {Object.keys(dccState.feeders).map((key) => {
-                const f = dccState.feeders[key];
-                const brkId = `${key}_brk`;
-                const isTripped = f.status === 'TRIP';
-                const associatedBreaker = dccState.breakers[brkId];
-                
-                const isFeederActive = 
-                  f.id === 'f01' ? isF01Active :
-                  f.id === 'f02' ? isF02Active :
-                  f.id === 'f03' ? isF03Active :
-                  f.id === 'f04' ? isF04Active :
-                  f.id === 'f05' ? isF05Active :
-                  isF06Active;
-                
-                const nodes = (dccState.downstreamNodes && dccState.downstreamNodes[f.id]) || [];
+                      {/* Dynamic loop of Feeders underneath this specific Busbar */}
+                      <div className="w-full grid grid-cols-1 gap-6 pt-4 border-t border-teal-950/50">
+                        {busFeeders.length === 0 ? (
+                          <div className="text-[10px] text-slate-500 text-center py-6 px-3 border border-dashed border-teal-950/30 rounded-2xl bg-teal-950/5">
+                            Belum ada feeder terhubung. Klik tombol "+" di atas untuk menambahkan.
+                          </div>
+                        ) : (
+                          busFeeders.map((feeder) => {
+                            const isFeederActive = isBusEnergized && feeder.status === 'CLOSED';
+                            const jtmNodes = activeStation.downstreamNodes[feeder.id] || [];
 
-                // Map each feeder to its exact mathematical center in the SVG
-                const horizontalCenter = {
-                  f01: '120px',
-                  f02: '280px',
-                  f03: '440px',
-                  f04: '760px',
-                  f05: '920px',
-                  f06: '1080px'
-                }[f.id] || '120px';
+                            return (
+                              <div key={feeder.id} className="flex flex-col items-center bg-[#011c19]/35 border border-teal-950/60 p-3 rounded-2xl shadow-sm relative">
+                                
+                                {/* Connector Line leading down to breaker */}
+                                <div className={`w-[2.5px] h-5 transition-all duration-300 ${
+                                  isBusEnergized 
+                                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.85)]' 
+                                    : 'bg-rose-600 shadow-[0_0_4px_rgba(239,68,68,0.55)]'
+                                }`} />
 
-                return (
-                  <div 
-                    key={`fd_container_${f.id}`} 
-                    className="absolute top-[540px] w-[148px] flex flex-col items-center" 
-                    style={{ left: horizontalCenter, transform: 'translateX(-50%)' }}
-                  >
-                    
-                    {/* Feeder inline Breaker Button (PMT F-X) */}
-                    {associatedBreaker && (
-                      <div className="bg-[#021815] px-1 py-0.5 rounded-lg border border-teal-900/80 mb-6 flex items-center gap-1 shrink-0">
+                                {/* Feeder Breaker Switch button */}
+                                <div className="bg-[#021815] px-1.5 py-0.5 rounded-lg border border-teal-950 mb-3 flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => handleToggleFeederBreaker(feeder.id)}
+                                    className={`w-6 h-6 rounded text-[9px] font-black flex items-center justify-center cursor-pointer transition-all ${
+                                      feeder.status === 'CLOSED'
+                                        ? 'bg-emerald-500 text-slate-950 border border-emerald-300'
+                                        : 'bg-rose-500 text-white border border-rose-300 animate-pulse'
+                                    }`}
+                                    title={`Toggle PMT ${feeder.code}`}
+                                  >
+                                    {feeder.status === 'CLOSED' ? 'C' : 'T'}
+                                  </button>
+                                  <span className="text-[8px] font-black text-teal-400 select-none">PMT {feeder.code}</span>
+                                </div>
+
+                                {/* Line from breaker into the actual Feeder card */}
+                                <div className={`w-[2.5px] h-3 transition-all duration-300 ${
+                                  isFeederActive 
+                                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.85)]' 
+                                    : 'bg-rose-600 shadow-[0_0_4px_rgba(239,68,68,0.55)]'
+                                }`} />
+
+                                {/* THE FEEDER TELEMETRY CARD */}
+                                <div className={`w-full rounded-2xl border bg-[#011412] p-3 shadow-md transition-all relative ${
+                                  feeder.status === 'CLOSED'
+                                    ? isFeederActive 
+                                      ? 'border-emerald-500/60 shadow-md shadow-emerald-950/20' 
+                                      : 'border-emerald-800/40'
+                                    : 'border-rose-800/60 shadow-md shadow-rose-950/20'
+                                }`}>
+                                  
+                                  {/* Feeder header info & status badge */}
+                                  <div className="flex justify-between items-center border-b border-teal-950 pb-1.5 mb-2">
+                                    <span className={`text-[10px] font-black ${feeder.status === 'TRIP' ? 'text-rose-400' : 'text-teal-300'}`}>{feeder.code}</span>
+                                    <span className={`text-[8px] px-1.5 py-0.5 rounded font-black tracking-tight border ${
+                                      feeder.status === 'TRIP' 
+                                        ? 'bg-rose-900/30 text-rose-400 border-rose-500/30 animate-pulse' 
+                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    }`}>
+                                      {feeder.status === 'CLOSED' ? 'CLOSED / AKTIF' : 'TRIP / GANGGUAN'}
+                                    </span>
+                                  </div>
+
+                                  {/* Name */}
+                                  <div className="text-[10px] font-extrabold text-slate-100 mb-2 truncate" title={feeder.name}>
+                                    {feeder.name}
+                                  </div>
+
+                                  {/* Metrics parameters */}
+                                  <div className="space-y-1 text-[9px] text-slate-300 border-b border-teal-950 pb-2 mb-2">
+                                    <div className="flex justify-between">
+                                      <span>Arus (I):</span>
+                                      <span className={`font-extrabold ${!isFeederActive ? 'text-rose-400' : 'text-amber-400'}`}>
+                                        {feeder.currentA} A
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Daya Aktif (P):</span>
+                                      <span className="font-extrabold">{feeder.powerMw} MW</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Tegangan (V):</span>
+                                      <span className="font-extrabold">{feeder.voltageKv} kV</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Faktor Daya (cos φ):</span>
+                                      <span className="font-extrabold text-amber-400/85">{feeder.cosPhi.toFixed(3)}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Actions Panel */}
+                                  <div className="flex justify-between items-center gap-1.5 pt-0.5">
+                                    {/* Edit Feeder */}
+                                    <button
+                                      onClick={() => setEditingComponent({ type: 'feeder', id: feeder.id, data: { ...feeder } })}
+                                      className="p-1 rounded bg-[#012521] hover:bg-[#033f38] text-teal-400 cursor-pointer border border-teal-500/20 active:scale-90 transition-all text-[8px] font-black flex items-center gap-1"
+                                      title="Edit Parameter Feeder"
+                                    >
+                                      <Settings className="w-3 h-3" />
+                                      <span>Edit</span>
+                                    </button>
+
+                                    {/* Delete Feeder */}
+                                    <button
+                                      onClick={() => handleDeleteFeeder(feeder.id)}
+                                      className="p-1 rounded bg-slate-900 hover:bg-rose-950 hover:text-rose-400 text-slate-400 cursor-pointer transition-all active:scale-90 text-[8px] font-black flex items-center gap-1"
+                                      title="Hapus Feeder"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      <span>Hapus</span>
+                                    </button>
+
+                                    {/* Add JTM Node */}
+                                    <button
+                                      onClick={() => {
+                                        setAddingNodeForFeeder(feeder.id);
+                                        setAddingNodeParentId(null);
+                                        setNewNodeName(`LBS Penyulang ${feeder.code}`);
+                                        setNewNodeType('LBS');
+                                        setNewNodeStatus('CLOSED');
+                                      }}
+                                      className="p-1 rounded bg-teal-500 hover:bg-teal-400 text-slate-950 font-black cursor-pointer shadow-xs active:scale-90 transition-all text-[8px] flex items-center gap-1"
+                                      title="Tambah JTM"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                      <span>+ JTM</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Solid Line down from Feeder card leading into sequential Downstream JTM Network */}
+                                <div className={`w-[2.5px] h-5 transition-all duration-300 ${
+                                  isFeederActive 
+                                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.85)]' 
+                                    : 'bg-rose-600 shadow-[0_0_4px_rgba(239,68,68,0.55)]'
+                                }`} />
+
+                                {/* 4. DOWNSTREAM JTM GRID & CASCADE POWER PROPAGATION */}
+                                <div className="w-full">
+                                  {jtmNodes.length === 0 ? (
+                                    <div className="text-[8px] text-slate-500 text-center py-2 px-1 border border-dashed border-teal-950/30 rounded-xl bg-teal-950/5">
+                                      Belum ada GH/LBS/Recloser
+                                    </div>
+                                  ) : (
+                                    renderJtmNodeTree(jtmNodes, isFeederActive, feeder.id)
+                                  )}
+                                </div>
+
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                    </div>
+                  );
+                })}
+
+                {/* CENTRAL PMT KOPEL BRIDGE - Displayed dynamically if exactly 2 busbars are in GI */}
+                {activeStation.buses.length === 2 && (
+                  <div className="absolute top-[138px] left-1/3 right-1/3 hidden lg:flex flex-col items-center justify-center z-15 pointer-events-auto">
+                    {/* Horizontal link bar connecting Bus A and Bus B columns */}
+                    <div className="w-full flex items-center justify-between px-6 relative">
+                      <div className={`h-[3px] flex-1 transition-all duration-300 ${
+                        busEnergizedMap[activeStation.buses[0].id] || busEnergizedMap[activeStation.buses[1].id]
+                          ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.85)]'
+                          : 'bg-rose-600 shadow-[0_0_4px_rgba(239,68,68,0.5)]'
+                      }`} />
+
+                      {/* Breaker switch button for Bus Kopel */}
+                      <div className="bg-[#021815] p-1 border border-teal-900 rounded-xl flex items-center gap-1.5 shadow-lg mx-2 z-20">
                         <button
-                          onClick={() => handleToggleBreaker(brkId)}
-                          className={`w-6 h-6 rounded text-[9px] font-black flex items-center justify-center cursor-pointer transition-all ${
-                            associatedBreaker.status === 'CLOSED'
+                          onClick={handleToggleKopel}
+                          className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-90 ${
+                            activeStation.pmtKopelStatus === 'CLOSED'
                               ? 'bg-emerald-500 text-slate-950 border border-emerald-300'
                               : 'bg-rose-500 text-white border border-rose-300 animate-pulse'
                           }`}
+                          title="Kopel Bus A & Bus B"
                         >
-                          {associatedBreaker.status === 'CLOSED' ? 'C' : 'T'}
+                          {activeStation.pmtKopelStatus === 'CLOSED' ? 'C' : 'T'}
                         </button>
-                        <span className="text-[8px] font-extrabold text-teal-400 pr-1 uppercase">{f.code}</span>
-                      </div>
-                    )}
-
-                    {/* Feeder card wrapper */}
-                    <div 
-                      onClick={() => setEditingComponent({ type: 'feeder', id: f.id, data: f })}
-                      className={`w-full rounded-2xl border p-3 shadow-xl cursor-pointer transition-all duration-200 hover:scale-[1.04] text-left relative shrink-0 ${
-                        isTripped 
-                          ? 'bg-rose-950/20 border-rose-500/60 shadow-rose-950/15' 
-                          : 'bg-[#021a17]/95 border-teal-500/50 shadow-teal-950/20'
-                      }`}
-                    >
-                      {/* Status Header Badge */}
-                      <div className="flex justify-between items-center border-b border-teal-950 pb-1 mb-2">
-                        <span className={`text-[10px] font-black ${isTripped ? 'text-rose-400' : 'text-teal-300'}`}>{f.code}</span>
-                        <span className={`text-[8px] px-1.5 py-0.5 rounded font-black tracking-tighter ${
-                          isTripped ? 'bg-rose-900/40 text-rose-400 border border-rose-500/40' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                        }`}>
-                          {isTripped ? 'TRIP' : 'ENERGIZED'}
-                        </span>
+                        <span className="text-[8px] font-black text-teal-300 pr-1 select-none">PMT KOPEL</span>
                       </div>
 
-                      {/* Name */}
-                      <div className="text-[10px] font-extrabold text-slate-200 mb-2 truncate" title={f.name}>{f.name}</div>
-
-                      {/* Parameters */}
-                      <div className="space-y-1 text-[9px] text-slate-300">
-                        <div className="flex justify-between">
-                          <span>I (Arus):</span>
-                          <span className={`font-extrabold ${isTripped ? 'text-rose-400' : 'text-amber-300'}`}>{f.currentA} A</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>P (Daya):</span>
-                          <span className="font-extrabold">{f.powerMw} MW</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>V (Tegangan):</span>
-                          <span className="font-extrabold">{f.voltageKv} kV</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>cos φ:</span>
-                          <span className="font-extrabold text-amber-400/85">{f.cosPhi.toFixed(3)}</span>
-                        </div>
-                      </div>
-
-                      {/* Indicator dot */}
-                      <span className={`absolute top-1.5 right-1.5 flex h-1.5 w-1.5`}>
-                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isTripped ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
-                        <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isTripped ? 'bg-rose-500' : 'bg-emerald-500'}`}></span>
-                      </span>
-                    </div>
-
-                    {/* Feeder Quick Simulation Button underneath */}
-                    <button
-                      onClick={() => handleSimulateTripFeeder(f.id)}
-                      className={`mt-3 w-full py-1.5 px-2.5 rounded-xl text-[9px] font-black tracking-tight border transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0 ${
-                        isTripped 
-                          ? 'bg-rose-500 text-white border-rose-300 shadow-md shadow-rose-950/40' 
-                          : 'bg-emerald-950/45 text-emerald-300 border-emerald-700/60 hover:bg-emerald-900/60'
-                      }`}
-                    >
-                      ⚡ SIMULASI {isTripped ? 'CLOSE' : 'TRIP'}
-                    </button>
-
-                    {/* Downstream Jaringan Section */}
-                    <div className="w-full mt-4 flex flex-col items-center">
-                      {/* Connecting Line from Feeder Card to Downstream Nodes */}
-                      <div className={`w-0.5 h-6 border-l-2 border-dashed transition-all duration-300 ${
-                        isFeederActive ? 'border-emerald-500 animate-pulse' : 'border-rose-500/60'
+                      <div className={`h-[3px] flex-1 transition-all duration-300 ${
+                        busEnergizedMap[activeStation.buses[0].id] || busEnergizedMap[activeStation.buses[1].id]
+                          ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.85)]'
+                          : 'bg-rose-600 shadow-[0_0_4px_rgba(239,68,68,0.5)]'
                       }`} />
-
-                      {/* Title & Plus Button */}
-                      <div className="w-full flex items-center justify-between px-2 py-1.5 bg-[#021815] rounded-xl border border-teal-900/55 shadow-md">
-                        <span className="text-[7.5px] font-black text-teal-300 tracking-wider">PERALATAN JTM</span>
-                        <button
-                          onClick={() => {
-                            setAddingNodeForFeeder(f.id);
-                            setAddingNodeParentId(null);
-                            setNewNodeName('');
-                            setNewNodeType('LBS');
-                            setNewNodeStatus('CLOSED');
-                          }}
-                          className="p-1 rounded-lg bg-[#012823] hover:bg-emerald-600 hover:text-white text-emerald-400 transition-all cursor-pointer border border-emerald-500/20 active:scale-90"
-                          title="Tambah Peralatan JTM"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      {/* List of Downstream Nodes */}
-                      <div className="w-full mt-3">
-                        {nodes.length === 0 ? (
-                          <div className="text-[8px] text-slate-500 text-center py-2.5 px-1 border border-dashed border-teal-950/50 rounded-xl bg-teal-950/5">
-                            Belum ada GH/LBS/Recloser
-                          </div>
-                        ) : (
-                          renderJtmNodeTree(nodes, isFeederActive, f.id)
-                        )}
-                      </div>
                     </div>
-
                   </div>
-                );
-              })}
+                )}
+
+              </div>
+
+              {/* Station Kopel controller (as fallback for stations with 1 or >2 buses) */}
+              {activeStation.buses.length !== 2 && (
+                <div className="w-full mt-8 pt-4 border-t border-teal-950/40 flex justify-center">
+                  <div className="bg-[#021815] px-4 py-2 border border-teal-900/60 rounded-xl flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-teal-400">STATUS KOPEL INTER-BUSBAR:</span>
+                    <button
+                      onClick={handleToggleKopel}
+                      className={`px-3 py-1 rounded text-[10px] font-black cursor-pointer transition-all ${
+                        activeStation.pmtKopelStatus === 'CLOSED'
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'bg-rose-500 text-white'
+                      }`}
+                    >
+                      {activeStation.pmtKopelStatus === 'CLOSED' ? '🔴 CLOSED (Koneksi Inter-Bus)' : '🟢 OPEN (Terisolasi)'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
             </div>
-
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-teal-400 p-8 h-screen font-sans">
+            <Sliders className="w-10 h-10 animate-bounce mb-4 text-teal-500" />
+            <span className="text-sm font-bold tracking-wider">Silakan pilih atau tambahkan sistem monitoring SCADA.</span>
+          </div>
+        )}
 
         {/* Floating Side Legenda & Quick Panel */}
         {showLegenda && (
-          <div className="absolute bottom-5 left-5 z-20 bg-[#021815]/95 border border-teal-800 rounded-2xl p-4 shadow-2xl max-w-[280px] backdrop-blur-md animate-fade-in text-[10px] space-y-3">
+          <div className="absolute bottom-5 left-5 z-20 bg-[#021815]/95 border border-teal-800 rounded-2xl p-4 shadow-2xl max-w-[290px] backdrop-blur-md animate-fade-in text-[10px] space-y-3">
             <div className="flex items-center justify-between border-b border-teal-900 pb-1.5 mb-2">
               <span className="font-black text-teal-300 uppercase">Legenda Simbol DCC</span>
               <button onClick={() => setShowLegenda(false)} className="text-slate-400 hover:text-white">
@@ -1325,26 +1594,34 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
               </button>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2 font-mono">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-emerald-500 text-slate-950 rounded flex items-center justify-center font-black text-[8px]">C</div>
-                <span className="text-slate-200">PMT / Breaker **CLOSED** (Aliran Listrik Tersambung)</span>
+                <span className="text-slate-200">PMT / Breaker **CLOSED** (Kondisi Tersambung)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-rose-500 text-white rounded flex items-center justify-center font-black text-[8px]">T</div>
-                <span className="text-slate-200">PMT / Breaker **TRIP** (Aliran Terputus)</span>
+                <span className="text-slate-200">PMT / Breaker **TRIP / OPEN** (Mati / Putus)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-0.5 bg-[#22c55e] shadow-xs shadow-emerald-500" />
-                <span className="text-slate-200 font-bold">Garis Hijau (CLOSED / ENERGIZED)</span>
+                <span className="text-slate-200 font-bold">Garis Hijau (Energized / Bertegangan)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-0.5 bg-[#ef4444] shadow-xs shadow-rose-500" />
-                <span className="text-slate-200 font-bold">Garis Merah (TRIP / DE-ENERGIZED)</span>
+                <span className="text-slate-200 font-bold">Garis Merah (De-Energized / Padam)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full border border-teal-400 bg-teal-500/10" />
-                <span className="text-slate-200">Kumparan Trafo Distribusi</span>
+                <Shield className="w-4 h-4 text-teal-400" />
+                <span className="text-slate-200">GI - Gardu Induk 150/20kV</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-amber-400" />
+                <span className="text-slate-200">PLTD - Pembangkit Diesel</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Network className="w-4 h-4 text-purple-400" />
+                <span className="text-slate-200">GH - Gardu Hubung</span>
               </div>
             </div>
           </div>
@@ -1352,7 +1629,250 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
 
       </div>
 
-      {/* Editing Component modal (Handles "bisa di edit" parameter modifications) */}
+      {/* ================= MODAL WINDOWS ================= */}
+
+      {/* A. Create New Station Modal */}
+      {showAddStationModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 font-sans select-text">
+          <div className="bg-[#021a17] border-2 border-teal-500 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+            <button 
+              onClick={() => setShowAddStationModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4 border-b border-teal-900 pb-3">
+              <PlusCircle className="w-5 h-5 text-teal-400" />
+              <h3 className="text-sm font-black text-teal-300 uppercase">
+                Buat Sistem Monitoring Baru
+              </h3>
+            </div>
+
+            <form onSubmit={handleCreateStationSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-teal-400 mb-1">Nama Gardu / Sistem</label>
+                <input 
+                  type="text"
+                  placeholder="Contoh: GI DEPOK, PLTD BALI, GH SUDIRMAN"
+                  className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold uppercase"
+                  value={newStationName}
+                  onChange={(e) => setNewStationName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-teal-400 mb-2">Jenis Instalasi</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['GI', 'PLTD', 'GH'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setNewStationType(type)}
+                      className={`py-2 px-2 rounded-xl text-xs font-black tracking-wider transition-all border cursor-pointer ${
+                        newStationType === type
+                          ? 'bg-teal-500/25 border-teal-400 text-teal-300 shadow-md shadow-teal-900/30'
+                          : 'bg-[#011412] border-teal-900/50 text-slate-400 hover:border-teal-700'
+                      }`}
+                    >
+                      {type === 'GI' && 'GI (Gardu Induk)'}
+                      {type === 'PLTD' && 'PLTD (Diesel)'}
+                      {type === 'GH' && 'GH (Hubung)'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-teal-500/70 font-bold mt-2 leading-relaxed">
+                  * Sistem akan otomatis merancang skema standard (Busbar & Feeder penyulang) sesuai tipe instalasi yang dipilih.
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-teal-900 justify-end">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddStationModal(false)}
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white bg-slate-900 border border-slate-800 text-xs font-black cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-teal-950 bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 font-extrabold text-xs shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
+                >
+                  Buat Sistem
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* B. Create New Busbar Modal */}
+      {showAddBusbarModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 font-sans select-text">
+          <div className="bg-[#021a17] border-2 border-teal-500 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+            <button 
+              onClick={() => setShowAddBusbarModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4 border-b border-teal-900 pb-3">
+              <PlusCircle className="w-5 h-5 text-teal-400" />
+              <h3 className="text-sm font-black text-teal-300 uppercase">
+                Tambah Busbar 20kV Baru
+              </h3>
+            </div>
+
+            <form onSubmit={handleAddBusbarSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-teal-400 mb-1">Nama Busbar</label>
+                <input 
+                  type="text"
+                  placeholder="Contoh: BUS 20kV - C"
+                  className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold uppercase"
+                  value={newBusbarName}
+                  onChange={(e) => setNewBusbarName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-teal-400 mb-1">Tegangan Nominal (kV)</label>
+                <input 
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
+                  value={newBusbarVoltage}
+                  onChange={(e) => setNewBusbarVoltage(parseFloat(e.target.value) || 20.0)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-teal-400 mb-1">Nama Sumber / Incomer</label>
+                <input 
+                  type="text"
+                  placeholder="Contoh: Trafo 3, Diesel G2, Incomer Sirih"
+                  className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
+                  value={newBusbarIncomer}
+                  onChange={(e) => setNewBusbarIncomer(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-teal-900 justify-end">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddBusbarModal(false)}
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white bg-slate-900 border border-slate-800 text-xs font-black cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-teal-950 bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 font-extrabold text-xs shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
+                >
+                  Tambah Busbar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* C. Create New Feeder Modal */}
+      {showAddFeederModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 font-sans select-text">
+          <div className="bg-[#021a17] border-2 border-teal-500 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+            <button 
+              onClick={() => setShowAddFeederModal(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4 border-b border-teal-900 pb-3">
+              <PlusCircle className="w-5 h-5 text-teal-400" />
+              <h3 className="text-sm font-black text-teal-300 uppercase">
+                Tambah Penyulang (Feeder) Baru
+              </h3>
+            </div>
+
+            <form onSubmit={handleAddFeederSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-teal-400 mb-1">Kode Feeder</label>
+                  <input 
+                    type="text"
+                    placeholder="Contoh: F-07"
+                    className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold uppercase"
+                    value={newFeederCode}
+                    onChange={(e) => setNewFeederCode(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-teal-400 mb-1">Nama Feeder</label>
+                  <input 
+                    type="text"
+                    placeholder="Contoh: Penyulang Sumbing"
+                    className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
+                    value={newFeederName}
+                    onChange={(e) => setNewFeederName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-teal-400 mb-1">Beban Nominal (Ampere)</label>
+                  <input 
+                    type="number"
+                    className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
+                    value={newFeederCurrent}
+                    onChange={(e) => setNewFeederCurrent(parseInt(e.target.value) || 180)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-teal-400 mb-1">cos φ (Power Factor)</label>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
+                    value={newFeederCosPhi}
+                    onChange={(e) => setNewFeederCosPhi(parseFloat(e.target.value) || 0.95)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-teal-900 justify-end">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddFeederModal(null)}
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white bg-slate-900 border border-slate-800 text-xs font-black cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-teal-950 bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 font-extrabold text-xs shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
+                >
+                  Tambah Feeder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* D. Edit Parameter Modal (Handles Bus, Incomer, and Feeder modifications) */}
       {editingComponent && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 font-sans select-text">
           <div className="bg-[#021a17] border-2 border-teal-500 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
@@ -1372,107 +1892,14 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
 
             <form onSubmit={handleSaveComponentEdit} className="space-y-4">
               
-              {/* TRAFO EDIT FIELDS */}
-              {editingComponent.type === 'trafo' && (
-                <div className="space-y-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-teal-400 mb-1">Nama Trafo</label>
-                    <input 
-                      type="text"
-                      className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                      value={editingComponent.data.name}
-                      onChange={(e) => setEditingComponent({
-                        ...editingComponent,
-                        data: { ...editingComponent.data, name: e.target.value }
-                      })}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-teal-400 mb-1">Beban (MW)</label>
-                      <input 
-                        type="number"
-                        step="0.1"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                        value={editingComponent.data.loadMw}
-                        onChange={(e) => setEditingComponent({
-                          ...editingComponent,
-                          data: { ...editingComponent.data, loadMw: parseFloat(e.target.value) || 0 }
-                        })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-teal-400 mb-1">Kapasitas (MVA)</label>
-                      <input 
-                        type="number"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                        value={editingComponent.data.capacityMva}
-                        onChange={(e) => setEditingComponent({
-                          ...editingComponent,
-                          data: { ...editingComponent.data, capacityMva: parseInt(e.target.value) || 0 }
-                        })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-teal-400 mb-1">Posisi Tap</label>
-                      <input 
-                        type="number"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                        value={editingComponent.data.tap}
-                        onChange={(e) => setEditingComponent({
-                          ...editingComponent,
-                          data: { ...editingComponent.data, tap: parseInt(e.target.value) || 0 }
-                        })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-teal-400 mb-1">Suhu Winding (°C)</label>
-                      <input 
-                        type="number"
-                        step="0.1"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                        value={editingComponent.data.tempWdy}
-                        onChange={(e) => setEditingComponent({
-                          ...editingComponent,
-                          data: { ...editingComponent.data, tempWdy: parseFloat(e.target.value) || 0 }
-                        })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <input 
-                      type="checkbox"
-                      id="isAutoTap"
-                      className="rounded border-teal-800 text-teal-500 focus:ring-teal-500 h-4 w-4 bg-[#011412] cursor-pointer"
-                      checked={editingComponent.data.isAutoTap}
-                      onChange={(e) => setEditingComponent({
-                        ...editingComponent,
-                        data: { ...editingComponent.data, isAutoTap: e.target.checked }
-                      })}
-                    />
-                    <label htmlFor="isAutoTap" className="text-xs font-bold text-teal-300 cursor-pointer">Regulasi Tap Otomatis (AUTO)</label>
-                  </div>
-                </div>
-              )}
-
-              {/* BUS EDIT FIELDS */}
+              {/* BUSBAR EDIT */}
               {editingComponent.type === 'bus' && (
                 <div className="space-y-3.5">
                   <div>
                     <label className="block text-xs font-bold text-teal-400 mb-1">Nama Busbar</label>
                     <input 
                       type="text"
-                      className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                      className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
                       value={editingComponent.data.name}
                       onChange={(e) => setEditingComponent({
                         ...editingComponent,
@@ -1487,7 +1914,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                     <input 
                       type="number"
                       step="0.01"
-                      className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                      className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
                       value={editingComponent.data.voltageKv}
                       onChange={(e) => setEditingComponent({
                         ...editingComponent,
@@ -1499,7 +1926,26 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                 </div>
               )}
 
-              {/* FEEDER EDIT FIELDS */}
+              {/* INCOMER EDIT */}
+              {editingComponent.type === 'incomer' && (
+                <div className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-teal-400 mb-1">Nama Sumber / Incomer</label>
+                    <input 
+                      type="text"
+                      className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
+                      value={editingComponent.data.incomerName}
+                      onChange={(e) => setEditingComponent({
+                        ...editingComponent,
+                        data: { ...editingComponent.data, incomerName: e.target.value }
+                      })}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* FEEDER EDIT */}
               {editingComponent.type === 'feeder' && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
@@ -1507,7 +1953,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                       <label className="block text-xs font-bold text-teal-400 mb-1">Kode Feeder</label>
                       <input 
                         type="text"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold uppercase"
                         value={editingComponent.data.code}
                         onChange={(e) => setEditingComponent({
                           ...editingComponent,
@@ -1520,7 +1966,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                       <label className="block text-xs font-bold text-teal-400 mb-1">Nama Feeder</label>
                       <input 
                         type="text"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
                         value={editingComponent.data.name}
                         onChange={(e) => setEditingComponent({
                           ...editingComponent,
@@ -1536,7 +1982,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                       <label className="block text-xs font-bold text-teal-400 mb-1">Arus Beban (Ampere)</label>
                       <input 
                         type="number"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
                         value={editingComponent.data.currentA}
                         onChange={(e) => setEditingComponent({
                           ...editingComponent,
@@ -1546,44 +1992,13 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-teal-400 mb-1">Daya Feeder (MW)</label>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                        value={editingComponent.data.powerMw}
-                        onChange={(e) => setEditingComponent({
-                          ...editingComponent,
-                          data: { ...editingComponent.data, powerMw: parseFloat(e.target.value) || 0 }
-                        })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-teal-400 mb-1">Tegangan (kV)</label>
-                      <input 
-                        type="number"
-                        step="0.1"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                        value={editingComponent.data.voltageKv}
-                        onChange={(e) => setEditingComponent({
-                          ...editingComponent,
-                          data: { ...editingComponent.data, voltageKv: parseFloat(e.target.value) || 0 }
-                        })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-teal-400 mb-1">Faktor Daya (cos φ)</label>
+                      <label className="block text-xs font-bold text-teal-400 mb-1">cos φ (Faktor Daya)</label>
                       <input 
                         type="number"
                         step="0.001"
                         min="0"
                         max="1"
-                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
                         value={editingComponent.data.cosPhi}
                         onChange={(e) => setEditingComponent({
                           ...editingComponent,
@@ -1597,15 +2012,15 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                   <div>
                     <label className="block text-xs font-bold text-teal-400 mb-1">Status Keandalan Feeder</label>
                     <select 
-                      className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                      className="w-full bg-[#011412] border border-teal-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-bold cursor-pointer"
                       value={editingComponent.data.status}
                       onChange={(e) => setEditingComponent({
                         ...editingComponent,
                         data: { ...editingComponent.data, status: e.target.value as any }
                       })}
                     >
-                      <option value="ENERGIZED">✅ BERTEGANGAN (ENERGIZED)</option>
-                      <option value="TRIP">⚠️ GANGGUAN TRIP (DE-ENERGIZED)</option>
+                      <option value="CLOSED">✅ BERTEGANGAN (CLOSED)</option>
+                      <option value="TRIP">⚠️ GANGGUAN TRIP (OPEN)</option>
                     </select>
                   </div>
                 </div>
@@ -1633,7 +2048,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
         </div>
       )}
 
-      {/* Add Downstream Node Modal */}
+      {/* E. Add Downstream Node Modal */}
       {addingNodeForFeeder && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 font-sans select-text">
           <div className="bg-[#021a17] border-2 border-teal-500 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
@@ -1650,20 +2065,20 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
             <div className="flex items-center gap-2 mb-4 border-b border-teal-900 pb-3">
               <Plus className="w-5 h-5 text-emerald-400" />
               <h3 className="text-sm font-black text-teal-300 uppercase">
-                {addingNodeParentId ? 'Tambah Percabangan JTM' : `Tambah Peralatan JTM (${addingNodeForFeeder.toUpperCase()})`}
+                {addingNodeParentId ? 'Tambah Percabangan JTM' : 'Tambah Peralatan JTM'}
               </h3>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 font-sans">
               {addingNodeParentId && (
-                <div className="bg-teal-950/40 border border-teal-900 px-3 py-2 rounded-xl text-[10px] font-bold text-teal-300">
+                <div className="bg-teal-950/40 border border-teal-900 px-3 py-2 rounded-xl text-[10px] font-bold text-teal-300 font-mono">
                   Sistem akan membuat percabangan baru di bawah ID: <span className="text-amber-400 select-all font-mono">{addingNodeParentId}</span>
                 </div>
               )}
 
               {/* Type selector */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">Jenis Peralatan:</label>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1.5 font-sans">Jenis Peralatan:</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['GH', 'LBS', 'RECLOSER', 'PMCB', 'CO', 'DS'] as const).map((type) => (
                     <button
@@ -1671,7 +2086,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                       type="button"
                       onClick={() => {
                         setNewNodeType(type);
-                        if (!newNodeName || newNodeName.startsWith('GH ') || newNodeName.startsWith('LBS ') || newNodeName.startsWith('Recloser ') || newNodeName.startsWith('PMCB ') || newNodeName.startsWith('CO ') || newNodeName.startsWith('DS ') || newNodeName.endsWith(' Baru')) {
+                        if (!newNodeName || newNodeName.includes('Baru')) {
                           setNewNodeName(`${type === 'RECLOSER' ? 'Recloser' : type} Baru`);
                         }
                       }}
@@ -1694,7 +2109,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                   type="text" 
                   value={newNodeName}
                   onChange={(e) => setNewNodeName(e.target.value)}
-                  placeholder="e.g. LBS Pondok Labu"
+                  placeholder="Contoh: LBS Kaliurang"
                   className="w-full bg-[#011412] border border-teal-900/80 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-teal-400 font-bold"
                 />
               </div>
@@ -1712,7 +2127,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                         : 'bg-[#011412] border-teal-900/50 text-slate-400'
                     }`}
                   >
-                    🔴 CLOSED (ON / Bertegangan)
+                    🔴 CLOSED (ON)
                   </button>
                   <button
                     type="button"
@@ -1723,7 +2138,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                         : 'bg-[#011412] border-teal-900/50 text-slate-400'
                     }`}
                   >
-                    🟢 TRIP (OPEN / Mati)
+                    🟢 TRIP (OPEN)
                   </button>
                 </div>
               </div>
@@ -1747,7 +2162,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                     setAddingNodeForFeeder(null);
                     setAddingNodeParentId(null);
                   }}
-                  className="px-4 py-2 rounded-xl text-teal-950 bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 font-extrabold text-xs shadow-md shadow-teal-400/20 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-teal-950 bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 font-extrabold text-xs shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
                 >
                   Tambah Peralatan
                 </button>
