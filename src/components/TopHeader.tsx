@@ -61,17 +61,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             </h1>
           </div>
         </div>
-        
-        {/* Search Input */}
-        <div className="items-center bg-[#012521] border border-teal-700 rounded-xl px-3 py-1.5 shadow-inner hidden md:flex w-64">
-          <input
-            type="text"
-            placeholder="Cari penyulang, section, ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-transparent text-xs text-white placeholder-teal-400 focus:outline-none w-full"
-          />
-        </div>
       </div>
 
       {/* Right Section: Header Navigation Menu */}

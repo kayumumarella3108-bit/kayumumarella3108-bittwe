@@ -928,6 +928,56 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             </div>
 
+            {/* Grafik Batang Frekuensi Gangguan per Bulan */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-50 border border-rose-100 text-rose-500">
+                  <BarChart2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">Tren Frekuensi Gangguan per Bulan (12 Bulan Terakhir)</h3>
+                  <p className="text-[10px] text-slate-500">Visualisasi dinamika tingkat gangguan keandalan sistem per bulan untuk analisis tren musiman</p>
+                </div>
+              </div>
+
+              <div className="h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={monthlyOutageData}
+                    margin={{ top: 20, right: 10, left: -20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 9, fill: '#475569', fontWeight: 'bold' }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 9, fill: '#475569' }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                    />
+                    <Tooltip 
+                      contentStyle={{ fontSize: '10px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} 
+                      formatter={(val) => [`${val} Kali Gangguan`, 'Frekuensi']}
+                    />
+                    <Bar dataKey="count" fill="#f43f5e" radius={[6, 6, 0, 0]} barSize={40}>
+                      {monthlyOutageData.map((entry, index) => {
+                        const colors = ['#f43f5e', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+                        return <Cell key={`cell-outage-${index}`} fill={colors[index % colors.length]} />;
+                      })}
+                      <LabelList 
+                        dataKey="count" 
+                        position="top" 
+                        style={{ fontSize: 10, fill: '#475569', fontWeight: 'extrabold' }} 
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
             {/* Interactive Grid Table of Feeders */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
               <div>

@@ -366,105 +366,6 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
             </p>
           </div>
         </div>
-
-        {/* Action Buttons - Positioned neatly below title and description */}
-        <div className="pt-4 border-t border-teal-500/30 flex flex-wrap items-center gap-2.5 z-10">
-          <button
-            onClick={handleExportPDF}
-            className="px-3.5 py-2 rounded-xl bg-teal-900/60 hover:bg-teal-800/90 text-rose-200 text-xs font-semibold transition-all border border-rose-500/30 flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
-          >
-            <Download className="w-4 h-4 text-rose-400" />
-            <span>Export PDF</span>
-          </button>
-          <button
-            onClick={handleExportCSV}
-            className="px-3.5 py-2 rounded-xl bg-teal-900/60 hover:bg-teal-800/90 text-emerald-200 text-xs font-semibold transition-all border border-emerald-500/30 flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
-          >
-            <Download className="w-4 h-4 text-emerald-400" />
-            <span>Export CSV / Excel</span>
-          </button>
-
-          <button
-            onClick={() => setIsCalculatorOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 text-xs font-bold transition-all border border-amber-400/40 flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
-            title="Kalkulator Cepat Pembebanan Trafo"
-          >
-            <Calculator className="w-4 h-4 text-amber-400" />
-            <span>Kalkulator Pembebanan</span>
-          </button>
-
-          {activeTab === 'master_gardu' ? (
-            <div className="flex flex-wrap items-center gap-2.5">
-              {canEdit && (
-                <button
-                  onClick={() => setIsConfirmDeleteAllOpen(true)}
-                  disabled={masterGarduList.length === 0}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs ${
-                    masterGarduList.length === 0
-                      ? 'bg-slate-800/60 text-slate-500 cursor-not-allowed border border-slate-700/50'
-                      : 'bg-rose-950/70 hover:bg-rose-900 text-rose-200 cursor-pointer border border-rose-500/50 active:scale-95'
-                  }`}
-                  title="Hapus seluruh master data gardu / trafo"
-                >
-                  <Trash2 className="w-4 h-4 text-rose-400" />
-                  <span>Hapus Semua Data Trafo</span>
-                </button>
-              )}
-              <button
-                onClick={() => setIsImportModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-teal-800/70 hover:bg-teal-700/90 text-teal-100 text-xs font-bold transition-all border border-teal-500/40 flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-teal-300" />
-                <span>Import Excel Gardu</span>
-              </button>
-              <button
-                onClick={() => {
-                  setEditingGardu(null);
-                  setIsGarduModalOpen(true);
-                }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-300 hover:from-teal-300 hover:to-emerald-300 text-teal-950 text-xs font-black transition-all shadow-md shadow-teal-950/40 flex items-center gap-2 cursor-pointer border border-teal-200/80 active:scale-95"
-              >
-                <Plus className="w-4 h-4 text-teal-950 stroke-[3]" />
-                <span>Tambah Master Gardu</span>
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2.5">
-              {onDeleteAllPengukuran && (
-                <button
-                  onClick={() => setIsConfirmDeleteAllPengukuranOpen(true)}
-                  disabled={pengukuranList.length === 0}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs ${
-                    pengukuranList.length === 0
-                      ? 'bg-slate-800/60 text-slate-500 cursor-not-allowed border border-slate-700/50'
-                      : 'bg-rose-950/70 hover:bg-rose-900 text-rose-200 cursor-pointer border border-rose-500/50 active:scale-95'
-                  }`}
-                  title="Hapus seluruh histori pengukuran gardu"
-                >
-                  <Trash2 className="w-4 h-4 text-rose-400" />
-                  <span>Hapus Semua Pengukuran</span>
-                </button>
-              )}
-              <button
-                onClick={() => setIsImportPengukuranModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-teal-800/70 hover:bg-teal-700/90 text-teal-100 text-xs font-bold transition-all border border-teal-500/40 flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-teal-300" />
-                <span>Import Excel Pengukuran</span>
-              </button>
-              <button
-                onClick={() => {
-                  setEditingPengukuran(null);
-                  setIsPengukuranModalOpen(true);
-                }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-300 hover:from-teal-300 hover:to-emerald-300 text-teal-950 text-xs font-black transition-all shadow-md shadow-teal-950/40 flex items-center gap-2 cursor-pointer border border-teal-200/80 active:scale-95"
-              >
-                <Plus className="w-4 h-4 text-teal-950 stroke-[3]" />
-                <span>Input Pengukuran Gardu</span>
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Tabs Header Navigation */}
@@ -541,18 +442,6 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
             <PieChart className="w-4 h-4 text-amber-500" />
             <span>Beban vs Kapasitas Trafo</span>
           </button>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari gardu, penyulang..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-          />
         </div>
       </div>
 
@@ -648,6 +537,120 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
             </div>
           </div>
           <span className="text-2xl font-black text-rose-800">{countTidakSeimbangOver10} Gardu</span>
+        </div>
+      </div>
+
+      {/* Control Actions Bar - Positioned neatly at the bottom of headers and parallel/inline with search input */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Left Side: Actions Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={handleExportPDF}
+            className="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-rose-50/50 text-rose-700 hover:text-rose-800 text-xs font-bold transition-all border border-rose-200 hover:border-rose-300 flex items-center gap-2 cursor-pointer shadow-3xs active:scale-95"
+          >
+            <Download className="w-4 h-4 text-rose-500" />
+            <span>Export PDF</span>
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-emerald-50/50 text-emerald-700 hover:text-emerald-800 text-xs font-bold transition-all border border-emerald-200 hover:border-emerald-300 flex items-center gap-2 cursor-pointer shadow-3xs active:scale-95"
+          >
+            <Download className="w-4 h-4 text-emerald-500" />
+            <span>Export CSV / Excel</span>
+          </button>
+
+          <button
+            onClick={() => setIsCalculatorOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-amber-50/50 text-amber-700 hover:text-amber-800 text-xs font-bold transition-all border border-amber-200 hover:border-amber-300 flex items-center gap-2 cursor-pointer shadow-3xs active:scale-95"
+            title="Kalkulator Cepat Pembebanan Trafo"
+          >
+            <Calculator className="w-4 h-4 text-amber-500" />
+            <span>Kalkulator Pembebanan</span>
+          </button>
+
+          {activeTab === 'master_gardu' ? (
+            <div className="flex flex-wrap items-center gap-2.5">
+              {canEdit && (
+                <button
+                  onClick={() => setIsConfirmDeleteAllOpen(true)}
+                  disabled={masterGarduList.length === 0}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-3xs ${
+                    masterGarduList.length === 0
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                      : 'bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 hover:border-rose-300 cursor-pointer active:scale-95'
+                  }`}
+                  title="Hapus seluruh master data gardu / trafo"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-500" />
+                  <span>Hapus Semua Data Trafo</span>
+                </button>
+              )}
+              <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-teal-50/50 text-teal-700 hover:text-teal-800 text-xs font-bold transition-all border border-teal-200 hover:border-teal-300 flex items-center gap-2 cursor-pointer shadow-3xs active:scale-95"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-teal-500" />
+                <span>Import Excel Gardu</span>
+              </button>
+              <button
+                onClick={() => {
+                  setEditingGardu(null);
+                  setIsGarduModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-teal-600/20 flex items-center gap-2 cursor-pointer border border-teal-500/30 active:scale-95"
+              >
+                <Plus className="w-4 h-4 text-white stroke-[3]" />
+                <span>Tambah Master Gardu</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2.5">
+              {onDeleteAllPengukuran && (
+                <button
+                  onClick={() => setIsConfirmDeleteAllPengukuranOpen(true)}
+                  disabled={pengukuranList.length === 0}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-3xs ${
+                    pengukuranList.length === 0
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                      : 'bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 hover:border-rose-300 cursor-pointer active:scale-95'
+                  }`}
+                  title="Hapus seluruh histori pengukuran gardu"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-500" />
+                  <span>Hapus Semua Pengukuran</span>
+                </button>
+              )}
+              <button
+                onClick={() => setIsImportPengukuranModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-teal-50/50 text-teal-700 hover:text-teal-800 text-xs font-bold transition-all border border-teal-200 hover:border-teal-300 flex items-center gap-2 cursor-pointer shadow-3xs active:scale-95"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-teal-500" />
+                <span>Import Excel Pengukuran</span>
+              </button>
+              <button
+                onClick={() => {
+                  setEditingPengukuran(null);
+                  setIsPengukuranModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-teal-600/20 flex items-center gap-2 cursor-pointer border border-teal-500/30 active:scale-95"
+              >
+                <Plus className="w-4 h-4 text-white stroke-[3]" />
+                <span>Input Pengukuran Gardu</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Search Bar perfectly aligned */}
+        <div className="relative w-full md:w-72 shrink-0">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari gardu, penyulang..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-slate-100/50 focus:bg-white rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all shadow-3xs"
+          />
         </div>
       </div>
 

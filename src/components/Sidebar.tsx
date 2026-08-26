@@ -259,73 +259,70 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <nav className="space-y-1.5">
           {/* User Profile Card above Dashboard Menu */}
           {currentUser && (
-            <div className="p-3.5 bg-[#022320]/80 border border-teal-600/40 rounded-2xl mb-3.5 shadow-lg backdrop-blur-xs">
-              <div className="flex items-start gap-3">
-                {currentUser.avatarUrl ? (
-                  <img
-                    src={currentUser.avatarUrl}
-                    alt={currentUser.name}
-                    referrerPolicy="no-referrer"
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400 shadow-md shrink-0 mt-0.5"
-                  />
-                ) : (
-                  <div className={`w-10 h-10 rounded-full ring-2 ring-amber-400 shadow-md flex items-center justify-center font-black text-xs text-slate-950 shrink-0 mt-0.5 ${
-                    canEditData(currentUser) ? 'bg-gradient-to-tr from-emerald-400 to-teal-300' : 'bg-gradient-to-tr from-amber-400 to-yellow-300'
-                  }`}>
-                    {currentUser.name ? currentUser.name.substring(0, 2).toUpperCase() : 'PLN'}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">Welcome</div>
-                  
-                  {/* Nama Pengguna */}
-                  <div className="text-xs font-black text-white truncate drop-shadow-xs" title={currentUser.name}>
-                    {currentUser.name}
-                  </div>
+            <div className="p-4 bg-[#022320]/80 border border-teal-600/40 rounded-2xl mb-3.5 shadow-lg backdrop-blur-xs flex flex-col items-center text-center">
+              {currentUser.avatarUrl ? (
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.name}
+                  referrerPolicy="no-referrer"
+                  className="w-16 h-16 rounded-full object-cover ring-2 ring-amber-400 shadow-md mb-2.5"
+                />
+              ) : (
+                <div className={`w-16 h-16 rounded-full ring-2 ring-amber-400 shadow-md flex items-center justify-center font-black text-base text-slate-950 mb-2.5 ${
+                  canEditData(currentUser) ? 'bg-gradient-to-tr from-emerald-400 to-teal-300' : 'bg-gradient-to-tr from-amber-400 to-yellow-300'
+                }`}>
+                  {currentUser.name ? currentUser.name.substring(0, 2).toUpperCase() : 'PLN'}
+                </div>
+              )}
+              
+              <div className="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">Welcome</div>
+              
+              {/* Nama Pengguna */}
+              <div className="text-xs font-black text-white truncate max-w-full drop-shadow-xs" title={currentUser.name}>
+                {currentUser.name}
+              </div>
 
-                  {/* Posisi Di Bawah Nama Pengguna: Akses Semua Unit / Unit Info */}
-                  {isOwnerUser(currentUser) ? (
-                    <div className="mt-1">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/20 border border-amber-400/60 text-amber-300 text-[9px] font-black uppercase tracking-tight shadow-xs">
-                        👑 OWNER
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="mt-1 flex items-center gap-1">
-                      <span className="px-2 py-0.5 rounded-md bg-teal-500/25 text-teal-100 border border-teal-400/40 text-[9px] font-black uppercase inline-block shadow-xs">
-                        {currentUser.role || 'Pengguna'}
-                      </span>
-                      {currentUser.unit && (
-                        <span className="px-1.5 py-0.5 rounded-md bg-teal-800/80 text-teal-200 text-[9px] font-bold">
-                          {currentUser.unit}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Posisi Di Bawah Nama Pengguna: Filter Data Dropdown */}
-                  {isOwnerUser(currentUser) && onSelectUnitFilter && (
-                    <div className="mt-2.5 pt-2 border-t border-teal-700/60">
-                      <label className="block text-[10px] font-bold text-teal-200 mb-1 flex items-center gap-1">
-                        <Filter className="w-3 h-3 text-amber-400" />
-                        <span>Filter Data Unit:</span>
-                      </label>
-                      <select
-                        value={ownerSelectedUnitFilter}
-                        onChange={(e) => onSelectUnitFilter(e.target.value)}
-                        className="w-full bg-[#012823] text-white text-xs font-black px-2 py-1.5 rounded-xl border border-teal-500/80 focus:outline-none focus:border-amber-400 cursor-pointer shadow-sm"
-                      >
-                        <option value="SEMUA">🌐 Semua Unit (Global)</option>
-                        {DAFTAR_UNIT_PLN.map((u, idx) => (
-                          <option key={`sb_unit_${u.kodeUnit}_${u.namaUnit}_${idx}`} value={u.namaUnit}>
-                            {u.namaUnit} ({u.kodeUnit})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+              {/* Posisi Di Bawah Nama Pengguna: Akses Semua Unit / Unit Info */}
+              {isOwnerUser(currentUser) ? (
+                <div className="mt-1 flex justify-center">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-400/20 border border-amber-400/60 text-amber-300 text-[9px] font-black uppercase tracking-tight shadow-xs">
+                    👑 OWNER
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1">
+                  <span className="px-2 py-0.5 rounded-md bg-teal-500/25 text-teal-100 border border-teal-400/40 text-[9px] font-black uppercase inline-block shadow-xs">
+                    {currentUser.role || 'Pengguna'}
+                  </span>
+                  {currentUser.unit && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-teal-800/80 text-teal-200 text-[9px] font-bold">
+                      {currentUser.unit}
+                    </span>
                   )}
                 </div>
-              </div>
+              )}
+
+              {/* Posisi Di Bawah Nama Pengguna: Filter Data Dropdown */}
+              {isOwnerUser(currentUser) && onSelectUnitFilter && (
+                <div className="mt-3 pt-2.5 border-t border-teal-700/60 w-full">
+                  <label className="block text-[10px] font-bold text-teal-200 mb-1 flex items-center justify-center gap-1">
+                    <Filter className="w-3 h-3 text-amber-400" />
+                    <span>Filter Data Unit:</span>
+                  </label>
+                  <select
+                    value={ownerSelectedUnitFilter}
+                    onChange={(e) => onSelectUnitFilter(e.target.value)}
+                    className="w-full bg-[#012823] text-white text-xs font-black px-2 py-1.5 rounded-xl border border-teal-500/80 focus:outline-none focus:border-amber-400 cursor-pointer shadow-sm text-center"
+                  >
+                    <option value="SEMUA">🌐 Semua Unit (Global)</option>
+                    {DAFTAR_UNIT_PLN.map((u, idx) => (
+                      <option key={`sb_unit_${u.kodeUnit}_${u.namaUnit}_${idx}`} value={u.namaUnit}>
+                        {u.namaUnit} ({u.kodeUnit})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 
@@ -592,77 +589,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          {/* MENU MANBILL (ACCORDION) */}
-          {(canAccessMenu(currentUser, 'manbill') || canAccessMenu(currentUser, 'transaksi_energi') || isPemasaranUser(currentUser) || isOwnerUser(currentUser)) && (
-            <div>
-              <button
-                onClick={() => setManbillOpen(!manbillOpen)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                  isManbillActive && !manbillOpen
-                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                    isManbillActive
-                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-                  }`}>
-                    <Receipt className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold">Manbill</span>
-                </div>
-                <div>
-                  {manbillOpen ? (
-                    <ChevronDown className="w-4 h-4 text-teal-300" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
-                  )}
-                </div>
-              </button>
 
-              {manbillOpen && (
-                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
-                  <button
-                    onClick={() => onSelectView('pembagian_invoice')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'pembagian_invoice' || activeView === 'manbill'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Receipt className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                    <span>Pembagian Invoice</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('realisasi_tusbung')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'realisasi_tusbung'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <ZapOff className="w-3.5 h-3.5 text-rose-300 shrink-0" />
-                    <span>Realisasi Tusbung</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('foto_meter')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'foto_meter'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Camera className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                    <span>Foto Meter</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* MENU K3L (ACCORDION) */}
           {(canAccessMenu(currentUser, 'alker_apd') || canAccessMenu(currentUser, 'k3l') || isOwnerUser(currentUser)) && (
@@ -1214,6 +1141,78 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
+          {/* MENU MANBILL (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'manbill') || canAccessMenu(currentUser, 'transaksi_energi') || isPemasaranUser(currentUser) || isOwnerUser(currentUser)) && (
+            <div>
+              <button
+                onClick={() => setManbillOpen(!manbillOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isManbillActive && !manbillOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isManbillActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">Manbill</span>
+                </div>
+                <div>
+                  {manbillOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {manbillOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('pembagian_invoice')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'pembagian_invoice' || activeView === 'manbill'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Receipt className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Pembagian Invoice</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('realisasi_tusbung')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'realisasi_tusbung'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <ZapOff className="w-3.5 h-3.5 text-rose-300 shrink-0" />
+                    <span>Realisasi Tusbung</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('foto_meter')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'foto_meter'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Camera className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>Foto Meter</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 8. MENU UTAMA: GUDANG MATERIAL */}
           {canAccessMenu(currentUser, 'material') && (
             <button
@@ -1233,6 +1232,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <Package className="w-4 h-4" />
                 </div>
                 <span className="font-bold">Gudang Material</span>
+              </div>
+            </button>
+          )}
+
+          {/* Kalkulator Listrik */}
+          {canAccessMenu(currentUser, 'kalkulator_listrik') && (
+            <button
+              onClick={() => onSelectView('kalkulator_listrik')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                activeView === 'kalkulator_listrik'
+                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                  activeView === 'kalkulator_listrik'
+                    ? 'bg-gradient-to-tr from-amber-400 via-yellow-300 to-teal-300 text-teal-950 shadow-md shadow-amber-400/40 border border-white/80 scale-105'
+                    : 'bg-teal-900/70 text-amber-300 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                }`}>
+                  <Calculator className="w-4 h-4" />
+                </div>
+                <span className="font-bold">Kalkulator Listrik</span>
               </div>
             </button>
           )}
@@ -1322,28 +1344,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           )}
 
-          {/* Kalkulator Listrik */}
-          {canAccessMenu(currentUser, 'kalkulator_listrik') && (
-            <button
-              onClick={() => onSelectView('kalkulator_listrik')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'kalkulator_listrik'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  activeView === 'kalkulator_listrik'
-                    ? 'bg-gradient-to-tr from-amber-400 via-yellow-300 to-teal-300 text-teal-950 shadow-md shadow-amber-400/40 border border-white/80 scale-105'
-                    : 'bg-teal-900/70 text-amber-300 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-                }`}>
-                  <Calculator className="w-4 h-4" />
-                </div>
-                <span className="font-bold">Kalkulator Listrik</span>
-              </div>
-            </button>
-          )}
+
 
           {/* Live Chat */}
           {canAccessMenu(currentUser, 'live_chat') && (
