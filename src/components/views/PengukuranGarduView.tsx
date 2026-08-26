@@ -49,6 +49,7 @@ import { ImportPengukuranModal } from '../modals/ImportPengukuranModal';
 import { KalkulatorPembebananModal } from '../modals/KalkulatorPembebananModal';
 import { PetaGarduView } from './PetaGarduView';
 import { RiwayatPembebananGarduChart } from './RiwayatPembebananGarduChart';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface PengukuranGarduViewProps {
   currentUser?: User | null;
@@ -63,6 +64,7 @@ interface PengukuranGarduViewProps {
   onDeleteAllPengukuran?: () => void;
   onImportGardu?: (items: MasterGardu[]) => void;
   onImportPengukuran?: (items: PengukuranGardu[]) => void;
+  isLoading?: boolean;
 }
 
 export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
@@ -77,7 +79,8 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
   onDeleteAllGardu,
   onDeleteAllPengukuran,
   onImportGardu,
-  onImportPengukuran
+  onImportPengukuran,
+  isLoading = false
 }) => {
   const [activeTab, setActiveTab] = useState<'pengukuran' | 'monitoring' | 'master_gardu' | 'tren_beban' | 'peta_gardu' | 'beban_vs_kapasitas'>('pengukuran');
   const [searchQuery, setSearchQuery] = useState('');
@@ -348,36 +351,37 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
       
       {/* Top Banner Header */}
       {/* HEADER BANNER */}
-      <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl border border-slate-800 flex flex-col gap-5">
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-blue-600/30 rounded-xl text-blue-400 border border-blue-500/30 shrink-0">
-            <Gauge className="w-8 h-8" />
+      <div className="bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] rounded-2xl p-6 text-white shadow-2xl border-2 border-teal-500/60 flex flex-col gap-5 relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-start gap-4 z-10">
+          <div className="p-3 bg-teal-950/80 rounded-xl text-teal-300 border border-teal-500/40 shrink-0 shadow-inner">
+            <Gauge className="w-8 h-8 text-amber-300" />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-              <span>PENGUKURAN & MONITORING BEBAN GARDU DISTRIBUSI</span>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold border border-blue-500/30">
+            <h1 className="text-xl font-black tracking-tight text-white flex flex-wrap items-center gap-2 drop-shadow-xs">
+              <span>PENGUKURAN &amp; MONITORING BEBAN GARDU DISTRIBUSI</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[10px] font-bold border border-teal-500/40">
                 ULP BAGUALA
               </span>
             </h1>
-            <p className="text-xs text-slate-400 mt-1 max-w-4xl">
+            <p className="text-xs text-teal-100/90 mt-1 max-w-4xl leading-relaxed">
               Kelola master data gardu, pengukuran arus/tegangan/THD/PF, serta monitoring status beban (Underload, Normal, Overload, Critical) &amp; Keseimbangan Beban Trafo.
             </p>
           </div>
         </div>
 
         {/* Action Buttons - Positioned neatly below title and description */}
-        <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center gap-2.5">
+        <div className="pt-4 border-t border-teal-500/30 flex flex-wrap items-center gap-2.5 z-10">
           <button
             onClick={handleExportPDF}
-            className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all border border-red-500 flex items-center gap-2 cursor-pointer shadow-xs"
+            className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all border border-rose-500 flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
           >
             <Download className="w-4 h-4" />
             <span>Export PDF</span>
           </button>
           <button
             onClick={handleExportCSV}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700 flex items-center gap-2 cursor-pointer shadow-xs"
+            className="px-3.5 py-2 rounded-xl bg-[#012521] hover:bg-[#02312b] text-teal-200 text-xs font-bold transition-all border border-teal-500/50 flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
           >
             <Download className="w-4 h-4 text-emerald-400" />
             <span>Export CSV / Excel</span>
@@ -385,10 +389,10 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
 
           <button
             onClick={() => setIsCalculatorOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer border border-amber-300 active:scale-95"
             title="Kalkulator Cepat Pembebanan Trafo"
           >
-            <Calculator className="w-4 h-4" />
+            <Calculator className="w-4 h-4 text-slate-950" />
             <span>Kalkulator Pembebanan</span>
           </button>
 
@@ -401,7 +405,7 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs ${
                     masterGarduList.length === 0
                       ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                      : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20 cursor-pointer border border-rose-600'
+                      : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20 cursor-pointer border border-rose-600 active:scale-95'
                   }`}
                   title="Hapus seluruh master data gardu / trafo"
                 >
@@ -411,7 +415,7 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
               )}
               <button
                 onClick={() => setIsImportModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer border border-emerald-500 active:scale-95"
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span>Import Excel Gardu</span>
@@ -421,9 +425,9 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
                   setEditingGardu(null);
                   setIsGarduModalOpen(true);
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 text-xs font-black transition-all shadow-lg shadow-teal-950/30 flex items-center gap-2 cursor-pointer border border-teal-200 active:scale-95"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 text-slate-950" />
                 <span>Tambah Master Gardu</span>
               </button>
             </div>
@@ -699,8 +703,11 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-sans">
+          {isLoading ? (
+            <TableSkeletonLoader columns={8} rows={7} headerTitle="Data Pengukuran Beban Gardu" />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-sans">
               <thead className="bg-slate-100 text-slate-700 uppercase text-[10px] font-black tracking-wider border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-3">No. Gardu</th>
@@ -928,6 +935,7 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
               </tbody>
             </table>
           </div>
+          )}
         </div>
       )}
 
@@ -1272,8 +1280,11 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
             )}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-sans">
+          {isLoading ? (
+            <TableSkeletonLoader columns={12} rows={7} headerTitle="Master Data Gardu Distribusi" />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-sans">
               <thead className="bg-slate-100 text-slate-700 uppercase text-[10px] font-black tracking-wider border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-3">NO baru</th>
@@ -1364,6 +1375,7 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
               </tbody>
             </table>
           </div>
+          )}
         </div>
       )}
 

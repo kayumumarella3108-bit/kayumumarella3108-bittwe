@@ -442,32 +442,32 @@ export const KalkulatorListrikView: React.FC<KalkulatorListrikViewProps> = () =>
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 font-sans">
       {/* Header View - Clean Header without Photo 2 Stats Grid */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-900 rounded-3xl p-6 text-white shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] rounded-3xl p-6 text-white shadow-2xl border-2 border-teal-500/60 relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="p-2 bg-blue-500/20 border border-blue-400/30 rounded-2xl text-blue-300">
-                <Calculator className="w-6 h-6" />
+              <span className="p-2 bg-teal-950/80 border border-teal-500/40 rounded-2xl text-teal-300 shadow-inner">
+                <Calculator className="w-6 h-6 text-amber-300" />
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/30 text-blue-200 text-xs font-black uppercase tracking-wider">
-                Modul Simulasi & Formulasi Kelistrikan
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-300 text-xs font-black uppercase tracking-wider">
+                Modul Simulasi &amp; Formulasi Kelistrikan
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-              Kalkulator Listrik & Konversi Satuan Multilevel
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white drop-shadow-xs">
+              Kalkulator Listrik &amp; Konversi Satuan Multilevel
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed font-medium">
+            <p className="text-xs sm:text-sm text-teal-100/90 max-w-3xl leading-relaxed font-medium">
               Pilih menu kalkulasi di bawah ini untuk memulai simulasi tagihan, konversi satuan listrik (Ohm, Mega Ohm, Volt, Ampere, kW, HP), proteksi trafo gardu, atau analisis jatuh tegangan.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-800/80 backdrop-blur-xs p-3 rounded-2xl border border-slate-700/80 shrink-0">
-            <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl">
+          <div className="flex items-center gap-2.5 bg-[#012521] p-3.5 rounded-2xl border border-teal-500/50 shrink-0 shadow-lg">
+            <div className="p-2 bg-teal-950 text-amber-300 border border-teal-500/30 rounded-xl shadow-inner">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[10px] text-slate-400 font-extrabold uppercase">Tarif Dasar Non-Subsidi</div>
+              <div className="text-[10px] text-teal-300 font-extrabold uppercase tracking-wide">Tarif Dasar Non-Subsidi</div>
               <div className="text-xs font-black text-amber-300">Rp 1.444,70 / kWh (R-1)</div>
             </div>
           </div>

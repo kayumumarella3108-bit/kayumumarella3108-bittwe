@@ -10,14 +10,32 @@ import {
   Pencil,
   Download,
   FileSpreadsheet,
-  Target
+  Target,
+  ChevronDown,
+  ChevronUp,
+  LayoutGrid,
+  List,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
+  Zap,
+  Sparkles,
+  Layers,
+  Info,
+  ShieldCheck,
+  Eye,
+  Activity,
+  ArrowRight,
+  FileText
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ROWItem, InspeksiItem, ViewType, Tier1Item, Tier2Item, MonitoringPemeliharaanItem, User } from '../../types';
 import { exportToCSV } from '../../utils/exportCsv';
 import { db, doc, setDoc, deleteDoc, handleFirestoreError, OperationType, registerDeletedId } from '../../lib/firebase';
 import { sanitizeForFirestore } from '../../utils/firestoreHelper';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface PemeliharaanViewProps {
   currentSubView: ViewType;
@@ -27,6 +45,7 @@ interface PemeliharaanViewProps {
   monitoringList: MonitoringPemeliharaanItem[];
   currentUser?: User;
   onSelectSubView?: (view: ViewType) => void;
+  isLoading?: boolean;
 }
 
 const INITIAL_ROW_DATA: ROWItem[] = [
@@ -136,11 +155,20 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
   tier2List,
   monitoringList,
   currentUser,
-  onSelectSubView
+  onSelectSubView,
+  isLoading = false
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // View mode and card expansion states
+  const [viewLayout, setViewLayout] = useState<'cards' | 'table'>('cards');
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [expandedTier1Id, setExpandedTier1Id] = useState<string | null>(null);
+  const [expandedTier2Id, setExpandedTier2Id] = useState<string | null>(null);
+  const [expandedMonitoringId, setExpandedMonitoringId] = useState<string | null>(null);
+  const [expandedMetricCard, setExpandedMetricCard] = useState<string | null>(null);
 
   // States for ROW Execution modal
   const [isExecModalOpen, setIsExecModalOpen] = useState(false);
@@ -623,23 +651,24 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
     <div className="p-4 md:p-6 space-y-6 bg-slate-50 text-slate-900 font-sans min-h-screen">
       
       {/* Sub Header */}
-      <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+      <div className="p-5 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-2 border-teal-500/60 shadow-xl rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-white relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-3.5 z-10">
+          <div className="p-3 rounded-2xl bg-teal-950/80 border border-teal-500/40 text-teal-300 shadow-inner">
             {icon}
           </div>
           <div>
-            <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+            <h2 className="text-base font-extrabold text-white uppercase tracking-wider drop-shadow-xs">
               {title}
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+            <p className="text-xs text-teal-100/90 mt-0.5 max-w-2xl">{desc}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 z-10 flex-wrap">
           <button
             onClick={handleExportPDF}
-            className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-red-600/20"
+            className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-rose-600/20 active:scale-95"
             title="Unduh data laporan pemeliharaan ke format PDF"
           >
             <Download className="w-3.5 h-3.5" />
@@ -647,10 +676,10 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
           </button>
           <button
             onClick={handleExportCurrentPemeliharaan}
-            className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-emerald-700/20"
+            className="px-3.5 py-2 bg-[#012521] hover:bg-[#02312b] text-teal-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer border border-teal-500/50 shadow-sm active:scale-95"
             title="Unduh data laporan pemeliharaan ke format CSV/Excel"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
             <span>Export CSV/Excel</span>
           </button>
           <button
@@ -682,9 +711,9 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
               
               setIsModalOpen(true);
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-blue-500/20"
+            className="px-4 py-2 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-teal-950/40 border border-teal-200 active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-slate-950" />
             <span>+ Input Data Baru</span>
           </button>
         </div>
@@ -693,49 +722,216 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
       {/* ROW View */}
       {currentSubView === 'row' && (
         <div className="space-y-6">
+          {/* Expandable Metric Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl">
-              <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">TOTAL TEMUAN INSPEKSI</span>
-              <div className="text-2xl font-extrabold text-slate-900 mt-1">
-                {rowData.reduce((acc, r) => acc + (typeof r.jumlahTemuanInspeksi === 'number' ? r.jumlahTemuanInspeksi : Number(r.jumlahTemuanInspeksi) || typeof r.jumlahPohon === 'number' ? r.jumlahPohon : Number(r.jumlahPohon) || 0), 0)} Temuan
-              </div>
-              <span className="text-[11px] text-slate-400">Kumulatif seluruh section</span>
-            </div>
-            <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl">
-              <span className="text-[10px] font-bold uppercase text-emerald-600 tracking-wider">REALISASI PANGKAS</span>
-              <div className="text-2xl font-extrabold text-emerald-600 mt-1">
-                {rowData.reduce((acc, r) => {
-                  if (typeof r.realisasiPangkas === 'number') return acc + r.realisasiPangkas;
-                  const val = Number(r.realisasiPangkas);
-                  if (!isNaN(val)) return acc + val;
-                  if (r.status === 'Selesai') return acc + (typeof r.jumlahPohon === 'number' ? r.jumlahPohon : Number(r.jumlahPohon) || 0);
-                  return acc;
-                }, 0)} Pohon
-              </div>
-              <span className="text-[11px] text-slate-400">Telah dieksekusi</span>
-            </div>
-            <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl">
-              <span className="text-[10px] font-bold uppercase text-amber-600 tracking-wider">PERLU IZIN / PADAM</span>
-              <div className="text-2xl font-extrabold text-amber-600 mt-1">
-                {rowData.reduce((acc, r) => {
-                  const izin = typeof r.perluIzin === 'number' ? r.perluIzin : Number(r.perluIzin) || 0;
-                  const padam = typeof r.perluPadam === 'number' ? r.perluPadam : Number(r.perluPadam) || 0;
-                  return acc + izin + padam;
-                }, 0)} Titik
-              </div>
-              <span className="text-[11px] text-slate-400">Perlu koordinasi warga & tim padam</span>
-            </div>
-            <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl">
-              <span className="text-[10px] font-bold uppercase text-rose-600 tracking-wider">POHON BESAR</span>
-              <div className="text-2xl font-extrabold text-rose-600 mt-1">
-                {rowData.reduce((acc, r) => acc + (typeof r.pohonBesar === 'number' ? r.pohonBesar : Number(r.pohonBesar) || 0), 0)} Batang
-              </div>
-              <span className="text-[11px] text-slate-400">Butuh penebangan khusus</span>
-            </div>
+            {/* Metric 1: Total Temuan */}
+            {(() => {
+              const totalTemuan = rowData.reduce((acc, r) => acc + (typeof r.jumlahTemuanInspeksi === 'number' ? r.jumlahTemuanInspeksi : Number(r.jumlahTemuanInspeksi) || typeof r.jumlahPohon === 'number' ? r.jumlahPohon : Number(r.jumlahPohon) || 0), 0);
+              const isExpanded = expandedMetricCard === 'temuan';
+
+              return (
+                <motion.div
+                  layout
+                  onClick={() => setExpandedMetricCard(isExpanded ? null : 'temuan')}
+                  className={`p-5 bg-white border rounded-2xl transition-all shadow-xs cursor-pointer select-none ${
+                    isExpanded ? 'border-blue-400 ring-2 ring-blue-500/10' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">TOTAL TEMUAN INSPEKSI</span>
+                    <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    </motion.div>
+                  </div>
+                  <div className="text-2xl font-extrabold text-slate-900 mt-1">
+                    {totalTemuan} Temuan
+                  </div>
+                  <span className="text-[11px] text-slate-400">Kumulatif seluruh section</span>
+
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs"
+                      >
+                        <div className="text-[10px] font-bold uppercase text-slate-400">Distribusi Temuan Terbanyak:</div>
+                        {rowData.slice(0, 3).map((r, i) => (
+                          <div key={i} className="flex justify-between items-center text-slate-600">
+                            <span className="truncate max-w-[140px] font-medium">{r.penyulang || r.namaPenyulang}</span>
+                            <span className="font-bold text-slate-900">{r.jumlahTemuanInspeksi || r.jumlahPohon || 0} pohon</span>
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })()}
+
+            {/* Metric 2: Realisasi Pangkas */}
+            {(() => {
+              const totalPangkas = rowData.reduce((acc, r) => {
+                if (typeof r.realisasiPangkas === 'number') return acc + r.realisasiPangkas;
+                const val = Number(r.realisasiPangkas);
+                if (!isNaN(val)) return acc + val;
+                if (r.status === 'Selesai') return acc + (typeof r.jumlahPohon === 'number' ? r.jumlahPohon : Number(r.jumlahPohon) || 0);
+                return acc;
+              }, 0);
+              const totalTemuan = rowData.reduce((acc, r) => acc + (typeof r.jumlahTemuanInspeksi === 'number' ? r.jumlahTemuanInspeksi : Number(r.jumlahTemuanInspeksi) || typeof r.jumlahPohon === 'number' ? r.jumlahPohon : Number(r.jumlahPohon) || 0), 0);
+              const percentage = totalTemuan > 0 ? Math.round((totalPangkas / totalTemuan) * 100) : 0;
+              const isExpanded = expandedMetricCard === 'pangkas';
+
+              return (
+                <motion.div
+                  layout
+                  onClick={() => setExpandedMetricCard(isExpanded ? null : 'pangkas')}
+                  className={`p-5 bg-white border rounded-2xl transition-all shadow-xs cursor-pointer select-none ${
+                    isExpanded ? 'border-emerald-400 ring-2 ring-emerald-500/10' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase text-emerald-600 tracking-wider">REALISASI PANGKAS</span>
+                    <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown className="w-4 h-4 text-emerald-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-2xl font-extrabold text-emerald-600 mt-1">
+                    {totalPangkas} Pohon
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${percentage}%` }} />
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700">{percentage}%</span>
+                  </div>
+
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600"
+                      >
+                        <div className="flex justify-between">
+                          <span>Sisa Target ROW:</span>
+                          <span className="font-bold text-amber-700">{Math.max(0, totalTemuan - totalPangkas)} pohon</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Status ROW:</span>
+                          <span className="font-bold text-emerald-700">{percentage >= 80 ? 'Optimal' : 'Butuh Percepatan'}</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })()}
+
+            {/* Metric 3: Perlu Izin / Padam */}
+            {(() => {
+              const totalIzin = rowData.reduce((acc, r) => acc + (typeof r.perluIzin === 'number' ? r.perluIzin : Number(r.perluIzin) || 0), 0);
+              const totalPadam = rowData.reduce((acc, r) => acc + (typeof r.perluPadam === 'number' ? r.perluPadam : Number(r.perluPadam) || 0), 0);
+              const isExpanded = expandedMetricCard === 'izin';
+
+              return (
+                <motion.div
+                  layout
+                  onClick={() => setExpandedMetricCard(isExpanded ? null : 'izin')}
+                  className={`p-5 bg-white border rounded-2xl transition-all shadow-xs cursor-pointer select-none ${
+                    isExpanded ? 'border-amber-400 ring-2 ring-amber-500/10' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase text-amber-600 tracking-wider">PERLU IZIN / PADAM</span>
+                    <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown className="w-4 h-4 text-amber-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-2xl font-extrabold text-amber-600 mt-1">
+                    {totalIzin + totalPadam} Titik
+                  </div>
+                  <span className="text-[11px] text-slate-400">Perlu koordinasi warga & tim padam</span>
+
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600"
+                      >
+                        <div className="flex justify-between">
+                          <span>Izin Pemilik Lahan:</span>
+                          <span className="font-bold text-amber-700">{totalIzin} titik</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Butuh Padam Terencana:</span>
+                          <span className="font-bold text-purple-700">{totalPadam} titik</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })()}
+
+            {/* Metric 4: Pohon Besar */}
+            {(() => {
+              const totalPohonBesar = rowData.reduce((acc, r) => acc + (typeof r.pohonBesar === 'number' ? r.pohonBesar : Number(r.pohonBesar) || 0), 0);
+              const isExpanded = expandedMetricCard === 'besar';
+
+              return (
+                <motion.div
+                  layout
+                  onClick={() => setExpandedMetricCard(isExpanded ? null : 'besar')}
+                  className={`p-5 bg-white border rounded-2xl transition-all shadow-xs cursor-pointer select-none ${
+                    isExpanded ? 'border-rose-400 ring-2 ring-rose-500/10' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase text-rose-600 tracking-wider">POHON BESAR</span>
+                    <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown className="w-4 h-4 text-rose-500" />
+                    </motion.div>
+                  </div>
+                  <div className="text-2xl font-extrabold text-rose-600 mt-1">
+                    {totalPohonBesar} Batang
+                  </div>
+                  <span className="text-[11px] text-slate-400">Butuh penebangan khusus</span>
+
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600"
+                      >
+                        <div className="flex justify-between">
+                          <span>Tingkat Kerawanan:</span>
+                          <span className="font-bold text-rose-700">Tinggi (Berpotensi Roboh)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Peralatan:</span>
+                          <span className="font-bold text-slate-800">Chainsaw & Tambang</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })()}
           </div>
 
           <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="relative max-w-sm w-full">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -745,11 +941,303 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
                   placeholder="Cari penyulang, section, temuan..."
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                 />
-              </div>              <span className="text-xs text-slate-500 font-bold">
-                Total {filteredRowData.length} Data ROW
-              </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center p-1 bg-slate-100 border border-slate-200 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setViewLayout('cards')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      viewLayout === 'cards'
+                        ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/80'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Card Interaktif</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewLayout('table')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      viewLayout === 'table'
+                        ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/80'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <List className="w-3.5 h-3.5" />
+                    <span>Tabel Data</span>
+                  </button>
+                </div>
+
+                <span className="text-xs text-slate-500 font-bold hidden sm:inline">
+                  Total {filteredRowData.length} Data ROW
+                </span>
+              </div>
             </div>
  
+          {isLoading ? (
+            <TableSkeletonLoader columns={14} rows={6} headerTitle="Tabel Data ROW" />
+          ) : viewLayout === 'cards' ? (
+            <div className="space-y-3">
+              {filteredRowData.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+                  Tidak ada data ROW yang sesuai dengan kriteria pencarian.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3.5">
+                  {filteredRowData.map((r) => {
+                    const temuanInspeksi = Number(r.jumlahTemuanInspeksi) || Number(r.jumlahPohon) || 0;
+                    const pangkas = Number(r.realisasiPangkas) || 0;
+                    const izin = Number(r.perluIzin) || 0;
+                    const padam = Number(r.perluPadam) || 0;
+                    const besar = Number(r.pohonBesar) || 0;
+                    const calculatedSisa = Math.max(0, temuanInspeksi - pangkas);
+                    const sisa = r.jumlahSisaTemuan !== undefined && r.jumlahSisaTemuan !== '-' ? Number(r.jumlahSisaTemuan) : calculatedSisa;
+                    const belum = r.belumEksekusi !== undefined && r.belumEksekusi !== '-' ? r.belumEksekusi : calculatedSisa;
+                    const isComplete = r.status === 'Selesai' || sisa === 0;
+                    const progressPct = temuanInspeksi > 0 ? Math.min(100, Math.round((pangkas / temuanInspeksi) * 100)) : 0;
+                    const isExpanded = expandedRowId === r.id;
+
+                    return (
+                      <motion.div
+                        layout
+                        key={r.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ layout: { duration: 0.28, type: 'spring', stiffness: 350, damping: 28 } }}
+                        className={`border rounded-2xl transition-all shadow-xs overflow-hidden ${
+                          isExpanded
+                            ? 'border-emerald-300 bg-white ring-2 ring-emerald-500/10'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
+                          className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
+                        >
+                          <div className="flex items-start md:items-center gap-3.5">
+                            <div className={`p-2.5 rounded-xl shrink-0 ${
+                              isComplete
+                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                : 'bg-amber-50 text-amber-600 border border-amber-200'
+                            }`}>
+                              <Trees className="w-5 h-5" />
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-extrabold text-sm text-slate-900">{r.penyulang || r.namaPenyulang}</span>
+                                <span className="text-xs font-bold text-slate-600">({r.section || r.lokasi})</span>
+                                <span className={`px-2 py-0.5 rounded-md font-extrabold text-[9px] uppercase tracking-wider ${
+                                  isComplete
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {isComplete ? 'Selesai / 100%' : `Sisa ${sisa} Temuan`}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                <span className="flex items-center gap-1 font-mono text-[11px] text-emerald-700">
+                                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                  Inspeksi: {r.tanggalInspeksi || r.tanggalTemuan || '-'}
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="flex items-center gap-1 font-mono text-[11px] text-slate-600">
+                                  Eksekusi: {r.tanggal || r.tanggalEksekusi || '-'}
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-600">
+                                  Temuan: <strong className="text-slate-900">{temuanInspeksi}</strong> | Pangkas: <strong className="text-emerald-600">{pangkas}</strong>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                            <div className="w-24">
+                              <div className="flex justify-between text-[10px] font-bold mb-1">
+                                <span className="text-slate-500">Progress</span>
+                                <span className="text-emerald-700">{progressPct}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progressPct}%` }} />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-emerald-700 hidden sm:inline">
+                                {isExpanded ? 'Tutup Detail' : 'Buka Detail'}
+                              </span>
+                              <motion.div
+                                animate={{ rotate: isExpanded ? 180 : 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="p-1 rounded-lg bg-slate-100 text-slate-500"
+                              >
+                                <ChevronDown className="w-4 h-4" />
+                              </motion.div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden border-t border-slate-100 bg-slate-50/50"
+                            >
+                              <div className="p-4 md:p-5 space-y-4 text-xs">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                      <span>Realisasi & Sisa Pohon</span>
+                                    </div>
+                                    <div className="space-y-1.5 text-slate-600">
+                                      <div className="flex justify-between">
+                                        <span>Total Temuan:</span>
+                                        <span className="font-bold text-blue-600">{temuanInspeksi} Pohon</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Realisasi Pangkas:</span>
+                                        <span className="font-bold text-emerald-600">{pangkas} Pohon</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Belum Eksekusi:</span>
+                                        <span className="font-bold text-amber-700">{belum} Pohon</span>
+                                      </div>
+                                      <div className="flex justify-between pt-1 border-t border-slate-100">
+                                        <span>Sisa Temuan Akhir:</span>
+                                        <span className="font-extrabold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                                          {sisa} Pohon
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                                      <span>Kondisi & Izin Lapangan</span>
+                                    </div>
+                                    <div className="space-y-1.5 text-slate-600">
+                                      <div className="flex justify-between">
+                                        <span>Perlu Izin Warga:</span>
+                                        <span className="font-bold text-amber-600">{izin} Titik</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Perlu Padam Jaringan:</span>
+                                        <span className="font-bold text-purple-600">{padam} Titik</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Pohon Besar (Chainsaw):</span>
+                                        <span className="font-bold text-rose-600">{besar} Batang</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                      <Info className="w-4 h-4 text-blue-600" />
+                                      <span>Catatan & Personil</span>
+                                    </div>
+                                    <div className="space-y-1 text-slate-600">
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Jumlah Personil:</span>
+                                        <span className="font-bold text-indigo-700">{r.jumlahPersonil || '-'} Orang</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Keterangan / Luar Temuan:</span>
+                                        <span className="text-slate-800 font-medium">
+                                          {r.luarTemuan !== undefined && r.luarTemuan !== '-' ? r.luarTemuan : r.jenisPohon || 'Tidak ada catatan spesifik'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                                  <div className="flex items-center gap-2">
+                                    {r.status !== 'Selesai' && sisa > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedRowForExecution(r);
+                                          setExecTanggal(new Date().toISOString().split('T')[0]);
+                                          setExecRealisasi(String(sisa));
+                                          setExecIzin(String(izin));
+                                          setExecPadam(String(padam));
+                                          const textVal = r.luarTemuan !== '-' ? r.luarTemuan || '' : '';
+                                          setExecNotes(textVal);
+                                          setIsExecModalOpen(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                                      >
+                                        <Wrench className="w-3.5 h-3.5" />
+                                        <span>Eksekusi Pangkas / Tebang</span>
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingId(r.id);
+                                        setRTanggalInspeksi(r.tanggalInspeksi || r.tanggalTemuan || '');
+                                        setRTanggal(r.tanggal || r.tanggalEksekusi || '');
+                                        setRPenyulang(r.penyulang || r.namaPenyulang || '');
+                                        setRSection(r.section || r.lokasi || '');
+                                        setRJumlahTemuan(r.jumlahTemuanInspeksi !== undefined && r.jumlahTemuanInspeksi !== '-' ? String(r.jumlahTemuanInspeksi) : r.jumlahPohon !== undefined ? String(r.jumlahPohon) : '');
+                                        setRRealisasiPangkas(r.realisasiPangkas !== undefined && r.realisasiPangkas !== '-' ? String(r.realisasiPangkas) : (r.status === 'Selesai' ? String(r.jumlahPohon) : ''));
+                                        setRPerluIzin(r.perluIzin !== undefined && r.perluIzin !== '-' ? String(r.perluIzin) : '');
+                                        setRPerluPadam(r.perluPadam !== undefined && r.perluPadam !== '-' ? String(r.perluPadam) : '');
+                                        setRPohonBesar(r.pohonBesar !== undefined && r.pohonBesar !== '-' ? String(r.pohonBesar) : '');
+                                        setRLuarTemuan(r.luarTemuan !== undefined && r.luarTemuan !== '-' ? r.luarTemuan : r.jenisPohon || '');
+                                        setRJumlahPersonil(r.jumlahPersonil !== undefined && r.jumlahPersonil !== '-' ? String(r.jumlahPersonil) : '');
+                                        setRBelumEksekusi(r.belumEksekusi !== undefined && r.belumEksekusi !== '-' ? String(r.belumEksekusi) : '');
+                                        setRJumlahSisaTemuan(r.jumlahSisaTemuan !== undefined && r.jumlahSisaTemuan !== '-' ? String(r.jumlahSisaTemuan) : '');
+                                        setIsModalOpen(true);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                                      <span>Edit Record</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        registerDeletedId(r.id);
+                                        try {
+                                          await deleteDoc(doc(db, 'pemeliharaan_row', r.id));
+                                        } catch (error) {
+                                          handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_row');
+                                        }
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                      <span>Hapus</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-left text-xs text-slate-800">
                 <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
@@ -862,6 +1350,7 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
                 </tbody>
               </table>
             </div>
+          )}
           </div>
         </div>
       )}
@@ -869,7 +1358,7 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
       {/* INSPEKSI TIER 1 VIEW */}
       {currentSubView === 'inspeksi_tier1' && (
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative max-w-sm w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -880,85 +1369,302 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
               />
             </div>
-            <span className="text-xs text-slate-500 font-bold">
-              Total {filteredTier1Data.length} Records Tier 1
-            </span>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center p-1 bg-slate-100 border border-slate-200 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setViewLayout('cards')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewLayout === 'cards'
+                      ? 'bg-white text-blue-700 shadow-xs border border-slate-200/80'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Card Interaktif</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewLayout('table')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewLayout === 'table'
+                      ? 'bg-white text-blue-700 shadow-xs border border-slate-200/80'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Tabel Data</span>
+                </button>
+              </div>
+
+              <span className="text-xs text-slate-500 font-bold hidden sm:inline">
+                Total {filteredTier1Data.length} Records Tier 1
+              </span>
+            </div>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3.5">Tanggal</th>
-                  <th className="px-4 py-3.5">Penyulang</th>
-                  <th className="px-4 py-3.5">Section Jaringan</th>
-                  <th className="px-4 py-3.5">Temuan ROW</th>
-                  <th className="px-4 py-3.5 text-center">Jml Pohon</th>
-                  <th className="px-4 py-3.5">Temuan Konstruksi</th>
-                  <th className="px-4 py-3.5 text-center">Jml Konstruksi</th>
-                  <th className="px-4 py-3.5">Temuan Lain</th>
-                  <th className="px-4 py-3.5 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredTier1Data.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-slate-600 text-[11px] whitespace-nowrap">{item.tanggal}</td>
-                    <td className="px-4 py-3.5 font-bold text-blue-600">{item.penyulang}</td>
-                    <td className="px-4 py-3.5 text-slate-800 font-semibold">{item.section}</td>
-                    <td className="px-4 py-3.5 text-emerald-700 bg-emerald-50/50 rounded-lg">{item.temuanRow}</td>
-                    <td className="px-4 py-3.5 text-center font-bold text-emerald-600">{item.jumlahTemuanPohon !== undefined && item.jumlahTemuanPohon !== '' ? item.jumlahTemuanPohon : '-'}</td>
-                    <td className="px-4 py-3.5 text-slate-700">{item.konstruksi}</td>
-                    <td className="px-4 py-3.5 text-center font-bold text-amber-600">{item.jumlahTemuanKonstruksi !== undefined && item.jumlahTemuanKonstruksi !== '' ? item.jumlahTemuanKonstruksi : '-'}</td>
-                    <td className="px-4 py-3.5 text-slate-500 text-[11px]">{item.temuanLain !== undefined && item.temuanLain !== '-' ? item.temuanLain : '-'}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingId(item.id);
-                            setT1Tanggal(item.tanggal);
-                            setT1Penyulang(item.penyulang);
-                            setT1Section(item.section);
-                            setT1TemuanRow(item.temuanRow);
-                            setT1Konstruksi(item.konstruksi);
-                            setT1JumlahTemuanPohon(item.jumlahTemuanPohon !== undefined && item.jumlahTemuanPohon !== '-' ? String(item.jumlahTemuanPohon) : '');
-                            setT1JumlahTemuanKonstruksi(item.jumlahTemuanKonstruksi !== undefined && item.jumlahTemuanKonstruksi !== '-' ? String(item.jumlahTemuanKonstruksi) : '');
-                            setT1TemuanLain(item.temuanLain !== undefined && item.temuanLain !== '-' ? item.temuanLain : '');
-                            setIsModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Edit Inspeksi Tier 1"
+          {isLoading ? (
+            <TableSkeletonLoader columns={9} rows={6} headerTitle="Inspeksi Tier 1 (Visual)" />
+          ) : viewLayout === 'cards' ? (
+            <div className="space-y-3">
+              {filteredTier1Data.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+                  Tidak ada data Inspeksi Tier 1 yang sesuai dengan kriteria pencarian.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3.5">
+                  {filteredTier1Data.map((item) => {
+                    const isExpanded = expandedTier1Id === item.id;
+                    const jmlPohon = item.jumlahTemuanPohon !== undefined && item.jumlahTemuanPohon !== '' ? item.jumlahTemuanPohon : '-';
+                    const jmlKonstruksi = item.jumlahTemuanKonstruksi !== undefined && item.jumlahTemuanKonstruksi !== '' ? item.jumlahTemuanKonstruksi : '-';
+
+                    return (
+                      <motion.div
+                        layout
+                        key={item.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ layout: { duration: 0.28, type: 'spring', stiffness: 350, damping: 28 } }}
+                        className={`border rounded-2xl transition-all shadow-xs overflow-hidden ${
+                          isExpanded
+                            ? 'border-blue-300 bg-white ring-2 ring-blue-500/10'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          onClick={() => setExpandedTier1Id(isExpanded ? null : item.id)}
+                          className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
                         >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            registerDeletedId(item.id);
-                            try {
-                              await deleteDoc(doc(db, 'pemeliharaan_tier1', item.id));
-                            } catch (error) {
-                              handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_tier1');
-                            }
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Hapus Inspeksi Tier 1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                          <div className="flex items-start md:items-center gap-3.5">
+                            <div className="p-2.5 rounded-xl shrink-0 bg-blue-50 text-blue-600 border border-blue-200">
+                              <Eye className="w-5 h-5" />
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-extrabold text-sm text-slate-900">{item.penyulang}</span>
+                                <span className="text-xs font-bold text-slate-600">({item.section})</span>
+                                <span className="px-2 py-0.5 rounded-md font-extrabold text-[9px] uppercase tracking-wider bg-blue-100 text-blue-800">
+                                  Tier 1 Visual
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                <span className="flex items-center gap-1 font-mono text-[11px] text-blue-700">
+                                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                  Tanggal: {item.tanggal}
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-600">
+                                  Temuan ROW: <strong className="text-emerald-700">{item.temuanRow || '-'}</strong> ({jmlPohon} pohon)
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-600">
+                                  Konstruksi: <strong className="text-amber-700">{item.konstruksi || '-'}</strong> ({jmlKonstruksi})
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-blue-700 hidden sm:inline">
+                                {isExpanded ? 'Tutup Detail' : 'Buka Detail'}
+                              </span>
+                              <motion.div
+                                animate={{ rotate: isExpanded ? 180 : 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="p-1 rounded-lg bg-slate-100 text-slate-500"
+                              >
+                                <ChevronDown className="w-4 h-4" />
+                              </motion.div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden border-t border-slate-100 bg-slate-50/50"
+                            >
+                              <div className="p-4 md:p-5 space-y-4 text-xs">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                      <Trees className="w-4 h-4 text-emerald-600" />
+                                      <span>Temuan ROW</span>
+                                    </div>
+                                    <div className="space-y-1.5 text-slate-600">
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Deskripsi:</span>
+                                        <span className="font-semibold text-slate-800">{item.temuanRow || '-'}</span>
+                                      </div>
+                                      <div className="flex justify-between pt-1 border-t border-slate-100">
+                                        <span>Jumlah Pohon:</span>
+                                        <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">{jmlPohon} Batang</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                      <Wrench className="w-4 h-4 text-amber-600" />
+                                      <span>Temuan Konstruksi</span>
+                                    </div>
+                                    <div className="space-y-1.5 text-slate-600">
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Deskripsi:</span>
+                                        <span className="font-semibold text-slate-800">{item.konstruksi || '-'}</span>
+                                      </div>
+                                      <div className="flex justify-between pt-1 border-t border-slate-100">
+                                        <span>Jumlah Item:</span>
+                                        <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">{jmlKonstruksi} Titik</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                      <Info className="w-4 h-4 text-indigo-600" />
+                                      <span>Temuan Lainnya</span>
+                                    </div>
+                                    <div className="space-y-1.5 text-slate-600">
+                                      <div>
+                                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Catatan Tambahan:</span>
+                                        <span className="font-medium text-slate-800">{item.temuanLain !== undefined && item.temuanLain !== '-' ? item.temuanLain : 'Tidak ada temuan tambahan.'}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingId(item.id);
+                                      setT1Tanggal(item.tanggal);
+                                      setT1Penyulang(item.penyulang);
+                                      setT1Section(item.section);
+                                      setT1TemuanRow(item.temuanRow);
+                                      setT1Konstruksi(item.konstruksi);
+                                      setT1JumlahTemuanPohon(item.jumlahTemuanPohon !== undefined && item.jumlahTemuanPohon !== '-' ? String(item.jumlahTemuanPohon) : '');
+                                      setT1JumlahTemuanKonstruksi(item.jumlahTemuanKonstruksi !== undefined && item.jumlahTemuanKonstruksi !== '-' ? String(item.jumlahTemuanKonstruksi) : '');
+                                      setT1TemuanLain(item.temuanLain !== undefined && item.temuanLain !== '-' ? item.temuanLain : '');
+                                      setIsModalOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Edit Record</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      registerDeletedId(item.id);
+                                      try {
+                                        await deleteDoc(doc(db, 'pemeliharaan_tier1', item.id));
+                                      } catch (error) {
+                                        handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_tier1');
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Hapus</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3.5">Tanggal</th>
+                    <th className="px-4 py-3.5">Penyulang</th>
+                    <th className="px-4 py-3.5">Section Jaringan</th>
+                    <th className="px-4 py-3.5">Temuan ROW</th>
+                    <th className="px-4 py-3.5 text-center">Jml Pohon</th>
+                    <th className="px-4 py-3.5">Temuan Konstruksi</th>
+                    <th className="px-4 py-3.5 text-center">Jml Konstruksi</th>
+                    <th className="px-4 py-3.5">Temuan Lain</th>
+                    <th className="px-4 py-3.5 text-center">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {filteredTier1Data.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-slate-600 text-[11px] whitespace-nowrap">{item.tanggal}</td>
+                      <td className="px-4 py-3.5 font-bold text-blue-600">{item.penyulang}</td>
+                      <td className="px-4 py-3.5 text-slate-800 font-semibold">{item.section}</td>
+                      <td className="px-4 py-3.5 text-emerald-700 bg-emerald-50/50 rounded-lg">{item.temuanRow}</td>
+                      <td className="px-4 py-3.5 text-center font-bold text-emerald-600">{item.jumlahTemuanPohon !== undefined && item.jumlahTemuanPohon !== '' ? item.jumlahTemuanPohon : '-'}</td>
+                      <td className="px-4 py-3.5 text-slate-700">{item.konstruksi}</td>
+                      <td className="px-4 py-3.5 text-center font-bold text-amber-600">{item.jumlahTemuanKonstruksi !== undefined && item.jumlahTemuanKonstruksi !== '' ? item.jumlahTemuanKonstruksi : '-'}</td>
+                      <td className="px-4 py-3.5 text-slate-500 text-[11px]">{item.temuanLain !== undefined && item.temuanLain !== '-' ? item.temuanLain : '-'}</td>
+                      <td className="px-4 py-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingId(item.id);
+                              setT1Tanggal(item.tanggal);
+                              setT1Penyulang(item.penyulang);
+                              setT1Section(item.section);
+                              setT1TemuanRow(item.temuanRow);
+                              setT1Konstruksi(item.konstruksi);
+                              setT1JumlahTemuanPohon(item.jumlahTemuanPohon !== undefined && item.jumlahTemuanPohon !== '-' ? String(item.jumlahTemuanPohon) : '');
+                              setT1JumlahTemuanKonstruksi(item.jumlahTemuanKonstruksi !== undefined && item.jumlahTemuanKonstruksi !== '-' ? String(item.jumlahTemuanKonstruksi) : '');
+                              setT1TemuanLain(item.temuanLain !== undefined && item.temuanLain !== '-' ? item.temuanLain : '');
+                              setIsModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Edit Inspeksi Tier 1"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              registerDeletedId(item.id);
+                              try {
+                                await deleteDoc(doc(db, 'pemeliharaan_tier1', item.id));
+                              } catch (error) {
+                                handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_tier1');
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Hapus Inspeksi Tier 1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* INSPEKSI TIER 2 VIEW */}
       {currentSubView === 'inspeksi_tier2' && (
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative max-w-sm w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -969,82 +1675,258 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
               />
             </div>
-            <span className="text-xs text-slate-500 font-bold">
-              Total {filteredTier2Data.length} Records Tier 2
-            </span>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center p-1 bg-slate-100 border border-slate-200 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setViewLayout('cards')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewLayout === 'cards'
+                      ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/80'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Card Interaktif</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewLayout('table')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewLayout === 'table'
+                      ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/80'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Tabel Data</span>
+                </button>
+              </div>
+
+              <span className="text-xs text-slate-500 font-bold hidden sm:inline">
+                Total {filteredTier2Data.length} Records Tier 2
+              </span>
+            </div>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3.5">Tanggal</th>
-                  <th className="px-4 py-3.5">Penyulang</th>
-                  <th className="px-4 py-3.5">Section Jaringan</th>
-                  <th className="px-4 py-3.5 text-center">Jenis Tier 2</th>
-                  <th className="px-4 py-3.5">Temuan Thermovision / Ultrasound</th>
-                  <th className="px-4 py-3.5 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredTier2Data.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-slate-600 text-[11px] whitespace-nowrap">{item.tanggal}</td>
-                    <td className="px-4 py-3.5 font-bold text-indigo-600">{item.penyulang}</td>
-                    <td className="px-4 py-3.5 text-slate-800 font-semibold">{item.section}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
-                        item.jenisTier2 === 'Thermovision' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {item.jenisTier2}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-700 font-medium">{item.temuanThermoUltrasound}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingId(item.id);
-                            setT2Tanggal(item.tanggal);
-                            setT2Penyulang(item.penyulang);
-                            setT2Section(item.section);
-                            setT2Jenis(item.jenisTier2);
-                            setT2Temuan(item.temuanThermoUltrasound);
-                            setIsModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Edit Inspeksi Tier 2"
+          {isLoading ? (
+            <TableSkeletonLoader columns={6} rows={6} headerTitle="Inspeksi Tier 2" />
+          ) : viewLayout === 'cards' ? (
+            <div className="space-y-3">
+              {filteredTier2Data.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+                  Tidak ada data Inspeksi Tier 2 yang sesuai dengan kriteria pencarian.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3.5">
+                  {filteredTier2Data.map((item) => {
+                    const isExpanded = expandedTier2Id === item.id;
+                    const isThermo = item.jenisTier2 === 'Thermovision';
+
+                    return (
+                      <motion.div
+                        layout
+                        key={item.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ layout: { duration: 0.28, type: 'spring', stiffness: 350, damping: 28 } }}
+                        className={`border rounded-2xl transition-all shadow-xs overflow-hidden ${
+                          isExpanded
+                            ? 'border-indigo-300 bg-white ring-2 ring-indigo-500/10'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          onClick={() => setExpandedTier2Id(isExpanded ? null : item.id)}
+                          className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
                         >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            registerDeletedId(item.id);
-                            try {
-                              await deleteDoc(doc(db, 'pemeliharaan_tier2', item.id));
-                            } catch (error) {
-                              handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_tier2');
-                            }
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Hapus Inspeksi Tier 2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                          <div className="flex items-start md:items-center gap-3.5">
+                            <div className={`p-2.5 rounded-xl shrink-0 border ${
+                              isThermo
+                                ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                : 'bg-purple-50 text-purple-600 border-purple-200'
+                            }`}>
+                              <Layers className="w-5 h-5" />
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-extrabold text-sm text-slate-900">{item.penyulang}</span>
+                                <span className="text-xs font-bold text-slate-600">({item.section})</span>
+                                <span className={`px-2 py-0.5 rounded-md font-extrabold text-[9px] uppercase tracking-wider ${
+                                  isThermo ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
+                                }`}>
+                                  {item.jenisTier2}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                <span className="flex items-center gap-1 font-mono text-[11px] text-indigo-700">
+                                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                  Tanggal: {item.tanggal}
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-600 truncate max-w-md">
+                                  Temuan: <strong className="text-slate-900">{item.temuanThermoUltrasound || '-'}</strong>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-indigo-700 hidden sm:inline">
+                                {isExpanded ? 'Tutup Detail' : 'Buka Detail'}
+                              </span>
+                              <motion.div
+                                animate={{ rotate: isExpanded ? 180 : 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="p-1 rounded-lg bg-slate-100 text-slate-500"
+                              >
+                                <ChevronDown className="w-4 h-4" />
+                              </motion.div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden border-t border-slate-100 bg-slate-50/50"
+                            >
+                              <div className="p-4 md:p-5 space-y-4 text-xs">
+                                <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                                    <span>Detail Temuan {item.jenisTier2}</span>
+                                  </div>
+                                  <p className="text-slate-800 text-sm font-medium leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    {item.temuanThermoUltrasound || 'Tidak ada detail temuan yang dicatat.'}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingId(item.id);
+                                      setT2Tanggal(item.tanggal);
+                                      setT2Penyulang(item.penyulang);
+                                      setT2Section(item.section);
+                                      setT2Jenis(item.jenisTier2);
+                                      setT2Temuan(item.temuanThermoUltrasound);
+                                      setIsModalOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Edit Record</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      registerDeletedId(item.id);
+                                      try {
+                                        await deleteDoc(doc(db, 'pemeliharaan_tier2', item.id));
+                                      } catch (error) {
+                                        handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_tier2');
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Hapus</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3.5">Tanggal</th>
+                    <th className="px-4 py-3.5">Penyulang</th>
+                    <th className="px-4 py-3.5">Section Jaringan</th>
+                    <th className="px-4 py-3.5 text-center">Jenis Tier 2</th>
+                    <th className="px-4 py-3.5">Temuan Thermovision / Ultrasound</th>
+                    <th className="px-4 py-3.5 text-center">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {filteredTier2Data.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-slate-600 text-[11px] whitespace-nowrap">{item.tanggal}</td>
+                      <td className="px-4 py-3.5 font-bold text-indigo-600">{item.penyulang}</td>
+                      <td className="px-4 py-3.5 text-slate-800 font-semibold">{item.section}</td>
+                      <td className="px-4 py-3.5 text-center">
+                        <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
+                          item.jenisTier2 === 'Thermovision' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {item.jenisTier2}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-slate-700 font-medium">{item.temuanThermoUltrasound}</td>
+                      <td className="px-4 py-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingId(item.id);
+                              setT2Tanggal(item.tanggal);
+                              setT2Penyulang(item.penyulang);
+                              setT2Section(item.section);
+                              setT2Jenis(item.jenisTier2);
+                              setT2Temuan(item.temuanThermoUltrasound);
+                              setIsModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Edit Inspeksi Tier 2"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              registerDeletedId(item.id);
+                              try {
+                                await deleteDoc(doc(db, 'pemeliharaan_tier2', item.id));
+                              } catch (error) {
+                                handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_tier2');
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Hapus Inspeksi Tier 2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* MONITORING PEMELIHARAAN VIEW */}
       {currentSubView === 'pemeliharaan_20kv' && (
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative max-w-sm w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -1055,77 +1937,250 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
               />
             </div>
-            <span className="text-xs text-slate-500 font-bold">
-              Total {filteredMonitoringData.length} Records Monitoring
-            </span>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center p-1 bg-slate-100 border border-slate-200 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setViewLayout('cards')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewLayout === 'cards'
+                      ? 'bg-white text-cyan-700 shadow-xs border border-slate-200/80'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Card Interaktif</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewLayout('table')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    viewLayout === 'table'
+                      ? 'bg-white text-cyan-700 shadow-xs border border-slate-200/80'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Tabel Data</span>
+                </button>
+              </div>
+
+              <span className="text-xs text-slate-500 font-bold hidden sm:inline">
+                Total {filteredMonitoringData.length} Records Monitoring
+              </span>
+            </div>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3.5">Tanggal</th>
-                  <th className="px-4 py-3.5">Penyulang</th>
-                  <th className="px-4 py-3.5">Section Jaringan</th>
-                  <th className="px-4 py-3.5">Jenis Pemeliharaan</th>
-                  <th className="px-4 py-3.5">Keterangan</th>
-                  <th className="px-4 py-3.5 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredMonitoringData.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-slate-600 text-[11px] whitespace-nowrap">{item.tanggal}</td>
-                    <td className="px-4 py-3.5 font-bold text-cyan-600">{item.penyulang}</td>
-                    <td className="px-4 py-3.5 text-slate-800 font-semibold">{item.section}</td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex flex-wrap gap-1">
-                        {item.jenisPemeliharaan.map((j) => (
-                          <span key={j} className="px-2 py-0.5 rounded-md bg-cyan-50 border border-cyan-200 text-cyan-800 text-[10px] font-bold">
-                            {j}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-700">{item.keterangan}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingId(item.id);
-                            setMTanggal(item.tanggal);
-                            setMPenyulang(item.penyulang);
-                            setMSection(item.section);
-                            setMJenisList(item.jenisPemeliharaan);
-                            setMKeterangan(item.keterangan);
-                            setIsModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Edit Data Monitoring"
+          {isLoading ? (
+            <TableSkeletonLoader columns={6} rows={6} headerTitle="Monitoring Pemeliharaan 20 kV" />
+          ) : viewLayout === 'cards' ? (
+            <div className="space-y-3">
+              {filteredMonitoringData.length === 0 ? (
+                <div className="p-12 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+                  Tidak ada data Monitoring Pemeliharaan yang sesuai dengan kriteria pencarian.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3.5">
+                  {filteredMonitoringData.map((item) => {
+                    const isExpanded = expandedMonitoringId === item.id;
+
+                    return (
+                      <motion.div
+                        layout
+                        key={item.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ layout: { duration: 0.28, type: 'spring', stiffness: 350, damping: 28 } }}
+                        className={`border rounded-2xl transition-all shadow-xs overflow-hidden ${
+                          isExpanded
+                            ? 'border-cyan-300 bg-white ring-2 ring-cyan-500/10'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          onClick={() => setExpandedMonitoringId(isExpanded ? null : item.id)}
+                          className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
                         >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            registerDeletedId(item.id);
-                            try {
-                              await deleteDoc(doc(db, 'pemeliharaan_monitoring', item.id));
-                            } catch (error) {
-                              handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_monitoring');
-                            }
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Hapus Data Monitoring"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                          <div className="flex items-start md:items-center gap-3.5">
+                            <div className="p-2.5 rounded-xl shrink-0 bg-cyan-50 text-cyan-600 border border-cyan-200">
+                              <Activity className="w-5 h-5" />
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-extrabold text-sm text-slate-900">{item.penyulang}</span>
+                                <span className="text-xs font-bold text-slate-600">({item.section})</span>
+                                <span className="px-2 py-0.5 rounded-md font-extrabold text-[9px] uppercase tracking-wider bg-cyan-100 text-cyan-800">
+                                  20 kV Monitoring
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                <span className="flex items-center gap-1 font-mono text-[11px] text-cyan-700">
+                                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                  Tanggal: {item.tanggal}
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {item.jenisPemeliharaan.map((j) => (
+                                    <span key={j} className="px-2 py-0.5 rounded-md bg-cyan-50 border border-cyan-200 text-cyan-800 text-[10px] font-bold">
+                                      {j}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-cyan-700 hidden sm:inline">
+                                {isExpanded ? 'Tutup Detail' : 'Buka Detail'}
+                              </span>
+                              <motion.div
+                                animate={{ rotate: isExpanded ? 180 : 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="p-1 rounded-lg bg-slate-100 text-slate-500"
+                              >
+                                <ChevronDown className="w-4 h-4" />
+                              </motion.div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                              className="overflow-hidden border-t border-slate-100 bg-slate-50/50"
+                            >
+                              <div className="p-4 md:p-5 space-y-4 text-xs">
+                                <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-cyan-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                    <FileText className="w-4 h-4 text-cyan-600" />
+                                    <span>Keterangan Pemeliharaan</span>
+                                  </div>
+                                  <p className="text-slate-800 text-sm font-medium leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    {item.keterangan || 'Tidak ada keterangan spesifik.'}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingId(item.id);
+                                      setMTanggal(item.tanggal);
+                                      setMPenyulang(item.penyulang);
+                                      setMSection(item.section);
+                                      setMJenisList(item.jenisPemeliharaan);
+                                      setMKeterangan(item.keterangan);
+                                      setIsModalOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Edit Record</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      registerDeletedId(item.id);
+                                      try {
+                                        await deleteDoc(doc(db, 'pemeliharaan_monitoring', item.id));
+                                      } catch (error) {
+                                        handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_monitoring');
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Hapus</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3.5">Tanggal</th>
+                    <th className="px-4 py-3.5">Penyulang</th>
+                    <th className="px-4 py-3.5">Section Jaringan</th>
+                    <th className="px-4 py-3.5">Jenis Pemeliharaan</th>
+                    <th className="px-4 py-3.5">Keterangan</th>
+                    <th className="px-4 py-3.5 text-center">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {filteredMonitoringData.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-slate-600 text-[11px] whitespace-nowrap">{item.tanggal}</td>
+                      <td className="px-4 py-3.5 font-bold text-cyan-600">{item.penyulang}</td>
+                      <td className="px-4 py-3.5 text-slate-800 font-semibold">{item.section}</td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex flex-wrap gap-1">
+                          {item.jenisPemeliharaan.map((j) => (
+                            <span key={j} className="px-2 py-0.5 rounded-md bg-cyan-50 border border-cyan-200 text-cyan-800 text-[10px] font-bold">
+                              {j}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-slate-700">{item.keterangan}</td>
+                      <td className="px-4 py-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingId(item.id);
+                              setMTanggal(item.tanggal);
+                              setMPenyulang(item.penyulang);
+                              setMSection(item.section);
+                              setMJenisList(item.jenisPemeliharaan);
+                              setMKeterangan(item.keterangan);
+                              setIsModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Edit Data Monitoring"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              registerDeletedId(item.id);
+                              try {
+                                await deleteDoc(doc(db, 'pemeliharaan_monitoring', item.id));
+                              } catch (error) {
+                                handleFirestoreError(error, OperationType.DELETE, 'pemeliharaan_monitoring');
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Hapus Data Monitoring"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

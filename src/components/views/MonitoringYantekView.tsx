@@ -43,28 +43,28 @@ export const MonitoringYantekView: React.FC<MonitoringYantekViewProps> = ({
   return (
     <div className="space-y-6 text-slate-800 pb-10">
       {/* Header Bar */}
-      <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 text-white rounded-3xl p-6 shadow-xl border border-sky-500/20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] text-white rounded-3xl p-6 shadow-2xl border-2 border-teal-500/60 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="p-3.5 bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-2xl shadow-inner">
-              <HardHat className="w-8 h-8" />
+            <div className="p-3.5 bg-teal-950/80 text-teal-300 border border-teal-500/40 rounded-2xl shadow-inner">
+              <HardHat className="w-8 h-8 text-amber-300" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[10px] font-black uppercase tracking-wider">
-                  Sistem Informasi & Posko Pelayanan Teknik
+                <span className="px-2.5 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[10px] font-black uppercase tracking-wider">
+                  Sistem Informasi &amp; Posko Pelayanan Teknik
                 </span>
-                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   Live GPS Connected
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white mt-1 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-white mt-1 tracking-tight drop-shadow-xs">
                 MONITORING YANTEK (PELAYANAN TEKNIK) {currentUser?.unit ? currentUser.unit.toUpperCase() : 'ULP BAGUALA'}
               </h1>
-              <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+              <p className="text-xs text-teal-100/90 mt-1 max-w-2xl">
                 Integrasi Komando Live GPS Kendaraan HP, Perintisan ROW Pohon, Inspeksi Jaringan 20kV, dan Piket Siaga Gangguan 24 Jam.
               </p>
             </div>
@@ -73,22 +73,22 @@ export const MonitoringYantekView: React.FC<MonitoringYantekViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => onSelectView('kendaraan_operasional')}
-              className="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs transition-all flex items-center gap-2 shadow-lg shadow-sky-500/20 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black text-xs transition-all flex items-center gap-2 shadow-lg shadow-teal-950/40 border border-teal-200 cursor-pointer active:scale-95"
             >
-              <Car className="w-4 h-4" />
+              <Car className="w-4 h-4 text-slate-950" />
               <span>Kelola Armada Yantek</span>
             </button>
           </div>
         </div>
 
         {/* Tab Selection Navigation */}
-        <div className="mt-6 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+        <div className="mt-6 pt-4 border-t border-teal-500/30 flex flex-wrap items-center gap-2 relative z-10">
           <button
             onClick={() => setActiveTab('gps')}
             className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'gps'
-                ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300'
+                ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 shadow-md border border-teal-200'
+                : 'bg-[#012521] hover:bg-[#02312b] text-teal-200 border border-teal-700/60'
             }`}
           >
             <Car className="w-4 h-4" />
@@ -99,8 +99,8 @@ export const MonitoringYantekView: React.FC<MonitoringYantekViewProps> = ({
             onClick={() => setActiveTab('row')}
             className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'row'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300'
+                ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 shadow-md border border-emerald-200'
+                : 'bg-[#012521] hover:bg-[#02312b] text-teal-200 border border-teal-700/60'
             }`}
           >
             <Trees className="w-4 h-4" />
@@ -111,24 +111,24 @@ export const MonitoringYantekView: React.FC<MonitoringYantekViewProps> = ({
             onClick={() => setActiveTab('inspeksi')}
             className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'inspeksi'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300'
+                ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-md border border-amber-200'
+                : 'bg-[#012521] hover:bg-[#02312b] text-teal-200 border border-teal-700/60'
             }`}
           >
             <Search className="w-4 h-4" />
-            <span>3. Inspeksi Tier 1 & Tier 2</span>
+            <span>3. Inspeksi Tier 1 &amp; Tier 2</span>
           </button>
 
           <button
             onClick={() => setActiveTab('piket')}
             className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'piket'
-                ? 'bg-purple-500 text-slate-950 shadow-md shadow-purple-500/20'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300'
+                ? 'bg-gradient-to-r from-teal-300 to-cyan-300 text-slate-950 shadow-md border border-teal-200'
+                : 'bg-[#012521] hover:bg-[#02312b] text-teal-200 border border-teal-700/60'
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>4. Jadwal Piket & Siaga Yantek</span>
+            <span>4. Jadwal Piket &amp; Siaga Yantek</span>
           </button>
         </div>
       </div>

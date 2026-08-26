@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, MessageSquare } from 'lucide-react';
+import { Menu, MessageSquare, History } from 'lucide-react';
 import { User as UserType, ViewType } from '../types';
 import { isOwnerUser } from '../utils/permissions';
 import { useSearch } from '../context/SearchContext';
@@ -88,6 +88,21 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           <MessageSquare className={`w-4 h-4 md:w-5 md:h-5 ${activeView === 'live_chat' ? 'text-slate-950' : 'text-teal-300'}`} />
           <span>Live Chat</span>
         </button>
+
+        {isOwner && (
+          <button
+            onClick={() => onSelectView('log_aktivitas')}
+            className={`hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-md backdrop-blur-xs ${
+              activeView === 'log_aktivitas'
+                ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-amber-500/40 scale-105'
+                : 'bg-amber-900/70 text-white hover:bg-amber-800/90 border-amber-500/60 hover:border-amber-300'
+            }`}
+            title="Buka Log Aktivitas"
+          >
+            <History className={`w-4 h-4 md:w-5 md:h-5 ${activeView === 'log_aktivitas' ? 'text-slate-950' : 'text-amber-300'}`} />
+            <span>Log Aktivitas</span>
+          </button>
+        )}
 
         {isOwner && (
           <button

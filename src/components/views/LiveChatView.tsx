@@ -370,23 +370,24 @@ export const LiveChatView: React.FC<LiveChatViewProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-100 overflow-hidden font-sans">
       {/* Top Header Banner */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-2xl shadow-md shadow-blue-500/20">
-              <MessageSquare className="w-6 h-6" />
+      <div className="bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-b-2 border-teal-500/60 px-6 py-5 shadow-xl text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-teal-950/80 border border-teal-500/40 text-teal-300 rounded-2xl shadow-inner">
+              <MessageSquare className="w-6 h-6 text-amber-300" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                <h1 className="text-xl font-extrabold text-white tracking-tight drop-shadow-xs">
                   Live Chat
                 </h1>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-black uppercase">
-                  <Sparkles className="w-3 h-3 text-blue-600" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-300 text-[11px] font-black uppercase">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
                   Realtime
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-teal-100/90 mt-0.5">
                 Saluran obrolan langsung antar petugas dan Sistem PLN ULP Baguala.
               </p>
             </div>
@@ -394,25 +395,25 @@ export const LiveChatView: React.FC<LiveChatViewProps> = ({
 
           <div className="flex items-center gap-3">
             {/* Sistem Online Presence Indicator Card */}
-            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5 px-4 shadow-2xs">
+            <div className="flex items-center gap-3 bg-[#012521] border border-teal-700/80 rounded-2xl p-2.5 px-4 shadow-md">
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 border-2 border-emerald-400 flex items-center justify-center font-black text-xs shadow-xs">
-                  <Bot className="w-5 h-5 text-emerald-600" />
+                <div className="w-10 h-10 rounded-full bg-teal-950 text-teal-200 border-2 border-teal-400 flex items-center justify-center font-black text-xs shadow-xs">
+                  <Bot className="w-5 h-5 text-teal-300" />
                 </div>
-                <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${systemDotColorClass}`} />
+                <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#012521] ${systemDotColorClass}`} />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-900">Sistem ULP</span>
+                  <span className="text-xs font-bold text-white">Sistem ULP</span>
                   <span className={`px-2 py-0.2 rounded-md text-[10px] font-black uppercase ${
                     isSystemOnline
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-slate-200 text-slate-700'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-teal-900/60 text-teal-200 border border-teal-700/60'
                   }`}>
                     {systemStatusInfo.label}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium">
+                <p className="text-[11px] text-teal-100/80 font-medium">
                   {isSystemOnline
                     ? 'Sistem aktif memantau obrolan secara real-time.'
                     : 'Sistem AI Bot aktif menjawab pesan otomatis.'}
@@ -425,12 +426,12 @@ export const LiveChatView: React.FC<LiveChatViewProps> = ({
             {isCurrentUserOwner && (
               <button
                 onClick={() => setIsAutoReplyModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-800 border border-indigo-200/80 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-xs shrink-0"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 bg-[#012521] hover:bg-[#02312b] text-teal-200 border border-teal-500/60 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-sm shrink-0 active:scale-95"
                 title="Kelola Aturan Pesan Otomatis & FAQ Saat Sistem Offline"
               >
-                <Settings className="w-4 h-4 text-indigo-600" />
+                <Settings className="w-4 h-4 text-teal-300" />
                 <span className="hidden sm:inline">Pengaturan Pesan Otomatis</span>
-                <span className="ml-1 px-1.5 py-0.2 bg-indigo-600 text-white rounded-full text-[10px] font-black">
+                <span className="ml-1 px-1.5 py-0.2 bg-teal-400 text-slate-950 rounded-full text-[10px] font-black">
                   {autoReplyRules.filter((r) => r.isActive).length}
                 </span>
               </button>
@@ -439,10 +440,10 @@ export const LiveChatView: React.FC<LiveChatViewProps> = ({
             {/* Pembersih Chat Button */}
             <button
               onClick={() => setIsClearModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-xs shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-rose-950/70 hover:bg-rose-900/90 text-rose-200 border border-rose-500/50 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-sm shrink-0 active:scale-95"
               title="Bersihkan Seluruh Obrolan Chat"
             >
-              <Trash2 className="w-4 h-4 text-rose-600" />
+              <Trash2 className="w-4 h-4 text-rose-400" />
               <span className="hidden sm:inline">Pembersih Chat</span>
             </button>
           </div>
@@ -450,9 +451,9 @@ export const LiveChatView: React.FC<LiveChatViewProps> = ({
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-teal-500/30 relative z-10">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter Topik:</span>
+            <span className="text-[10px] font-black text-teal-300 uppercase tracking-wider mr-1">Filter Topik:</span>
             {[
               { id: 'semua', label: 'Semua Pesan' },
               { id: 'gangguan', label: '⚡ Gangguan' },
@@ -465,8 +466,8 @@ export const LiveChatView: React.FC<LiveChatViewProps> = ({
                 onClick={() => setSelectedTopic(tp.id as any)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   selectedTopic === tp.id
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 font-black shadow-md border border-teal-200'
+                    : 'bg-[#012521] text-teal-200 border border-teal-700/60 hover:bg-[#02312b] hover:text-white'
                 }`}
               >
                 {tp.label}
@@ -476,13 +477,13 @@ export const LiveChatView: React.FC<LiveChatViewProps> = ({
 
           {/* Search Box */}
           <div className="relative min-w-[220px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-teal-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Cari kata kunci percakapan..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 transition-all"
+              className="w-full pl-9 pr-3 py-1.5 bg-[#012521] border border-teal-600/80 rounded-xl text-xs font-bold text-white placeholder:text-teal-400/60 focus:outline-none focus:bg-[#02312b] focus:border-teal-300 transition-all shadow-inner"
             />
           </div>
         </div>

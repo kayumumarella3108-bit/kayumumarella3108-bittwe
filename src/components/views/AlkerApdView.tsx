@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AlkerApdItem, User as UserType } from '../../types';
 import { canEditData } from '../../utils/permissions';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface AlkerApdViewProps {
   currentUser?: UserType;
@@ -23,6 +24,7 @@ interface AlkerApdViewProps {
   onAddAlkerApd: (item: AlkerApdItem) => void;
   onUpdateAlkerApd: (item: AlkerApdItem) => void;
   onDeleteAlkerApd: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export const AlkerApdView: React.FC<AlkerApdViewProps> = ({
@@ -30,7 +32,8 @@ export const AlkerApdView: React.FC<AlkerApdViewProps> = ({
   alkerApdList,
   onAddAlkerApd,
   onUpdateAlkerApd,
-  onDeleteAlkerApd
+  onDeleteAlkerApd,
+  isLoading = false
 }) => {
   const canEdit = currentUser ? canEditData(currentUser) : true;
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,17 +111,21 @@ export const AlkerApdView: React.FC<AlkerApdViewProps> = ({
     <div className="p-4 md:p-6 space-y-6 bg-slate-50 min-h-screen text-slate-900 font-sans">
       
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white border border-slate-200 rounded-3xl shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-md shadow-purple-500/20">
-            <Shield className="w-6 h-6" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-2 border-teal-500/60 rounded-3xl shadow-xl text-white relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-3.5 z-10">
+          <div className="p-3 bg-teal-950/80 text-teal-300 border border-teal-500/40 rounded-2xl shadow-inner">
+            <Shield className="w-6 h-6 text-amber-300" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-slate-900 tracking-tight">
-              Monitoring Inventaris Alat Kerja & APD Petugas 20kV
+            <h1 className="text-lg font-black text-white tracking-tight drop-shadow-xs flex items-center gap-2">
+              <span>Monitoring Inventaris Alat Kerja &amp; APD Petugas 20kV</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[10px] font-bold">
+                ULP BAGUALA
+              </span>
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Pencatatan K3, Alat Pelindung Diri (APD), Tools Pemeliharaan & Alat Ukur Terkalibrasi
+            <p className="text-xs text-teal-100/90 mt-0.5">
+              Pencatatan K3, Alat Pelindung Diri (APD), Tools Pemeliharaan &amp; Alat Ukur Terkalibrasi
             </p>
           </div>
         </div>
@@ -139,9 +146,9 @@ export const AlkerApdView: React.FC<AlkerApdViewProps> = ({
               });
               setShowModal(true);
             }}
-            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-purple-500/20 transition-all cursor-pointer self-start md:self-auto"
+            className="px-4 py-2.5 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-lg shadow-teal-950/40 border border-teal-200 transition-all cursor-pointer self-start md:self-auto active:scale-95 z-10"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-slate-950" />
             <span>+ Input Data Alker / APD</span>
           </button>
         )}
@@ -257,112 +264,116 @@ export const AlkerApdView: React.FC<AlkerApdViewProps> = ({
           </h3>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-100/80 text-slate-600 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
-              <tr>
-                <th className="py-3 px-4">Nama Alat Kerja / APD</th>
-                <th className="py-3 px-4">Tipe / Kategori</th>
-                <th className="py-3 px-4 text-center">Jumlah (Qty)</th>
-                <th className="py-3 px-4 text-center">Kondisi Alat</th>
-                <th className="py-3 px-4">Unit PLN</th>
-                <th className="py-3 px-4">Tanggal Input</th>
-                <th className="py-3 px-4">Penanggung Jawab</th>
-                <th className="py-3 px-4">Catatan / Lokasi</th>
-                <th className="py-3 px-4 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredList.length === 0 ? (
+        {isLoading ? (
+          <TableSkeletonLoader columns={9} rows={6} headerTitle="Alat Kerja & APD" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-100/80 text-slate-600 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
-                    Belum ada data Alat Kerja & APD. Silakan klik tombol "+ Input Data".
-                  </td>
+                  <th className="py-3 px-4">Nama Alat Kerja / APD</th>
+                  <th className="py-3 px-4">Tipe / Kategori</th>
+                  <th className="py-3 px-4 text-center">Jumlah (Qty)</th>
+                  <th className="py-3 px-4 text-center">Kondisi Alat</th>
+                  <th className="py-3 px-4">Unit PLN</th>
+                  <th className="py-3 px-4">Tanggal Input</th>
+                  <th className="py-3 px-4">Penanggung Jawab</th>
+                  <th className="py-3 px-4">Catatan / Lokasi</th>
+                  <th className="py-3 px-4 text-center">Aksi</th>
                 </tr>
-              ) : (
-                filteredList.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-black text-slate-900">
-                      <div className="flex items-center gap-2">
-                        {item.tipe === 'APD' ? (
-                          <HardHat className="w-4 h-4 text-purple-600 shrink-0" />
-                        ) : item.tipe === 'Alat Ukur' ? (
-                          <Gauge className="w-4 h-4 text-blue-600 shrink-0" />
-                        ) : (
-                          <Wrench className="w-4 h-4 text-slate-600 shrink-0" />
-                        )}
-                        <span>{item.namaAlker}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                        item.tipe === 'APD' ? 'bg-purple-100 text-purple-800' :
-                        item.tipe === 'Alat Ukur' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
-                      }`}>
-                        {item.tipe}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-black text-slate-900 text-sm">
-                      {item.jumlah} <span className="text-[10px] font-normal text-slate-500">unit</span>
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      {item.kondisi === 'Baik' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[10px]">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Baik
-                        </span>
-                      ) : item.kondisi === 'Perlu Perbaikan' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[10px]">
-                          <AlertTriangle className="w-3 h-3 text-amber-600" /> Perlu Perbaikan
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-extrabold text-[10px]">
-                          <XCircle className="w-3 h-3 text-rose-600" /> Rusak
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-extrabold border border-blue-200/60">
-                        {item.unit || 'ULP Baguala'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600 font-medium">{item.tanggalInput}</td>
-                    <td className="py-3.5 px-4 text-slate-800 font-bold">{item.penanggungJawab || '-'}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{item.catatan || '-'}</td>
-                    <td className="py-3.5 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingItem(item);
-                            setForm({
-                              namaAlker: item.namaAlker,
-                              tipe: item.tipe,
-                              jumlah: item.jumlah,
-                              kondisi: item.kondisi,
-                              tanggalInput: item.tanggalInput,
-                              unit: item.unit || 'ULP Baguala',
-                              penanggungJawab: item.penanggungJawab || '',
-                              catatan: item.catatan || ''
-                            });
-                            setShowModal(true);
-                          }}
-                          className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteAlkerApd(item.id)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredList.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
+                      Belum ada data Alat Kerja & APD. Silakan klik tombol "+ Input Data".
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  filteredList.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-black text-slate-900">
+                        <div className="flex items-center gap-2">
+                          {item.tipe === 'APD' ? (
+                            <HardHat className="w-4 h-4 text-purple-600 shrink-0" />
+                          ) : item.tipe === 'Alat Ukur' ? (
+                            <Gauge className="w-4 h-4 text-blue-600 shrink-0" />
+                          ) : (
+                            <Wrench className="w-4 h-4 text-slate-600 shrink-0" />
+                          )}
+                          <span>{item.namaAlker}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          item.tipe === 'APD' ? 'bg-purple-100 text-purple-800' :
+                          item.tipe === 'Alat Ukur' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
+                        }`}>
+                          {item.tipe}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-black text-slate-900 text-sm">
+                        {item.jumlah} <span className="text-[10px] font-normal text-slate-500">unit</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        {item.kondisi === 'Baik' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[10px]">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Baik
+                          </span>
+                        ) : item.kondisi === 'Perlu Perbaikan' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[10px]">
+                            <AlertTriangle className="w-3 h-3 text-amber-600" /> Perlu Perbaikan
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-extrabold text-[10px]">
+                            <XCircle className="w-3 h-3 text-rose-600" /> Rusak
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-extrabold border border-blue-200/60">
+                          {item.unit || 'ULP Baguala'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 font-medium">{item.tanggalInput}</td>
+                      <td className="py-3.5 px-4 text-slate-800 font-bold">{item.penanggungJawab || '-'}</td>
+                      <td className="py-3.5 px-4 text-slate-600">{item.catatan || '-'}</td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingItem(item);
+                              setForm({
+                                namaAlker: item.namaAlker,
+                                tipe: item.tipe,
+                                jumlah: item.jumlah,
+                                kondisi: item.kondisi,
+                                tanggalInput: item.tanggalInput,
+                                unit: item.unit || 'ULP Baguala',
+                                penanggungJawab: item.penanggungJawab || '',
+                                catatan: item.catatan || ''
+                              });
+                              setShowModal(true);
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => onDeleteAlkerApd(item.id)}
+                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* MODAL INPUT / EDIT */}

@@ -25,11 +25,14 @@ import { sanitizeForFirestore } from '../../utils/firestoreHelper';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
+
 interface InspeksiTier1JTMViewProps {
   currentUser: User | null;
   tier1JtmList: InspeksiTier1JTM[];
   penyulangList: Penyulang[];
   sectionList: SectionJaringan[];
+  isLoading?: boolean;
 }
 
 const INITIAL_FORM_STATE: Omit<InspeksiTier1JTM, 'id'> = {
@@ -110,7 +113,8 @@ export const InspeksiTier1JTMView: React.FC<InspeksiTier1JTMViewProps> = ({
   currentUser,
   tier1JtmList,
   penyulangList,
-  sectionList
+  sectionList,
+  isLoading = false
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -452,8 +456,11 @@ export const InspeksiTier1JTMView: React.FC<InspeksiTier1JTMViewProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {isLoading ? (
+          <TableSkeletonLoader columns={6} rows={7} headerTitle="Checklist Inspeksi JTM Tier 1" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 <th className="px-6 py-4">Tanggal</th>
@@ -528,6 +535,7 @@ export const InspeksiTier1JTMView: React.FC<InspeksiTier1JTMViewProps> = ({
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Modal Form */}

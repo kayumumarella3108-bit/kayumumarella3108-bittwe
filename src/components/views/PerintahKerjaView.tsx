@@ -31,6 +31,7 @@ import { generateSpkPDF } from '../../utils/spkPdfGenerator';
 import { sendSpkToWhatsApp } from '../../utils/whatsappNotifier';
 import { PLN_LOGO_BASE64 } from '../../utils/plnLogo';
 import { getUnitDetails } from '../../utils/unitConfig';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface PerintahKerjaViewProps {
   currentUser?: User | null;
@@ -40,6 +41,7 @@ interface PerintahKerjaViewProps {
   onAddSpk: (spk: PerintahKerja) => void;
   onUpdateSpk: (spk: PerintahKerja) => void;
   onDeleteSpk: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export const PerintahKerjaView: React.FC<PerintahKerjaViewProps> = ({
@@ -49,7 +51,8 @@ export const PerintahKerjaView: React.FC<PerintahKerjaViewProps> = ({
   sectionList,
   onAddSpk,
   onUpdateSpk,
-  onDeleteSpk
+  onDeleteSpk,
+  isLoading = false
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<PerintahKerja | null>(null);
@@ -208,38 +211,39 @@ export const PerintahKerjaView: React.FC<PerintahKerjaViewProps> = ({
   return (
     <div className="p-4 md:p-6 space-y-6 bg-slate-50 text-slate-900 font-sans min-h-screen">
       {/* Header View */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl text-white shadow-md shadow-blue-500/20">
-            <FileText className="w-6 h-6" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] p-6 rounded-2xl border-2 border-teal-500/60 shadow-xl relative overflow-hidden text-white">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-4 z-10">
+          <div className="p-3 bg-teal-950/80 rounded-2xl text-teal-300 border border-teal-500/40 shadow-inner">
+            <FileText className="w-6 h-6 text-amber-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black tracking-tight text-slate-900">Perintah Kerja Harian (SPK)</h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold">
+              <h1 className="text-xl font-black tracking-tight text-white drop-shadow-xs">Perintah Kerja Harian (SPK)</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[11px] font-bold">
                 ULP Baguala
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-teal-100/90 mt-0.5">
               Manajemen penerbitan dan pemantauan Surat Perintah Kerja (SPK) ROW, Inspeksi, dan Pemeliharaan 20kV
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 z-10">
           <button
             onClick={() => setIsScannerOpen(true)}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-all border border-slate-200 flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm"
+            className="px-4 py-2.5 bg-[#012521] hover:bg-[#02312b] text-teal-200 font-bold text-xs rounded-xl transition-all border border-teal-500/50 flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm active:scale-95"
           >
-            <QrCode className="w-4.5 h-4.5 text-blue-600" />
+            <QrCode className="w-4.5 h-4.5 text-teal-300" />
             <span>Pindai QR Code SPK</span>
           </button>
 
           <button
             onClick={handleOpenAddModal}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
+            className="px-4 py-2.5 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-lg shadow-teal-950/40 flex items-center justify-center gap-2 cursor-pointer shrink-0 border border-teal-200 active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-slate-950" />
             <span>Input SPK Baru</span>
           </button>
         </div>
@@ -353,8 +357,11 @@ export const PerintahKerjaView: React.FC<PerintahKerjaViewProps> = ({
 
       {/* Table SPK List */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {isLoading ? (
+          <TableSkeletonLoader columns={7} rows={6} headerTitle="Surat Perintah Kerja (SPK)" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-900 text-slate-300 text-[11px] font-bold uppercase tracking-wider">
                 <th className="p-4">No. SPK & Tanggal</th>
@@ -506,6 +513,7 @@ export const PerintahKerjaView: React.FC<PerintahKerjaViewProps> = ({
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Input / Edit Modal */}

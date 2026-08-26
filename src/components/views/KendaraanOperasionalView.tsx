@@ -32,6 +32,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { canEditData } from '../../utils/permissions';
 import { LiveGpsKendaraanDashboard } from '../yantek/LiveGpsKendaraanDashboard';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 import {
   PieChart,
   Pie,
@@ -52,6 +53,7 @@ interface KendaraanOperasionalViewProps {
   onAddKendaraan: (kendaraan: KendaraanOperasional) => void;
   onUpdateKendaraan: (kendaraan: KendaraanOperasional) => void;
   onDeleteKendaraan: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export const KendaraanOperasionalView: React.FC<KendaraanOperasionalViewProps> = ({
@@ -59,7 +61,8 @@ export const KendaraanOperasionalView: React.FC<KendaraanOperasionalViewProps> =
   kendaraanList,
   onAddKendaraan,
   onUpdateKendaraan,
-  onDeleteKendaraan
+  onDeleteKendaraan,
+  isLoading = false
 }) => {
   const canEdit = canEditData(currentUser);
 
@@ -637,7 +640,9 @@ export const KendaraanOperasionalView: React.FC<KendaraanOperasionalViewProps> =
       </div>
 
       {/* Main Content Area */}
-      {filteredList.length === 0 ? (
+      {isLoading ? (
+        <TableSkeletonLoader columns={11} rows={6} headerTitle="Data Kendaraan Operasional" />
+      ) : filteredList.length === 0 ? (
         <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm space-y-3">
           <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
             <Car className="w-8 h-8" />

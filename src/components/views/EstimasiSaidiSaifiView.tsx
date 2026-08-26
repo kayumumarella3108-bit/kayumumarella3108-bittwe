@@ -621,40 +621,41 @@ export const EstimasiSaidiSaifiView: React.FC<EstimasiSaidiSaifiViewProps> = ({
     <div className="p-4 sm:p-6 space-y-6 bg-slate-50 min-h-screen text-slate-800 font-sans print:bg-white print:p-0">
       
       {/* HEADER BAR */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm print:border-none print:shadow-none">
-        <div className="flex items-start gap-3">
-          <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl shadow-md shadow-blue-500/20 shrink-0">
-            <Calculator className="w-6 h-6" />
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] p-6 rounded-2xl border-2 border-teal-500/60 shadow-xl text-white relative overflow-hidden print:border-none print:shadow-none">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-start gap-3.5 z-10">
+          <div className="p-3 bg-teal-950/80 text-teal-300 border border-teal-500/40 rounded-2xl shadow-inner shrink-0">
+            <Calculator className="w-6 h-6 text-amber-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">
-                Monitoring Estimasi SAIDI & SAIFI Gangguan
+              <h1 className="text-xl font-black text-white tracking-tight drop-shadow-xs">
+                Monitoring Estimasi SAIDI &amp; SAIFI Gangguan
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-[10px] font-extrabold uppercase tracking-wide">
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-300 text-[10px] font-extrabold uppercase tracking-wide">
                 Dedicated Per Event
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-              Kalkulasi estimasi indeks keandalan SAIDI & SAIFI berdasarkan data section padam & durasi gangguan trip pada setiap event. Monitoring ini <strong>terpisah dan terpisah independen</strong> dari SAIDI/SAIFI komulatif bulanan.
+            <p className="text-xs text-teal-100/90 mt-1 max-w-2xl leading-relaxed">
+              Kalkulasi estimasi indeks keandalan SAIDI &amp; SAIFI berdasarkan data section padam &amp; durasi gangguan trip pada setiap event. Monitoring ini <strong>terpisah dan independen</strong> dari SAIDI/SAIFI komulatif bulanan.
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 print:hidden z-10">
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#012521] hover:bg-[#02312b] text-teal-200 border border-teal-500/50 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer active:scale-95"
             title="Export data ke format CSV Spreadsheet"
           >
-            <FileSpreadsheet className="w-4 h-4" />
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
             <span>Export CSV</span>
           </button>
 
           <button
             onClick={handleExportPDF}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer active:scale-95"
             title="Unduh langsung file laporan PDF"
           >
             <Download className="w-4 h-4" />
@@ -663,10 +664,10 @@ export const EstimasiSaidiSaifiView: React.FC<EstimasiSaidiSaifiViewProps> = ({
 
           <button
             onClick={handlePrintReport}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-all shadow-md shadow-blue-500/20 cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 border border-teal-200 rounded-xl font-black text-xs transition-all shadow-lg shadow-teal-950/40 cursor-pointer active:scale-95"
             title="Buka pratinjau & cetak dokumen laporan"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="w-4 h-4 text-slate-950" />
             <span>Cetak Laporan PDF</span>
           </button>
         </div>

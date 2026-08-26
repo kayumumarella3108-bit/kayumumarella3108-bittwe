@@ -40,7 +40,9 @@ import {
   AreaChart,
   Area,
   LineChart,
-  Line
+  Line,
+  CartesianGrid,
+  LabelList
 } from 'recharts';
 import {
   Penyulang,
@@ -100,17 +102,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [activeTab, setActiveTab] = useState<'pangkal' | 'kode' | 'gardu' | 'yantek' | 'survey'>('pangkal');
   const [dateRange, setDateRange] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const [selectedFeeder, setSelectedFeeder] = useState<string | null>(null);
+  const [selectedDashboardUlp, setSelectedDashboardUlp] = useState<string>(ownerSelectedUnitFilter);
   const { searchTerm } = useSearch();
 
+  // Update local dashboard filter if prop changes
+  React.useEffect(() => {
+    setSelectedDashboardUlp(ownerSelectedUnitFilter);
+  }, [ownerSelectedUnitFilter]);
+
   const filteredGangguanList = useMemo(() => {
-    if (!searchTerm) return gangguanList;
-    const lowerSearch = searchTerm.toLowerCase();
-    return gangguanList.filter(g => 
-      (g.namaPenyulang || '').toLowerCase().includes(lowerSearch) ||
-      (g.section || '').toLowerCase().includes(lowerSearch) ||
-      (g.id || '').toLowerCase().includes(lowerSearch)
-    );
-  }, [gangguanList, searchTerm]);
+    let list = gangguanList;
+    if (selectedDashboardUlp !== 'SEMUA') {
+        list = list.filter(g => g.unit === selectedDashboardUlp);
+    }
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      list = list.filter(g => 
+        (g.namaPenyulang || '').toLowerCase().includes(lowerSearch) ||
+        (g.section || '').toLowerCase().includes(lowerSearch) ||
+        (g.id || '').toLowerCase().includes(lowerSearch)
+      );
+    }
+    return list;
+  }, [gangguanList, searchTerm, selectedDashboardUlp]);
+
+  // Comparative data for all ULPs
+  const comparativeStats = useMemo(() => {
+    const ulpStats: { [key: string]: number } = {};
+    gangguanList.forEach(g => {
+        const ulp = g.unit || 'Unknown';
+        ulpStats[ulp] = (ulpStats[ulp] || 0) + 1;
+    });
+    return Object.entries(ulpStats).map(([name, count]) => ({ name, count }));
+  }, [gangguanList]);
+
+  // Monthly Outage Trend (Last 12 Months)
+  const monthlyOutageData = useMemo(() => {
+    const data = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthName = date.toLocaleString('id-ID', { month: 'short' });
+        data.push({ name: monthName, count: 0 });
+    }
+    
+    gangguanList.forEach(g => {
+        if (g.jamMasuk && g.jamMasuk !== '-' && g.jamMasuk !== '') {
+            const gDate = new Date(g.jamMasuk);
+            const diffMonths = (now.getFullYear() - gDate.getFullYear()) * 12 + (now.getMonth() - gDate.getMonth());
+            if (diffMonths >= 0 && diffMonths < 12) {
+                data[11 - diffMonths].count += 1;
+            }
+        }
+    });
+    
+    return data;
+  }, [gangguanList]);
 
   // 1. UNIT DETAILS & BRANDING
   const unitInfo = useMemo(() => {
@@ -641,6 +688,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         })}
       </div>
 
+      {/* Comparative Analysis Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <BarChart2 className="w-5 h-5 text-teal-600" />
+                Analisis Komparatif Gangguan per ULP
+            </h2>
+            <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={comparativeStats}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#0f766e" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+        
+        {/* Monthly Trend Section */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-600" />
+                Tren Gangguan Bulanan (12 Bulan Terakhir)
+            </h2>
+            <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={monthlyOutageData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="count" stroke="#d97706" strokeWidth={3} activeDot={{ r: 8 }} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+      </div>
+
       {/* Sub-Dashboard Content Panel */}
       <div id="sub_dashboard_active_canvas" className="transition-all duration-300">
         
@@ -712,22 +799,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Outage Pangkal Summary Table */}
             <div className="bg-[#022e2a]/80 p-5 rounded-2xl border border-teal-500/30 backdrop-blur-md shadow-lg">
-              <h3 className="text-sm font-black text-teal-100 mb-4 tracking-wider uppercase">Daftar Frekuensi Trip &amp; Durasi Pemulihan Feeder</h3>
+              <h3 className="text-sm font-black text-white mb-4 tracking-wider uppercase drop-shadow-xs">Daftar Frekuensi Trip &amp; Durasi Pemulihan Feeder</h3>
               
               {/* Chart Visualization */}
-              <div className="h-64 mb-6">
+              <div className="h-72 mb-6">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={gangguanPangkalStats} onClick={(data) => {
-                    if (data && data.activePayload && data.activePayload[0]) {
-                        const name = data.activePayload[0].payload.name;
-                        setSelectedFeeder(selectedFeeder === name ? null : name);
-                    }
-                  }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="name" stroke="#94a3b8" tick={{fontSize: 10}} />
-                    <YAxis stroke="#94a3b8" tick={{fontSize: 10}} />
-                    <Tooltip contentStyle={{backgroundColor: '#022e2a', borderColor: '#0d9488'}} />
+                  <BarChart 
+                    data={gangguanPangkalStats} 
+                    margin={{ top: 20, right: 15, left: -15, bottom: 25 }}
+                    onClick={(data: any) => {
+                      if (data && data.activePayload && data.activePayload[0]) {
+                          const name = data.activePayload[0].payload.name;
+                          setSelectedFeeder(selectedFeeder === name ? null : name);
+                      }
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.2)" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#ffffff" 
+                      tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 700 }} 
+                      tickLine={{ stroke: '#ffffff' }}
+                      interval={0}
+                      angle={-25}
+                      textAnchor="end"
+                      height={50}
+                    />
+                    <YAxis 
+                      stroke="#ffffff" 
+                      tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 700 }} 
+                      tickLine={{ stroke: '#ffffff' }}
+                      allowDecimals={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#022e2a', 
+                        borderColor: '#2dd4bf', 
+                        color: '#ffffff', 
+                        borderRadius: '10px', 
+                        fontWeight: 'bold',
+                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)'
+                      }} 
+                      itemStyle={{ color: '#ffffff', fontWeight: 'bold' }}
+                      labelStyle={{ color: '#5eead4', fontWeight: 'bold' }}
+                    />
                     <Bar dataKey="jumlahGangguan" radius={[4, 4, 0, 0]} cursor="pointer">
+                       <LabelList dataKey="jumlahGangguan" position="top" fill="#ffffff" fontSize={11} fontWeight={800} offset={6} />
                        {gangguanPangkalStats.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={selectedFeeder === entry.name ? '#f59e0b' : '#14b8a6'} />
                        ))}
@@ -739,34 +856,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-teal-800 bg-[#022e2a] text-teal-100 font-bold">
-                      <th className="p-3">Nama Penyulang (Feeder)</th>
-                      <th className="p-3 text-center">Jumlah Outage (Trip)</th>
-                      <th className="p-3 text-center">Total Durasi Padam</th>
-                      <th className="p-3 text-center">Arus Gangguan Maksimum</th>
-                      <th className="p-3">Status Kerawanan</th>
+                    <tr className="border-b border-teal-700 bg-[#01221f] text-white font-extrabold uppercase text-[11px]">
+                      <th className="p-3 text-white">Nama Penyulang (Feeder)</th>
+                      <th className="p-3 text-center text-white">Jumlah Outage (Trip)</th>
+                      <th className="p-3 text-center text-white">Total Durasi Padam</th>
+                      <th className="p-3 text-center text-white">Arus Gangguan Maksimum</th>
+                      <th className="p-3 text-white">Status Kerawanan</th>
                     </tr>
                   </thead>
                   <tbody>
                     {gangguanPangkalStats.filter(item => !selectedFeeder || item.name === selectedFeeder).map((item, idx) => {
                       let kerawanan = 'RENDAH';
-                      let color = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+                      let color = 'text-emerald-300 bg-emerald-950/80 border-emerald-500/50 font-black';
                       if (item.jumlahGangguan >= 7) {
                         kerawanan = 'KRITIS / TINGGI';
-                        color = 'text-rose-700 bg-rose-50 border-rose-200';
+                        color = 'text-rose-200 bg-rose-950/80 border-rose-500/50 font-black';
                       } else if (item.jumlahGangguan >= 4) {
                         kerawanan = 'SEDANG';
-                        color = 'text-amber-700 bg-amber-50 border-amber-200';
+                        color = 'text-amber-200 bg-amber-950/80 border-amber-500/50 font-black';
                       }
 
                       return (
-                        <tr key={idx} className="border-b border-teal-800/50 hover:bg-teal-900/20">
-                          <td className="p-3 font-extrabold text-teal-50">{item.name}</td>
-                          <td className="p-3 text-center font-black text-teal-200">{item.jumlahGangguan} kali</td>
-                          <td className="p-3 text-center font-bold text-teal-200">{item.totalDurasiMenit} Menit</td>
-                          <td className="p-3 text-center font-mono font-bold text-teal-200">{item.arusMaksimum} Ampere</td>
+                        <tr key={idx} className="border-b border-teal-800/60 hover:bg-teal-900/40 transition-colors">
+                          <td className="p-3 font-extrabold text-white">{item.name}</td>
+                          <td className="p-3 text-center font-black text-white">{item.jumlahGangguan} kali</td>
+                          <td className="p-3 text-center font-bold text-white">{item.totalDurasiMenit} Menit</td>
+                          <td className="p-3 text-center font-mono font-bold text-white">{item.arusMaksimum} Ampere</td>
                           <td className="p-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${color}`}>
+                            <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider border shadow-xs ${color}`}>
                               {kerawanan}
                             </span>
                           </td>

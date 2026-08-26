@@ -178,6 +178,7 @@ export default function App() {
   const [tier1SwitchingList, setTier1SwitchingList] = useState<InspeksiTier1Switching[]>([]);
   const [thermovisionList, setThermovisionList] = useState<InspeksiTier2Thermovision[]>([]);
   const [ultrasoundList, setUltrasoundList] = useState<InspeksiTier2Ultrasound[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
   
   // Dynamically compute inspeksiList from tier1 and tier2 data
   const inspeksiList = useMemo(() => {
@@ -884,7 +885,12 @@ export default function App() {
       console.warn('Broadcast messages sync (handled):', error);
     });
 
+    const loadingTimer = setTimeout(() => {
+      setIsDataLoading(false);
+    }, 600);
+
     return () => {
+      clearTimeout(loadingTimer);
       unsubStok();
       unsubPemakaian();
       unsubAlker();
@@ -2594,6 +2600,7 @@ export default function App() {
                 sectionList={filteredSectionList}
                 onAddGangguan={handleAddGangguan}
                 onDeleteGangguan={handleDeleteGangguan}
+                isLoading={isDataLoading}
               />
             </motion.div>
           )}
@@ -2634,6 +2641,7 @@ export default function App() {
                 tier2List={filteredTier2List}
                 monitoringList={filteredMonitoringList}
                 onSelectSubView={setActiveView}
+                isLoading={isDataLoading}
               />
             </motion.div>
           )}
@@ -2659,6 +2667,7 @@ export default function App() {
                 onAddMapLayer={handleAddMapLayer}
                 onDeleteMapLayer={handleDeleteMapLayer}
                 onSelectView={setActiveView}
+                isLoading={isDataLoading}
               />
             </motion.div>
           )}
@@ -2755,6 +2764,7 @@ export default function App() {
                 onAddPemakaian={handleAddPemakaian}
                 onUpdatePemakaian={handleUpdatePemakaian}
                 onDeletePemakaian={handleDeletePemakaian}
+                isLoading={isDataLoading}
               />
             </motion.div>
           )}
@@ -2773,6 +2783,7 @@ export default function App() {
                 onAddAlkerApd={handleAddAlkerApd}
                 onUpdateAlkerApd={handleUpdateAlkerApd}
                 onDeleteAlkerApd={handleDeleteAlkerApd}
+                isLoading={isDataLoading}
               />
             </motion.div>
           )}
@@ -2784,6 +2795,7 @@ export default function App() {
               onAddKendaraan={handleAddKendaraan}
               onUpdateKendaraan={handleUpdateKendaraan}
               onDeleteKendaraan={handleDeleteKendaraan}
+              isLoading={isDataLoading}
             />
           )}
 
@@ -2794,6 +2806,7 @@ export default function App() {
               onAdd={handleAddAset}
               onUpdate={handleUpdateAset}
               onDelete={handleDeleteAset}
+              isLoading={isDataLoading}
             />
           )}
 
@@ -2803,6 +2816,7 @@ export default function App() {
               onAdd={handleAddJadwal}
               onUpdate={handleUpdateJadwal}
               onDelete={handleDeleteJadwal}
+              isLoading={isDataLoading}
             />
           )}
 
@@ -2815,6 +2829,7 @@ export default function App() {
               onAddSpk={handleAddSpk}
               onUpdateSpk={handleUpdateSpk}
               onDeleteSpk={handleDeleteSpk}
+              isLoading={isDataLoading}
             />
           )}
 
@@ -2836,6 +2851,7 @@ export default function App() {
               onDeleteAllPengukuran={handleDeleteAllPengukuran}
               onImportGardu={handleImportMasterGardu}
               onImportPengukuran={handleImportPengukuranGardu}
+              isLoading={isDataLoading}
             />
           )}
 
@@ -2848,6 +2864,7 @@ export default function App() {
               onAddSurvey={handleAddSurveyPbPd}
               onUpdateSurvey={handleUpdateSurveyPbPd}
               onDeleteSurvey={handleDeleteSurveyPbPd}
+              isLoading={isDataLoading}
             />
           )}
 
@@ -2857,6 +2874,7 @@ export default function App() {
               tier1JtmList={filteredTier1JtmList}
               penyulangList={filteredPenyulangList}
               sectionList={filteredSectionList}
+              isLoading={isDataLoading}
             />
           )}
 
@@ -2867,6 +2885,7 @@ export default function App() {
               penyulangList={filteredPenyulangList}
               sectionList={filteredSectionList}
               masterGarduList={filteredMasterGarduList}
+              isLoading={isDataLoading}
             />
           )}
 

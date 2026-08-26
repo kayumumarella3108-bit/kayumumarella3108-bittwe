@@ -18,19 +18,22 @@ import {
 import { JadwalPiket } from '../../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface JadwalPiketViewProps {
   jadwalList: JadwalPiket[];
   onAdd: (data: Omit<JadwalPiket, 'id'>) => void;
   onUpdate: (id: string, data: Partial<JadwalPiket>) => void;
   onDelete: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export const JadwalPiketView: React.FC<JadwalPiketViewProps> = ({
   jadwalList,
   onAdd,
   onUpdate,
-  onDelete
+  onDelete,
+  isLoading = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -420,7 +423,10 @@ export const JadwalPiketView: React.FC<JadwalPiketViewProps> = ({
 
       {/* Main Schedule Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[1200px]">
+        {isLoading ? (
+          <TableSkeletonLoader columns={12} rows={8} headerTitle="Jadwal Piket Petugas" />
+        ) : (
+          <table className="w-full text-left border-collapse min-w-[1200px]">
           <thead>
             <tr className="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider">
               <th className="px-4 py-4 border border-slate-800 text-center sticky left-0 bg-slate-900 z-10 w-12">NO</th>
@@ -525,6 +531,7 @@ export const JadwalPiketView: React.FC<JadwalPiketViewProps> = ({
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Legend / Info Footer */}

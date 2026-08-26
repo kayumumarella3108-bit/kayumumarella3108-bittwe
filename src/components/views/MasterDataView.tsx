@@ -25,10 +25,10 @@ import { exportToCSV } from '../../utils/exportCsv';
 import { Penyulang, SectionJaringan, ActivityLog, MasterTab, MasterUnitPLN, MapLayerItem } from '../../types';
 import { TambahPenyulangModal } from '../modals/TambahPenyulangModal';
 import { TambahSectionModal } from '../modals/TambahSectionModal';
-import { HealthIndexBanner } from '../HealthIndexBanner';
 import { ElectricIconsShowcase } from '../common/ElectricIconsShowcase';
 import { GarduHubungMasterSection } from '../master/GarduHubungMasterSection';
 import { DistributionEquipmentMasterSection } from '../master/DistributionEquipmentMasterSection';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface MasterDataViewProps {
   penyulangList: Penyulang[];
@@ -43,6 +43,7 @@ interface MasterDataViewProps {
   onAddMapLayer?: (layer: MapLayerItem) => void;
   onDeleteMapLayer?: (id: string) => void;
   onSelectView?: (view: string) => void;
+  isLoading?: boolean;
 }
 
 export const MasterDataView: React.FC<MasterDataViewProps> = ({
@@ -57,10 +58,12 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   mapLayers = [],
   onAddMapLayer,
   onDeleteMapLayer,
-  onSelectView
+  onSelectView,
+  isLoading = false
 }) => {
   const [activeTab, setActiveTab] = useState<MasterTab>('penyulang');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUlp, setSelectedUlp] = useState<string>('SEMUA');
   const [isPenyulangModalOpen, setIsPenyulangModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingPenyulang, setEditingPenyulang] = useState<Penyulang | null>(null);
@@ -229,20 +232,22 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filtered Penyulang
-  const filteredPenyulang = penyulangList.filter((p) =>
-    (p.namaPenyulang || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+  // Filtered Data based on ULP
+  const filteredPenyulang = penyulangList.filter((p) => 
+    (selectedUlp === 'SEMUA' || p.unit === selectedUlp) &&
+    ((p.namaPenyulang || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.namaGi || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.kodeId || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (p.kodeId || '').toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Filtered Sections
+  const totalKmsJtm = filteredPenyulang.reduce((acc, p) => acc + (p.panjangJaringanKms || 0), 0);
+
   const filteredSections = sectionList.filter((s) =>
-    (s.namaSection || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.namaPenyulang || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (selectedUlp === 'SEMUA' || s.unit === selectedUlp) &&
+    ((s.namaSection || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.namaPenyulang || '').toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Filtered Activities
   const filteredActivities = activities.filter((act) =>
     (act.user || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (act.aktivitas || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -407,139 +412,122 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     e.target.value = '';
   };
 
+  const uniqueUlps = Array.from(new Set(masterUnitList.map(u => u.ulp)));
+  const ulpOptions = ['SEMUA', ...uniqueUlps];
+
   return (
     <div className="p-4 md:p-6 space-y-6 bg-slate-50 text-slate-900 font-sans min-h-screen">
       
-      {/* Top Banner */}
-      <HealthIndexBanner
-        totalCount={penyulangList.length}
-        sempurnaCount={penyulangList.filter((p) => p.healthIndexStatus === 'Sempurna').length}
-        sehatCount={penyulangList.filter((p) => p.healthIndexStatus === 'Sehat').length}
-        sakitCount={penyulangList.filter((p) => p.healthIndexStatus === 'Sakit').length}
-        kronisCount={penyulangList.filter((p) => p.healthIndexStatus === 'Kronis').length}
-      />
+      {/* ULP Filter & Tabs Header Bar */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-slate-700">Filter ULP:</span>
+          <select
+            value={selectedUlp}
+            onChange={(e) => setSelectedUlp(e.target.value)}
+            className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            {ulpOptions.map(ulp => <option key={ulp} value={ulp}>{ulp}</option>)}
+          </select>
+        </div>
 
-      {/* Tabs Header Bar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
-        <button
-          onClick={() => setActiveTab('penyulang')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'penyulang'
-              ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <Database className="w-4 h-4" />
-          <span>Master Penyulang ({penyulangList.length})</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+          <button
+            onClick={() => setActiveTab('penyulang')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'penyulang'
+                ? 'bg-gradient-to-r from-[#022623] to-[#044c45] text-white shadow-lg'
+                : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            <span>Penyulang ({filteredPenyulang.length}) - {totalKmsJtm.toFixed(1)} KMS</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('section')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'section'
-              ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>Master Section ({sectionList.length})</span>
-        </button>
-        
-        <button
-          onClick={() => setActiveTab('gardu_hubung')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'gardu_hubung'
-              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>Gardu Hubung</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('section')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'section'
+                ? 'bg-gradient-to-r from-[#022623] to-[#044c45] text-white shadow-lg'
+                : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Section ({filteredSections.length})</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('gardu_hubung')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'gardu_hubung'
+                ? 'bg-gradient-to-r from-[#022623] to-[#044c45] text-white shadow-lg'
+                : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Gardu Hubung</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('lbs')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'lbs'
-              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>LBS</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('lbs')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'lbs'
+                ? 'bg-gradient-to-r from-[#022623] to-[#044c45] text-white shadow-lg'
+                : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>LBS</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('pmcb')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'pmcb'
-              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>PMCB</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('pmcb')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'pmcb'
+                ? 'bg-gradient-to-r from-[#022623] to-[#044c45] text-white shadow-lg'
+                : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>PMCB</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('recloser')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'recloser'
-              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>Recloser</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('recloser')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'recloser'
+                ? 'bg-gradient-to-r from-[#022623] to-[#044c45] text-white shadow-lg'
+                : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Recloser</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('fco')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'fco'
-              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>FCO</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('fco')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'fco'
+                ? 'bg-gradient-to-r from-[#022623] to-[#044c45] text-white shadow-lg'
+                : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>FCO</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('log_aktivitas')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'log_aktivitas'
-              ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <History className="w-4 h-4" />
-          <span>Log Aktivitas ({activities.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('icon_gardu_tiang')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'icon_gardu_tiang'
-              ? 'bg-amber-600 text-white shadow-sm shadow-amber-500/20'
-              : 'bg-white text-amber-700 hover:text-amber-900 border border-amber-200/80 bg-amber-50/50'
-          }`}
-        >
-          <Zap className="w-4 h-4 text-amber-500" />
-          <span>Icon Gardu & Tiang Listrik (7)</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('peta_penyulang_input')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-            activeTab === 'peta_penyulang_input'
-              ? 'bg-teal-600 text-white shadow-sm shadow-teal-500/20'
-              : 'bg-white text-teal-700 hover:text-teal-900 border border-teal-200/80 bg-teal-50/50'
-          }`}
-        >
-          <Map className="w-4 h-4 text-teal-600" />
-          <span>Input Peta Penyulang ({mapLayers.length})</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('log_aktivitas')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'log_aktivitas'
+                ? 'bg-gradient-to-r from-[#022623] to-[#044c45] text-white shadow-lg'
+                : 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span>Log ({filteredActivities.length})</span>
+          </button>
+        </div>
       </div>
 
       {/* TAB: INPUT PETA PENYULANG */}
@@ -580,70 +568,74 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3.5">Nama Penyulang / Layer</th>
-                  <th className="px-4 py-3.5">ULP (Master Unit)</th>
-                  <th className="px-4 py-3.5">Kode Unit</th>
-                  <th className="px-4 py-3.5">Penyulang (Master)</th>
-                  <th className="px-4 py-3.5">Jumlah Tiang</th>
-                  <th className="px-4 py-3.5">Panjang Rute</th>
-                  <th className="px-4 py-3.5">Tanggal Impor</th>
-                  <th className="px-4 py-3.5 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {mapLayers.length === 0 ? (
+          {isLoading ? (
+            <TableSkeletonLoader columns={8} rows={5} headerTitle="Peta Penyulang (GIS Layer)" />
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
-                      Belum ada data peta penyulang yang di-impor. Klik tombol "+ Impor Peta KMZ/KML" di atas.
-                    </td>
+                    <th className="px-4 py-3.5">Nama Penyulang / Layer</th>
+                    <th className="px-4 py-3.5">ULP (Master Unit)</th>
+                    <th className="px-4 py-3.5">Kode Unit</th>
+                    <th className="px-4 py-3.5">Penyulang (Master)</th>
+                    <th className="px-4 py-3.5">Jumlah Tiang</th>
+                    <th className="px-4 py-3.5">Panjang Rute</th>
+                    <th className="px-4 py-3.5">Tanggal Impor</th>
+                    <th className="px-4 py-3.5 text-right">Aksi</th>
                   </tr>
-                ) : (
-                  mapLayers.map((layer) => (
-                    <tr key={layer.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3.5 font-bold text-slate-900 flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: layer.color || '#3b82f6' }}></span>
-                        {layer.nama}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">
-                          {layer.ulp || '-'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 font-mono text-slate-600">{layer.kodeUnit || '-'}</td>
-                      <td className="px-4 py-3.5 font-bold text-teal-800">{layer.namaPenyulang || layer.nama}</td>
-                      <td className="px-4 py-3.5 font-semibold">{layer.tiangCount} tiang</td>
-                      <td className="px-4 py-3.5 text-slate-600">{layer.ruteLength}</td>
-                      <td className="px-4 py-3.5 font-mono text-slate-500 text-[11px]">{layer.tanggalImport}</td>
-                      <td className="px-4 py-3.5 text-right space-x-2">
-                        {onSelectView && (
-                          <button
-                            onClick={() => onSelectView('peta_penyulang')}
-                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                            title="Lihat di Peta GIS"
-                          >
-                            <Map className="w-3.5 h-3.5" /> Peta
-                          </button>
-                        )}
-                        {onDeleteMapLayer && (
-                          <button
-                            onClick={() => onDeleteMapLayer(layer.id)}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
-                            title="Hapus Layer Peta"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Hapus
-                          </button>
-                        )}
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {mapLayers.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
+                        Belum ada data peta penyulang yang di-impor. Klik tombol "+ Impor Peta KMZ/KML" di atas.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    mapLayers.map((layer) => (
+                      <tr key={layer.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3.5 font-bold text-slate-900 flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: layer.color || '#3b82f6' }}></span>
+                          {layer.nama}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">
+                            {layer.ulp || '-'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 font-mono text-slate-600">{layer.kodeUnit || '-'}</td>
+                        <td className="px-4 py-3.5 font-bold text-teal-800">{layer.namaPenyulang || layer.nama}</td>
+                        <td className="px-4 py-3.5 font-semibold">{layer.tiangCount} tiang</td>
+                        <td className="px-4 py-3.5 text-slate-600">{layer.ruteLength}</td>
+                        <td className="px-4 py-3.5 font-mono text-slate-500 text-[11px]">{layer.tanggalImport}</td>
+                        <td className="px-4 py-3.5 text-right space-x-2">
+                          {onSelectView && (
+                            <button
+                              onClick={() => onSelectView('peta_penyulang')}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                              title="Lihat di Peta GIS"
+                            >
+                              <Map className="w-3.5 h-3.5" /> Peta
+                            </button>
+                          )}
+                          {onDeleteMapLayer && (
+                            <button
+                              onClick={() => onDeleteMapLayer(layer.id)}
+                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg text-[11px] transition-all cursor-pointer inline-flex items-center gap-1"
+                              title="Hapus Layer Peta"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Hapus
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -678,30 +670,34 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 onChange={handleImportCSV}
                 className="hidden"
               />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                title="Impor file Excel/CSV data master"
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Import Excel/CSV
-              </button>
-              <button
-                onClick={handleExportExcel}
-                title="Ekspor data ke file Excel/CSV"
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-              >
-                <Download className="w-3.5 h-3.5" /> Excel
-              </button>
-              <button
-                onClick={handleExportPDF}
-                title="Ekspor data ke file PDF"
-                className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-              >
-                <FileText className="w-3.5 h-3.5" /> PDF
-              </button>
+              
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Impor data"
+                  className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Import
+                </button>
+                <button
+                  onClick={handleExportExcel}
+                  title="Ekspor Excel"
+                  className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-600" /> Excel
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  title="Ekspor PDF"
+                  className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                >
+                  <FileText className="w-3.5 h-3.5 text-rose-600" /> PDF
+                </button>
+              </div>
+
               <button
                 onClick={() => setIsPenyulangModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-blue-500/20"
+                className="px-4 py-2 bg-gradient-to-r from-[#022623] to-[#044c45] hover:opacity-90 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Penyulang Baru</span>
@@ -720,96 +716,100 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             />
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-3 py-3.5 whitespace-nowrap">ULP</th>
-                  <th className="px-3 py-3.5 whitespace-nowrap">Kode Unit</th>
-                  <th className="px-3 py-3.5 whitespace-nowrap">Nama GI/PLTD</th>
-                  <th className="px-3 py-3.5 whitespace-nowrap">Penyulang Utama</th>
-                  <th className="px-3 py-3.5 whitespace-nowrap">Penyulang Percabangan</th>
-                  <th className="px-3 py-3.5 whitespace-nowrap">Kode / ID</th>
-                  <th className="px-3 py-3.5 text-right whitespace-nowrap">Jml Pelanggan</th>
-                  <th className="px-3 py-3.5 text-right whitespace-nowrap">Panjang Jaringan</th>
-                  <th className="px-3 py-3.5 text-right whitespace-nowrap">Jml Tiang</th>
-                  <th className="px-3 py-3.5 text-right whitespace-nowrap">LBS</th>
-                  <th className="px-3 py-3.5 text-right whitespace-nowrap">PMCB</th>
-                  <th className="px-3 py-3.5 text-right whitespace-nowrap">Recloser</th>
-                  <th className="px-3 py-3.5 text-right whitespace-nowrap">FCO</th>
-                  <th className="px-3 py-3.5 text-right whitespace-nowrap">Gardu</th>
-                  <th className="px-3 py-3.5 text-center sticky right-0 bg-slate-50 z-10 shadow-sm">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-[11px]">
-                {filteredPenyulang.map((p) => {
-                  const feederSections = sectionList.filter(
-                    (s) => s.penyulangId === p.id || s.namaPenyulang?.toLowerCase() === p.namaPenyulang?.toLowerCase()
-                  );
-                  const totalSectionPlg = feederSections.reduce(
-                    (acc, curr) => acc + (curr.jumlahPelanggan || 0),
-                    0
-                  );
-                  const totalPlg = p.jumlahPelanggan && p.jumlahPelanggan > 0 ? p.jumlahPelanggan : totalSectionPlg;
+          {isLoading ? (
+            <TableSkeletonLoader columns={10} rows={6} headerTitle="Master Penyulang" />
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-3 py-3.5 whitespace-nowrap">ULP</th>
+                    <th className="px-3 py-3.5 whitespace-nowrap">Kode Unit</th>
+                    <th className="px-3 py-3.5 whitespace-nowrap">Nama GI/PLTD</th>
+                    <th className="px-3 py-3.5 whitespace-nowrap">Penyulang Utama</th>
+                    <th className="px-3 py-3.5 whitespace-nowrap">Penyulang Percabangan</th>
+                    <th className="px-3 py-3.5 whitespace-nowrap">Kode / ID</th>
+                    <th className="px-3 py-3.5 text-right whitespace-nowrap">Jml Pelanggan</th>
+                    <th className="px-3 py-3.5 text-right whitespace-nowrap">Panjang Jaringan</th>
+                    <th className="px-3 py-3.5 text-right whitespace-nowrap">Jml Tiang</th>
+                    <th className="px-3 py-3.5 text-right whitespace-nowrap">LBS</th>
+                    <th className="px-3 py-3.5 text-right whitespace-nowrap">PMCB</th>
+                    <th className="px-3 py-3.5 text-right whitespace-nowrap">Recloser</th>
+                    <th className="px-3 py-3.5 text-right whitespace-nowrap">FCO</th>
+                    <th className="px-3 py-3.5 text-right whitespace-nowrap">Gardu</th>
+                    <th className="px-3 py-3.5 text-center sticky right-0 bg-slate-50 z-10 shadow-sm">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-[11px]">
+                  {filteredPenyulang.map((p) => {
+                    const feederSections = sectionList.filter(
+                      (s) => s.penyulangId === p.id || s.namaPenyulang?.toLowerCase() === p.namaPenyulang?.toLowerCase()
+                    );
+                    const totalSectionPlg = feederSections.reduce(
+                      (acc, curr) => acc + (curr.jumlahPelanggan || 0),
+                      0
+                    );
+                    const totalPlg = p.jumlahPelanggan && p.jumlahPelanggan > 0 ? p.jumlahPelanggan : totalSectionPlg;
 
-                  return (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-3 py-3 whitespace-nowrap text-slate-600 font-bold">{p.unit || 'ULP Baguala'}</td>
-                      <td className="px-3 py-3 font-mono text-slate-500">{p.kodeUnit || '54110'}</td>
-                      <td className="px-3 py-3 font-bold text-amber-700 whitespace-nowrap">
-                        {p.namaGi}
-                      </td>
-                      <td className="px-3 py-3 font-bold text-blue-700 whitespace-nowrap">
-                        {p.status === 'Utama' ? p.namaPenyulang : (p.penyulangUtama || '-')}
-                      </td>
-                      <td className="px-3 py-3 font-bold text-slate-900 whitespace-nowrap">
-                        {p.status === 'Utama' ? '-' : p.namaPenyulang}
-                        {feederSections.length > 0 && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold">
-                            {feederSections.length} Section
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 font-mono font-bold text-slate-600 whitespace-nowrap">{p.kodeId}</td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-blue-700 whitespace-nowrap">
-                        {totalPlg.toLocaleString('id-ID')} <span className="text-[9px] text-slate-400 font-normal">Plg</span>
-                      </td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-emerald-700 whitespace-nowrap">
-                        {p.panjangJaringanKms} <span className="text-[9px] text-slate-400 font-normal">KMS</span>
-                      </td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahTiang || 0}</td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahLbs || 0}</td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahPmcb || 0}</td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahRecloser || 0}</td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahFco || 0}</td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahGardu || 0}</td>
-                      <td className="px-3 py-3 text-center sticky right-0 bg-white shadow-sm">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => {
-                              setEditingPenyulang(p);
-                              setIsPenyulangModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
-                            title="Edit Penyulang"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => onDeletePenyulang(p.id)}
-                            className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                            title="Hapus Penyulang"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-3 py-3 whitespace-nowrap text-slate-600 font-bold">{p.unit || 'ULP Baguala'}</td>
+                        <td className="px-3 py-3 font-mono text-slate-500">{p.kodeUnit || '54110'}</td>
+                        <td className="px-3 py-3 font-bold text-amber-700 whitespace-nowrap">
+                          {p.namaGi}
+                        </td>
+                        <td className="px-3 py-3 font-bold text-blue-700 whitespace-nowrap">
+                          {p.status === 'Utama' ? p.namaPenyulang : (p.penyulangUtama || '-')}
+                        </td>
+                        <td className="px-3 py-3 font-bold text-slate-900 whitespace-nowrap">
+                          {p.status === 'Utama' ? '-' : p.namaPenyulang}
+                          {feederSections.length > 0 && (
+                            <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold">
+                              {feederSections.length} Section
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 font-mono font-bold text-slate-600 whitespace-nowrap">{p.kodeId}</td>
+                        <td className="px-3 py-3 text-right font-mono font-bold text-blue-700 whitespace-nowrap">
+                          {totalPlg.toLocaleString('id-ID')} <span className="text-[9px] text-slate-400 font-normal">Plg</span>
+                        </td>
+                        <td className="px-3 py-3 text-right font-mono font-bold text-emerald-700 whitespace-nowrap">
+                          {p.panjangJaringanKms} <span className="text-[9px] text-slate-400 font-normal">KMS</span>
+                        </td>
+                        <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahTiang || 0}</td>
+                        <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahLbs || 0}</td>
+                        <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahPmcb || 0}</td>
+                        <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahRecloser || 0}</td>
+                        <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahFco || 0}</td>
+                        <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{p.jumlahGardu || 0}</td>
+                        <td className="px-3 py-3 text-center sticky right-0 bg-white shadow-sm">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => {
+                                setEditingPenyulang(p);
+                                setIsPenyulangModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                              title="Edit Penyulang"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => onDeletePenyulang(p.id)}
+                              className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                              title="Hapus Penyulang"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -874,60 +874,64 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             />
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3.5">Nama Section</th>
-                  <th className="px-4 py-3.5">Penyulang</th>
-                  <th className="px-4 py-3.5 text-center">Jumlah Pelanggan</th>
-                  <th className="px-4 py-3.5 text-center">Penyulang Di-Supply</th>
-                  <th className="px-4 py-3.5 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredSections.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3.5 font-bold text-slate-900">{s.namaSection}</td>
-                    <td className="px-4 py-3.5">
-                      <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[11px]">
-                        {s.namaPenyulang}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-center font-mono font-bold text-emerald-700">
-                      👨‍👩‍👧 {s.jumlahPelanggan.toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-bold text-[10px] uppercase">
-                        {s.sistemOperasi}-{s.penyulangDiSupply}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingSection(s);
-                            setIsSectionModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
-                          title="Edit Section"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteSection(s.id)}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Hapus Section"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+          {isLoading ? (
+            <TableSkeletonLoader columns={5} rows={6} headerTitle="Master Section" />
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3.5">Nama Section</th>
+                    <th className="px-4 py-3.5">Penyulang</th>
+                    <th className="px-4 py-3.5 text-center">Jumlah Pelanggan</th>
+                    <th className="px-4 py-3.5 text-center">Penyulang Di-Supply</th>
+                    <th className="px-4 py-3.5 text-center">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {filteredSections.map((s) => (
+                    <tr key={s.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3.5 font-bold text-slate-900">{s.namaSection}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[11px]">
+                          {s.namaPenyulang}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-center font-mono font-bold text-emerald-700">
+                        👨‍👩‍👧 {s.jumlahPelanggan.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-4 py-3.5 text-center">
+                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-bold text-[10px] uppercase">
+                          {s.sistemOperasi}-{s.penyulangDiSupply}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingSection(s);
+                              setIsSectionModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                            title="Edit Section"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onDeleteSection(s.id)}
+                            className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus Section"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
       
@@ -974,40 +978,44 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             />
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs text-slate-800">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3.5">Waktu</th>
-                  <th className="px-4 py-3.5">User</th>
-                  <th className="px-4 py-3.5">Detail Aktivitas</th>
-                  <th className="px-4 py-3.5">Modul</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredActivities.length === 0 ? (
+          {isLoading ? (
+            <TableSkeletonLoader columns={4} rows={6} headerTitle="Log Aktivitas" />
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
-                      Belum ada data aktivitas yang sesuai filter.
-                    </td>
+                    <th className="px-4 py-3.5">Waktu</th>
+                    <th className="px-4 py-3.5">User</th>
+                    <th className="px-4 py-3.5">Detail Aktivitas</th>
+                    <th className="px-4 py-3.5">Modul</th>
                   </tr>
-                ) : (
-                  filteredActivities.map((act) => (
-                    <tr key={act.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3.5 font-mono text-slate-500 text-[11px]">{act.waktu}</td>
-                      <td className="px-4 py-3.5 font-bold text-amber-700">{act.user}</td>
-                      <td className="px-4 py-3.5 text-slate-900">{act.aktivitas}</td>
-                      <td className="px-4 py-3.5">
-                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">
-                          {act.modul}
-                        </span>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {filteredActivities.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
+                        Belum ada data aktivitas yang sesuai filter.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    filteredActivities.map((act) => (
+                      <tr key={act.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3.5 font-mono text-slate-500 text-[11px]">{act.waktu}</td>
+                        <td className="px-4 py-3.5 font-bold text-amber-700">{act.user}</td>
+                        <td className="px-4 py-3.5 text-slate-900">{act.aktivitas}</td>
+                        <td className="px-4 py-3.5">
+                          <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">
+                            {act.modul}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

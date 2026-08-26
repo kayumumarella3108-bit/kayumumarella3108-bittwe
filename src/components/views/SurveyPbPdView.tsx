@@ -46,6 +46,7 @@ import { LivePaperPbPdDocument } from '../modals/LivePaperPbPdDocument';
 import { SurveyPbPdMapTab } from './SurveyPbPdMapTab';
 import { generateLivePaperPdf, exportElementToA4Pdf } from '../../utils/exportLivePaperPdf';
 import { DigitalSignaturePad } from '../common/DigitalSignaturePad';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface SurveyPbPdViewProps {
   currentUser?: User | null;
@@ -55,6 +56,7 @@ interface SurveyPbPdViewProps {
   onAddSurvey: (item: SurveyPbPdItem) => void;
   onUpdateSurvey: (item: SurveyPbPdItem) => void;
   onDeleteSurvey: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
@@ -64,7 +66,8 @@ export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
   masterGarduList = [],
   onAddSurvey,
   onUpdateSurvey,
-  onDeleteSurvey
+  onDeleteSurvey,
+  isLoading = false
 }) => {
   const [activeTab, setActiveTab] = useState<'daftar' | 'peta' | 'analisis' | 'berita_acara'>('daftar');
   const [searchQuery, setSearchQuery] = useState('');
@@ -738,21 +741,21 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
   return (
     <div className="space-y-6 pb-12">
       {/* Header View */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-2xl border border-indigo-900/40 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] p-6 rounded-2xl border-2 border-teal-500/60 shadow-xl relative overflow-hidden text-white">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-1.5">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl shadow-inner">
+            <div className="p-2.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-xl shadow-inner">
               <Zap className="w-6 h-6 animate-pulse" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                Survey Pasang Baru & Perubahan Daya (PB/PD)
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 drop-shadow-xs">
+                Survey Pasang Baru &amp; Perubahan Daya (PB/PD)
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
                   PLN ULP Baguala
                 </span>
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400">
+              <p className="text-xs sm:text-sm text-teal-100/90 max-w-2xl">
                 Pencatatan survei kelayakan teknis jaringan TR, tegangan pangkal/tetangga, beban fasa, dan titik sambung pelanggan.
               </p>
             </div>
@@ -763,7 +766,7 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
           {/* Unduh CSV */}
           <button
             onClick={handleExportCsv}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 text-xs font-bold border border-emerald-700/60 shadow-sm transition-all cursor-pointer hover:shadow-emerald-900/30"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 text-emerald-200 text-xs font-bold border border-emerald-500/50 shadow-md transition-all cursor-pointer active:scale-95"
             title="Unduh Seluruh Data Hasil Survey ke File CSV/Excel"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
@@ -773,17 +776,17 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
           {/* Unduh Rekap PDF */}
           <button
             onClick={handleExportSummaryPDF}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-950/80 hover:bg-sky-900/90 text-sky-300 text-xs font-bold border border-sky-700/60 shadow-sm transition-all cursor-pointer hover:shadow-sky-900/30"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#012521] hover:bg-[#02312b] text-teal-200 text-xs font-bold border border-teal-500/50 shadow-md transition-all cursor-pointer active:scale-95"
             title="Unduh Laporan Rekapitulasi Survey Resmi (Format PDF PLN Landscape)"
           >
-            <FileText className="w-4 h-4 text-sky-400" />
+            <FileText className="w-4 h-4 text-teal-300" />
             <span>Unduh Rekap PDF</span>
           </button>
 
           {canEdit && (
             <button
               onClick={isPemasaran ? handleOpenCreateWo : handleOpenCreate}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer transform active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/30 transition-all cursor-pointer transform active:scale-95 border border-amber-300"
             >
               <Plus className="w-4 h-4 text-slate-950" />
               <span>{isPemasaran ? '+ Input WO Survey Baru' : '+ Input Survey Baru'}</span>
@@ -794,9 +797,9 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
 
       {/* Banner khusus Bagian Pemasaran */}
       {isPemasaran && (
-        <div className="p-4 bg-gradient-to-r from-amber-950/80 via-amber-900/40 to-slate-900 border border-amber-500/40 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 text-amber-200 shadow-lg">
+        <div className="p-4 bg-gradient-to-r from-amber-950/90 via-amber-900/50 to-[#022623] border border-amber-500/50 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 text-amber-200 shadow-xl">
           <div className="flex items-center gap-3.5">
-            <div className="p-2.5 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl shrink-0 shadow-inner">
+            <div className="p-2.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-xl shrink-0 shadow-inner">
               <Zap className="w-6 h-6 animate-pulse" />
             </div>
             <div>
@@ -808,14 +811,14 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
                   PEMASARAN
                 </span>
               </div>
-              <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
+              <p className="text-xs text-amber-200/90 mt-1 leading-relaxed">
                 Setiap permohonan Pasang Baru (PB) atau Perubahan Daya (PD) yang Anda input akan otomatis menjadi Work Order (WO) survey untuk diperiksa oleh petugas teknik & Transaksi Energi di lapangan.
               </p>
             </div>
           </div>
           <button
             onClick={handleOpenCreateWo}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 cursor-pointer shrink-0 transition-all active:scale-95"
+            className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 cursor-pointer shrink-0 transition-all active:scale-95 border border-amber-200"
           >
             <Plus className="w-4 h-4 text-slate-950" />
             <span>+ Input WO Survey Baru</span>
@@ -825,62 +828,62 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
 
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Total Survey</span>
-            <Activity className="w-4 h-4 text-indigo-400" />
+        <div className="bg-[#022e2a]/90 border border-teal-500/40 p-4 rounded-xl shadow-md text-white backdrop-blur-xs">
+          <div className="flex items-center justify-between text-teal-200 mb-1">
+            <span className="text-xs font-bold text-white">Total Survey</span>
+            <Activity className="w-4 h-4 text-teal-300" />
           </div>
           <p className="text-2xl font-black text-white">{metrics.total}</p>
-          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400">
-            <span className="text-amber-400 font-bold">{metrics.pbCount} PB</span>
+          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-teal-200">
+            <span className="text-amber-300 font-bold">{metrics.pbCount} PB</span>
             <span>•</span>
-            <span className="text-cyan-400 font-bold">{metrics.pdCount} PD</span>
+            <span className="text-cyan-300 font-bold">{metrics.pdCount} PD</span>
           </div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Pasang Baru (PB)</span>
+        <div className="bg-[#022e2a]/90 border border-teal-500/40 p-4 rounded-xl shadow-md text-white backdrop-blur-xs">
+          <div className="flex items-center justify-between text-amber-300 mb-1">
+            <span className="text-xs font-bold text-white">Pasang Baru (PB)</span>
             <Zap className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-black text-amber-400">{metrics.pbCount}</p>
-          <p className="text-[11px] text-slate-400 mt-1">Permohonan Baru</p>
+          <p className="text-2xl font-black text-amber-300">{metrics.pbCount}</p>
+          <p className="text-[11px] text-teal-100/80 mt-1">Permohonan Baru</p>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Perubahan Daya</span>
+        <div className="bg-[#022e2a]/90 border border-teal-500/40 p-4 rounded-xl shadow-md text-white backdrop-blur-xs">
+          <div className="flex items-center justify-between text-cyan-300 mb-1">
+            <span className="text-xs font-bold text-white">Perubahan Daya</span>
             <Sliders className="w-4 h-4 text-cyan-400" />
           </div>
-          <p className="text-2xl font-black text-cyan-400">{metrics.pdCount}</p>
-          <p className="text-[11px] text-slate-400 mt-1">Tambah/Turun Daya</p>
+          <p className="text-2xl font-black text-cyan-300">{metrics.pdCount}</p>
+          <p className="text-[11px] text-teal-100/80 mt-1">Tambah/Turun Daya</p>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Layak Sambung</span>
+        <div className="bg-[#022e2a]/90 border border-emerald-500/40 p-4 rounded-xl shadow-md text-white backdrop-blur-xs">
+          <div className="flex items-center justify-between text-emerald-300 mb-1">
+            <span className="text-xs font-bold text-white">Layak Sambung</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-black text-emerald-400">{metrics.layakCount}</p>
-          <p className="text-[11px] text-emerald-400/80 mt-1">Tegangan Memenuhi Syarat</p>
+          <p className="text-2xl font-black text-emerald-300">{metrics.layakCount}</p>
+          <p className="text-[11px] text-emerald-200 mt-1">Tegangan Memenuhi Syarat</p>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Sisip Tiang / JTR</span>
+        <div className="bg-[#022e2a]/90 border border-amber-500/40 p-4 rounded-xl shadow-md text-white backdrop-blur-xs">
+          <div className="flex items-center justify-between text-amber-300 mb-1">
+            <span className="text-xs font-bold text-white">Sisip Tiang / JTR</span>
             <AlertTriangle className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-black text-amber-400">{metrics.sisipTiangCount}</p>
-          <p className="text-[11px] text-amber-400/80 mt-1">Perluasan JTR/Tiang</p>
+          <p className="text-2xl font-black text-amber-300">{metrics.sisipTiangCount}</p>
+          <p className="text-[11px] text-amber-200 mt-1">Perluasan JTR/Tiang</p>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Drop Kritis / TL</span>
+        <div className="bg-[#022e2a]/90 border border-rose-500/40 p-4 rounded-xl shadow-md text-white backdrop-blur-xs">
+          <div className="flex items-center justify-between text-rose-300 mb-1">
+            <span className="text-xs font-bold text-white">Drop Kritis / TL</span>
             <XCircle className="w-4 h-4 text-rose-400" />
           </div>
-          <p className="text-2xl font-black text-rose-400">{metrics.dropKritisCount}</p>
-          <p className="text-[11px] text-rose-400/80 mt-1">Drop &gt; 10% (Trafo Padat)</p>
+          <p className="text-2xl font-black text-rose-300">{metrics.dropKritisCount}</p>
+          <p className="text-[11px] text-rose-200 mt-1">Drop &gt; 10% (Trafo Padat)</p>
         </div>
       </div>
 
@@ -1072,8 +1075,11 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
 
           {/* Survey Table */}
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            {isLoading ? (
+              <TableSkeletonLoader columns={11} rows={8} headerTitle="Data Hasil Survey PB/PD" />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                     <th className="py-3.5 px-3 w-10 text-center">No</th>
@@ -1381,6 +1387,7 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         </div>
       )}

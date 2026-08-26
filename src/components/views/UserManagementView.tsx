@@ -373,17 +373,17 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     <div className="p-6 space-y-6 max-w-7xl mx-auto font-sans text-slate-800">
       
       {/* View Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] p-6 rounded-2xl border-2 border-teal-500/60 shadow-xl relative overflow-hidden text-white">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
+            <div className="p-2.5 bg-teal-500/20 text-teal-300 rounded-xl border border-teal-500/40 shadow-inner">
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-xl font-black text-white tracking-tight drop-shadow-xs">
                 Pengaturan Akun & Isolasi Unit (Multi-Unit RBAC)
               </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-teal-100/90 mt-0.5 max-w-2xl font-medium leading-relaxed">
                 Kelola hak akses user, unit kerja (ULP Namlea, ULP Baguala, UP3, dll), dan Kode Unit untuk isolasi data. Hanya Owner yang dapat melihat seluruh data.
               </p>
             </div>
@@ -394,19 +394,19 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={() => setIsBgModalOpen(true)}
-            className="px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-300 font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
+            className="px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 backdrop-blur-xs active:scale-95"
             title="Kustomisasi tema & latar belakang layar login"
           >
-            <Palette className="w-4 h-4 text-amber-600" />
+            <Palette className="w-4 h-4 text-amber-300" />
             <span>Ganti Latar Login</span>
           </button>
 
           {canEdit && (
             <button
               onClick={openAddModal}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
+              className="px-4 py-2.5 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-teal-950/40 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 border border-teal-200 active:scale-95"
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="w-4 h-4 text-slate-950" />
               <span>+ Tambah User Baru</span>
             </button>
           )}

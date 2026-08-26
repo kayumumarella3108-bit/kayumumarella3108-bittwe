@@ -263,36 +263,36 @@ export const ShareLaporanView: React.FC<ShareLaporanViewProps> = ({
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto font-sans text-slate-800 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-2 border-teal-500/60 text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1.5 z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-sky-200 text-xs font-extrabold backdrop-blur-xs">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-950/60 border border-teal-500/40 text-teal-300 text-xs font-extrabold backdrop-blur-xs">
             <Share2 className="w-3.5 h-3.5 text-amber-300" />
             <span>PUSAT SHARE LAPORAN LINTAS PLATFORM</span>
           </div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">
+          <h1 className="text-xl md:text-2xl font-black tracking-tight text-white drop-shadow-xs">
             Share Laporan (WhatsApp Web & Telegram App)
           </h1>
-          <p className="text-xs md:text-sm text-sky-100 max-w-2xl leading-relaxed">
+          <p className="text-xs md:text-sm text-teal-100 max-w-2xl leading-relaxed">
             Kirim ringkasan laporan keandalan 20kV secara instant ke Grup WhatsApp Web maupun Chat / Channel Telegram dengan format otomatis yang rapi dan profesional.
           </p>
         </div>
 
         {/* Telegram WebApp Badge */}
-        <div className="z-10 bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-2xl flex items-center gap-3 shrink-0">
-          <div className="p-2.5 rounded-xl bg-sky-400 text-slate-950 font-black">
+        <div className="z-10 bg-[#011e1a]/80 backdrop-blur-md border border-teal-500/40 p-3.5 rounded-2xl flex items-center gap-3 shrink-0 shadow-lg">
+          <div className="p-2.5 rounded-xl bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 font-black shadow-md">
             <Send className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] font-extrabold uppercase text-sky-200 block">Status Akses Aplikasi</span>
+            <span className="text-[10px] font-extrabold uppercase text-teal-300 block">Status Akses Aplikasi</span>
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${isTelegramWebApp ? 'bg-emerald-400 animate-pulse' : 'bg-blue-300'}`} />
+              <span className={`w-2 h-2 rounded-full ${isTelegramWebApp ? 'bg-emerald-400 animate-pulse' : 'bg-teal-300'}`} />
               {isTelegramWebApp ? `Telegram WebApp (${telegramUser?.first_name || 'Active'})` : 'Web Browser Active'}
             </span>
           </div>
         </div>
 
         {/* Decorative background circle */}
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-teal-500/20 rounded-full blur-3xl pointer-events-none" />
       </div>
 
       {/* Main Grid: Selection & Controls + Live Preview */}

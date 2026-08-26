@@ -393,23 +393,33 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
   return (
     <div className="space-y-6">
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-600" />
-            Pembuatan Format Surat Resmi ULP
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Modul pengisian template surat cuti, permintaan alat kerja (alker), monitoring checklist CMC petugas, panggilan kerja, serta permintaan material jaringan.
-          </p>
+      <div className="p-6 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-2 border-teal-500/60 shadow-xl rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 text-white relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="z-10 flex items-start gap-3.5">
+          <div className="p-3 bg-teal-950/80 rounded-2xl text-teal-300 border border-teal-500/40 shadow-inner shrink-0">
+            <FileText className="w-6 h-6 text-amber-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black text-white tracking-tight drop-shadow-xs">
+                Pembuatan Format Surat Resmi ULP
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[10px] font-bold">
+                ULP BAGUALA
+              </span>
+            </div>
+            <p className="text-xs text-teal-100/90 mt-1 max-w-2xl leading-relaxed">
+              Modul pengisian template surat cuti, permintaan alat kerja (alker), monitoring checklist CMC petugas, panggilan kerja, serta permintaan material jaringan.
+            </p>
+          </div>
         </div>
-        <div>
+        <div className="z-10">
           <button
             onClick={handleOpenNewModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-all shadow-md shadow-blue-500/20 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 rounded-xl font-black text-xs transition-all shadow-lg shadow-teal-950/40 border border-teal-200 cursor-pointer active:scale-95"
           >
-            <Plus className="w-4 h-4" />
-            Buat Surat Baru
+            <Plus className="w-4 h-4 text-slate-950" />
+            <span>Buat Surat Baru</span>
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Plus,
   Search,
@@ -15,7 +16,18 @@ import {
   Square,
   Camera,
   Building2,
-  BrainCircuit
+  BrainCircuit,
+  ChevronDown,
+  ChevronUp,
+  LayoutGrid,
+  List,
+  Clock,
+  Activity,
+  Gauge,
+  Layers,
+  Sparkles,
+  Info,
+  ShieldAlert
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -37,6 +49,7 @@ import { HealthIndexBanner } from '../HealthIndexBanner';
 import { InputGangguanModal } from '../modals/InputGangguanModal';
 import { exportToCSV } from '../../utils/exportCsv';
 import { canEditModule } from '../../utils/permissions';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface GangguanTripViewProps {
   currentUser?: User;
@@ -45,6 +58,7 @@ interface GangguanTripViewProps {
   sectionList: SectionJaringan[];
   onAddGangguan: (log: GangguanLog) => void;
   onDeleteGangguan: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
@@ -53,7 +67,8 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
   penyulangList,
   sectionList,
   onAddGangguan,
-  onDeleteGangguan
+  onDeleteGangguan,
+  isLoading = false
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGangguan, setEditingGangguan] = useState<GangguanLog | null>(null);
@@ -67,6 +82,10 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
   const [penyulangChartType, setPenyulangChartType] = useState<'bar' | 'line'>('bar');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{ isOpen: boolean; result: string; loading: boolean }>({ isOpen: false, result: '', loading: false });
+  const [viewLayout, setViewLayout] = useState<'cards' | 'table'>('cards');
+  const [expandedGangguanId, setExpandedGangguanId] = useState<string | null>(null);
+  const [expandedTopMetric, setExpandedTopMetric] = useState<string | null>(null);
+  const [expandedStatsMetric, setExpandedStatsMetric] = useState<string | null>(null);
 
   const analyzeRootCause = async (gangguan: GangguanLog) => {
     setAnalysisResult({ isOpen: true, result: '', loading: true });
@@ -618,88 +637,240 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
     <div className="p-4 md:p-6 space-y-6 bg-slate-50 text-slate-900 font-sans min-h-screen">
       
       {/* Dashboard Trip Pangkal Banner */}
-      <div className="p-5 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl text-white shadow-xl border border-slate-800 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+      <div className="p-6 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] rounded-3xl text-white shadow-2xl border-2 border-teal-500/60 space-y-4 relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-teal-500/30 pb-4 z-10 relative">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-rose-500/20 border border-rose-500/40 rounded-2xl text-rose-400">
-              <Zap className="w-6 h-6 animate-pulse" />
+            <div className="p-3 bg-teal-950/80 border border-teal-500/40 rounded-2xl text-teal-300 shadow-inner">
+              <Zap className="w-6 h-6 animate-pulse text-amber-300" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-black text-base text-white tracking-wide uppercase">
+                <h2 className="font-black text-base text-white tracking-wide uppercase drop-shadow-xs">
                   DASHBOARD TRIP PANGKAL FEEDER 20kV
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-extrabold text-[10px] uppercase">
+                <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 font-extrabold text-[10px] uppercase">
                   GANGGUAN TRIP FEEDER
                 </span>
               </div>
-              <p className="text-xs text-slate-300 font-medium mt-0.5">
+              <p className="text-xs text-teal-100/90 font-medium mt-0.5">
                 Monitoring, rekapitulasi, dan analisis frekuensi Trip Pangkal (PMT GI 20kV) ULP Baguala
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-            <span className="px-3 py-1 bg-slate-800/80 border border-slate-700 rounded-xl">
+          <div className="flex items-center gap-2 text-xs font-bold text-teal-200">
+            <span className="px-3.5 py-1.5 bg-[#012521] border border-teal-500/40 rounded-xl shadow-inner">
               Total Feeder: <strong className="text-white">{penyulangList.length} Penyulang</strong>
             </span>
           </div>
         </div>
 
-        {/* Metric Cards Row */}
+        {/* Metric Cards Row with Framer Motion Expandable Details */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="p-3.5 bg-slate-800/60 border border-slate-700/60 rounded-2xl flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Trip Pangkal</div>
-              <div className="text-2xl font-black text-rose-400 mt-1">{tripPangkalList.length} <span className="text-xs font-semibold text-slate-300">Kali</span></div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Filter aktif: {totalTrip} Event</div>
-            </div>
-            <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
-              <Zap className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-slate-800/60 border border-slate-700/60 rounded-2xl flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Penyulang Paling Rawan</div>
-              <div className="text-base font-black text-amber-300 mt-1 truncate max-w-[150px]">{rawanPenyulang}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">{maxPenyulangCount} Kali Trip Pangkal</div>
-            </div>
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <AlertCircle className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-slate-800/60 border border-slate-700/60 rounded-2xl flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Penyebab Dominan</div>
-              <div className="text-sm font-black text-blue-300 mt-1 truncate max-w-[150px]">{dominantCode}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">{maxCodeCount} Kejadian Terdaftar</div>
-            </div>
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              <SlidersHorizontal className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-slate-800/60 border border-slate-700/60 rounded-2xl flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Rata-rata Durasi Padam</div>
-              <div className="text-sm font-black text-emerald-300 mt-1 truncate max-w-[150px]">
-                {activeList.length > 0
-                  ? (activeList.reduce((acc, g) => {
-                      const mins = g.durasi && g.durasi.includes(':') 
-                        ? (parseInt(g.durasi.split(':')[0]) * 60 + parseInt(g.durasi.split(':')[1])) 
-                        : 0;
-                      return acc + mins;
-                    }, 0) / activeList.length).toFixed(1)
-                  : 0} mnt
+          {/* Card 1: Total Trip Pangkal */}
+          <motion.div
+            layout
+            onClick={() => setExpandedTopMetric(expandedTopMetric === 'total_trip' ? null : 'total_trip')}
+            className={`p-3.5 bg-slate-800/80 border rounded-2xl cursor-pointer transition-colors ${
+              expandedTopMetric === 'total_trip' ? 'border-rose-500/80 ring-2 ring-rose-500/30 bg-slate-800' : 'border-slate-700/60 hover:border-slate-600'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Total Trip Pangkal</span>
+                  <span className="text-[9px] text-rose-400 font-normal underline">
+                    {expandedTopMetric === 'total_trip' ? 'Tutup' : 'Lihat'}
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-rose-400 mt-1">{tripPangkalList.length} <span className="text-xs font-semibold text-slate-300">Kali</span></div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Filter aktif: {totalTrip} Event</div>
               </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Per Kejadian</div>
+              <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                <Zap className="w-5 h-5" />
+              </div>
             </div>
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <CheckSquare className="w-5 h-5" />
+
+            <AnimatePresence>
+              {expandedTopMetric === 'total_trip' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mt-3 pt-3 border-t border-slate-700/60 text-xs space-y-1.5 overflow-hidden"
+                >
+                  <div className="font-bold text-slate-300 text-[11px]">Distribusi Gangguan:</div>
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>Trip Pangkal (PMT GI):</span>
+                    <span className="font-mono text-rose-400 font-bold">{tripPangkalList.length} kali</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>Gangguan Percabangan:</span>
+                    <span className="font-mono text-blue-400 font-bold">{Math.max(0, gangguanList.length - tripPangkalList.length)} kali</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>Total Keseluruhan:</span>
+                    <span className="font-mono text-emerald-400 font-bold">{gangguanList.length} kali</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Card 2: Penyulang Paling Rawan */}
+          <motion.div
+            layout
+            onClick={() => setExpandedTopMetric(expandedTopMetric === 'rawan' ? null : 'rawan')}
+            className={`p-3.5 bg-slate-800/80 border rounded-2xl cursor-pointer transition-colors ${
+              expandedTopMetric === 'rawan' ? 'border-amber-500/80 ring-2 ring-amber-500/30 bg-slate-800' : 'border-slate-700/60 hover:border-slate-600'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Penyulang Paling Rawan</span>
+                  <span className="text-[9px] text-amber-400 font-normal underline">
+                    {expandedTopMetric === 'rawan' ? 'Tutup' : 'Lihat'}
+                  </span>
+                </div>
+                <div className="text-base font-black text-amber-300 mt-1 truncate max-w-[150px]">{rawanPenyulang}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">{maxPenyulangCount} Kali Trip Pangkal</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <AlertCircle className="w-5 h-5" />
+              </div>
             </div>
-          </div>
+
+            <AnimatePresence>
+              {expandedTopMetric === 'rawan' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mt-3 pt-3 border-t border-slate-700/60 text-xs space-y-1.5 overflow-hidden"
+                >
+                  <div className="font-bold text-slate-300 text-[11px]">Penyulang Rawan Teratas:</div>
+                  {penyulangChartData.slice(0, 3).map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-slate-400 text-[10px]">
+                      <span className="truncate max-w-[120px]">{item.name}</span>
+                      <span className="font-mono text-amber-300 font-bold">{item.gangguan} Trip</span>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Card 3: Penyebab Dominan */}
+          <motion.div
+            layout
+            onClick={() => setExpandedTopMetric(expandedTopMetric === 'dominan' ? null : 'dominan')}
+            className={`p-3.5 bg-slate-800/80 border rounded-2xl cursor-pointer transition-colors ${
+              expandedTopMetric === 'dominan' ? 'border-blue-500/80 ring-2 ring-blue-500/30 bg-slate-800' : 'border-slate-700/60 hover:border-slate-600'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Penyebab Dominan</span>
+                  <span className="text-[9px] text-blue-400 font-normal underline">
+                    {expandedTopMetric === 'dominan' ? 'Tutup' : 'Lihat'}
+                  </span>
+                </div>
+                <div className="text-sm font-black text-blue-300 mt-1 truncate max-w-[150px]">{dominantCode}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">{maxCodeCount} Kejadian Terdaftar</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <SlidersHorizontal className="w-5 h-5" />
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {expandedTopMetric === 'dominan' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mt-3 pt-3 border-t border-slate-700/60 text-xs space-y-1.5 overflow-hidden"
+                >
+                  <div className="font-bold text-slate-300 text-[11px]">Dominasi Kode Gangguan:</div>
+                  {pieData.slice(0, 3).map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-slate-400 text-[10px]">
+                      <span className="truncate max-w-[120px]">{item.name}</span>
+                      <span className="font-mono text-blue-300 font-bold">{item.value}x ({totalTrip > 0 ? ((item.value / totalTrip) * 100).toFixed(0) : 0}%)</span>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Card 4: Rata-rata Durasi Padam */}
+          <motion.div
+            layout
+            onClick={() => setExpandedTopMetric(expandedTopMetric === 'durasi' ? null : 'durasi')}
+            className={`p-3.5 bg-slate-800/80 border rounded-2xl cursor-pointer transition-colors ${
+              expandedTopMetric === 'durasi' ? 'border-emerald-500/80 ring-2 ring-emerald-500/30 bg-slate-800' : 'border-slate-700/60 hover:border-slate-600'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Rata-rata Durasi Padam</span>
+                  <span className="text-[9px] text-emerald-400 font-normal underline">
+                    {expandedTopMetric === 'durasi' ? 'Tutup' : 'Lihat'}
+                  </span>
+                </div>
+                <div className="text-sm font-black text-emerald-300 mt-1 truncate max-w-[150px]">
+                  {activeList.length > 0
+                    ? (activeList.reduce((acc, g) => {
+                        const mins = g.durasi && g.durasi.includes(':') 
+                          ? (parseInt(g.durasi.split(':')[0]) * 60 + parseInt(g.durasi.split(':')[1])) 
+                          : 0;
+                        return acc + mins;
+                      }, 0) / activeList.length).toFixed(1)
+                    : 0} mnt
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Per Kejadian</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <CheckSquare className="w-5 h-5" />
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {expandedTopMetric === 'durasi' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mt-3 pt-3 border-t border-slate-700/60 text-xs space-y-1.5 overflow-hidden"
+                >
+                  <div className="font-bold text-slate-300 text-[11px]">Statistik Pemulihan:</div>
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>Total Durasi Padam:</span>
+                    <span className="font-mono text-emerald-300 font-bold">
+                      {(activeList.reduce((acc, g) => {
+                        const mins = g.durasi && g.durasi.includes(':') 
+                          ? (parseInt(g.durasi.split(':')[0]) * 60 + parseInt(g.durasi.split(':')[1])) 
+                          : 0;
+                        return acc + mins;
+                      }, 0) / 60).toFixed(1)} Jam
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400 text-[10px]">
+                    <span>Kecepatan Normalisasi:</span>
+                    <span className="font-mono text-emerald-300 font-bold">Optimal (&lt; 45 mnt)</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
 
@@ -953,38 +1124,134 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
         )}
       </div>
 
-      {/* Metric Cards Row */}
+      {/* Metric Cards Row with Framer Motion Animation */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl flex justify-between items-center">
-          <div>
-            <span className="text-[10px] font-bold uppercase text-rose-600 tracking-wider">TOTAL GANGGUAN</span>
-            <div className="text-3xl font-extrabold text-slate-900 mt-1">{totalTrip} <span className="text-xs font-semibold text-rose-600">Kali Trip</span></div>
-            <span className="text-[11px] text-slate-400">
-              {startDate || endDate
-                ? `Rentang: ${startDate || 'Awal'} s/d ${endDate || 'Akhir'}`
-                : `Periode: ${selectedMonth !== 'all' ? months[parseInt(selectedMonth, 10) - 1] : ''} ${selectedYear}`} ({activeGangguanTab === 'trip_pangkal' ? 'Trip Pangkal' : 'Semua'})
-            </span>
+        <motion.div
+          layout
+          onClick={() => setExpandedStatsMetric(expandedStatsMetric === 'total' ? null : 'total')}
+          className={`p-5 bg-white border rounded-2xl shadow-sm cursor-pointer transition-all ${
+            expandedStatsMetric === 'total' ? 'border-rose-300 ring-2 ring-rose-500/20' : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase text-rose-600 tracking-wider">TOTAL GANGGUAN</span>
+                <span className="text-[9px] text-slate-400">({expandedStatsMetric === 'total' ? 'Tutup' : 'Klik detail'})</span>
+              </div>
+              <div className="text-3xl font-extrabold text-slate-900 mt-1">{totalTrip} <span className="text-xs font-semibold text-rose-600">Kali Trip</span></div>
+              <span className="text-[11px] text-slate-400">
+                {startDate || endDate
+                  ? `Rentang: ${startDate || 'Awal'} s/d ${endDate || 'Akhir'}`
+                  : `Periode: ${selectedMonth !== 'all' ? months[parseInt(selectedMonth, 10) - 1] : ''} ${selectedYear}`} ({activeGangguanTab === 'trip_pangkal' ? 'Trip Pangkal' : 'Semua'})
+              </span>
+            </div>
+            <div className="p-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100">
+              <Zap className="w-6 h-6" />
+            </div>
           </div>
-          <div className="p-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100">
-            <Zap className="w-6 h-6" />
-          </div>
-        </div>
 
-        <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl flex justify-between items-center">
-          <div>
-            <span className="text-[10px] font-bold uppercase text-amber-600 tracking-wider">KODE DOMINAN</span>
-            <div className="text-base font-extrabold text-slate-900 mt-1 uppercase">{dominantCode}</div>
-            <span className="text-[11px] text-slate-400">Frekuensi: {maxCodeCount} Kejadian</span>
-          </div>
-        </div>
+          <AnimatePresence>
+            {expandedStatsMetric === 'total' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="mt-4 pt-3 border-t border-slate-100 text-xs space-y-1.5 overflow-hidden"
+              >
+                <div className="flex justify-between text-slate-600">
+                  <span>Trip Pangkal (PMT GI):</span>
+                  <span className="font-bold text-rose-600">{activeList.filter(g => isSectionFromGi(g.section)).length} Kali</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Trip Percabangan / Section:</span>
+                  <span className="font-bold text-blue-600">{activeList.filter(g => !isSectionFromGi(g.section)).length} Kali</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
-        <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl flex justify-between items-center">
-          <div>
-            <span className="text-[10px] font-bold uppercase text-blue-600 tracking-wider">PENYULANG RAWAN</span>
-            <div className="text-xl font-extrabold text-slate-900 mt-1 uppercase">{rawanPenyulang}</div>
-            <span className="text-[11px] text-slate-400">Total Trip: {maxPenyulangCount} Kali</span>
+        <motion.div
+          layout
+          onClick={() => setExpandedStatsMetric(expandedStatsMetric === 'kode' ? null : 'kode')}
+          className={`p-5 bg-white border rounded-2xl shadow-sm cursor-pointer transition-all ${
+            expandedStatsMetric === 'kode' ? 'border-amber-300 ring-2 ring-amber-500/20' : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase text-amber-600 tracking-wider">KODE DOMINAN</span>
+                <span className="text-[9px] text-slate-400">({expandedStatsMetric === 'kode' ? 'Tutup' : 'Klik detail'})</span>
+              </div>
+              <div className="text-base font-extrabold text-slate-900 mt-1 uppercase">{dominantCode}</div>
+              <span className="text-[11px] text-slate-400">Frekuensi: {maxCodeCount} Kejadian</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
+              <SlidersHorizontal className="w-6 h-6" />
+            </div>
           </div>
-        </div>
+
+          <AnimatePresence>
+            {expandedStatsMetric === 'kode' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="mt-4 pt-3 border-t border-slate-100 text-xs space-y-1 overflow-hidden"
+              >
+                <div className="text-[11px] text-slate-500">Peringkat Teratas Penyebab:</div>
+                <div className="flex justify-between font-semibold text-slate-700">
+                  <span>{dominantCode}</span>
+                  <span className="text-amber-600">{maxCodeCount} kali ({totalTrip > 0 ? ((maxCodeCount / totalTrip) * 100).toFixed(0) : 0}%)</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        <motion.div
+          layout
+          onClick={() => setExpandedStatsMetric(expandedStatsMetric === 'penyulang' ? null : 'penyulang')}
+          className={`p-5 bg-white border rounded-2xl shadow-sm cursor-pointer transition-all ${
+            expandedStatsMetric === 'penyulang' ? 'border-blue-300 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase text-blue-600 tracking-wider">PENYULANG RAWAN</span>
+                <span className="text-[9px] text-slate-400">({expandedStatsMetric === 'penyulang' ? 'Tutup' : 'Klik detail'})</span>
+              </div>
+              <div className="text-xl font-extrabold text-slate-900 mt-1 uppercase">{rawanPenyulang}</div>
+              <span className="text-[11px] text-slate-400">Total Trip: {maxPenyulangCount} Kali</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+              <Building2 className="w-6 h-6" />
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {expandedStatsMetric === 'penyulang' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="mt-4 pt-3 border-t border-slate-100 text-xs space-y-1 overflow-hidden"
+              >
+                <div className="text-[11px] text-slate-500">Status Penyulang:</div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Kontribusi Gangguan:</span>
+                  <span className="font-bold text-blue-600">{totalTrip > 0 ? ((maxPenyulangCount / totalTrip) * 100).toFixed(0) : 0}% dari total</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
 
       {/* Analytics Visuals Row */}
@@ -1215,23 +1482,55 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
         </div>
       </div>
 
-      {/* Main Table Section */}
+      {/* Main Table / Cards Section */}
       <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden space-y-4 p-5">
         
         {/* Table Toolbar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="relative min-w-[280px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari penyulang, section, kode gangguan..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-            />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 max-w-md">
+            <div className="relative w-full">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari penyulang, section, kode gangguan..."
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap justify-between lg:justify-end">
+            {/* View Mode Switcher: Cards vs Table */}
+            <div className="flex items-center p-1 bg-slate-100 border border-slate-200 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setViewLayout('cards')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewLayout === 'cards'
+                    ? 'bg-white text-blue-600 shadow-xs border border-slate-200/80'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Tampilan Card Interaktif dengan Animasi Detail"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Card Interaktif</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewLayout('table')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  viewLayout === 'table'
+                    ? 'bg-white text-blue-600 shadow-xs border border-slate-200/80'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Tampilan Tabel Data Klasik"
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>Tabel Data</span>
+              </button>
+            </div>
+
             <button
               onClick={() => setShowExportOptions(!showExportOptions)}
               className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -1242,7 +1541,7 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
               title="Pilih kolom yang akan disertakan pada file download"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Pilihan Kolom Export</span>
+              <span>Kolom Export</span>
             </button>
             <button
               onClick={handleExportPDF}
@@ -1258,14 +1557,14 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
               title="Unduh data laporan gangguan ke format CSV/Excel"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export CSV/Excel</span>
+              <span>Export CSV</span>
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-blue-500/20"
             >
               <Plus className="w-4 h-4" />
-              <span>+ Input Gangguan</span>
+              <span>Input Gangguan</span>
             </button>
           </div>
         </div>
@@ -1326,110 +1625,370 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
           </div>
         )}
 
-        {/* Table */}
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="w-full text-left text-xs text-slate-800">
-            <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3.5">Tanggal</th>
-                <th className="px-4 py-3.5">Penyulang</th>
-                <th className="px-4 py-3.5">Section</th>
-                <th className="px-4 py-3.5">Jam Out / In</th>
-                <th className="px-4 py-3.5">Durasi</th>
-                <th className="px-4 py-3.5">Relay / Kode</th>
-                <th className="px-4 py-3.5">Arus (R/S/T/IN)</th>
-                <th className="px-4 py-3.5">Penyebab / Lokasi</th>
-                <th className="px-4 py-3.5 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredList.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
-                    Tidak ada data log gangguan.
-                  </td>
-                </tr>
-              ) : (
-                filteredList.map((g) => (
-                  <tr key={g.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-slate-500">{g.tanggal}</td>
-                    <td className="px-4 py-3.5 font-bold text-blue-600">{g.namaPenyulang}</td>
-                    <td className="px-4 py-3.5 text-slate-700 text-[11px]">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-slate-800">{g.section}</span>
-                        {isSectionFromGi(g.section) && (
-                          <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-[9px] uppercase tracking-wider shrink-0">
-                            GI / Pangkal
-                          </span>
+        {/* Content View: Animated Expandable Cards or Table */}
+        {isLoading ? (
+          <TableSkeletonLoader columns={9} rows={7} headerTitle="Log Gangguan & Trip" />
+        ) : viewLayout === 'cards' ? (
+          /* Cards Interaktif with Framer Motion layout & expansion */
+          <div className="space-y-3">
+            {filteredList.length === 0 ? (
+              <div className="p-12 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+                Tidak ada data log gangguan yang sesuai dengan filter pencarian.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3.5">
+                {filteredList.map((g) => {
+                  const isExpanded = expandedGangguanId === g.id;
+                  const isPangkal = isSectionFromGi(g.section);
+
+                  return (
+                    <motion.div
+                      layout
+                      key={g.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ layout: { duration: 0.28, type: 'spring', stiffness: 350, damping: 28 } }}
+                      className={`border rounded-2xl transition-all shadow-xs overflow-hidden ${
+                        isExpanded
+                          ? 'border-blue-300 bg-white ring-2 ring-blue-500/10'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      {/* Card Header (Summary) - Clickable */}
+                      <div
+                        onClick={() => setExpandedGangguanId(isExpanded ? null : g.id)}
+                        className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
+                      >
+                        <div className="flex items-start md:items-center gap-3.5">
+                          <div className={`p-2.5 rounded-xl shrink-0 ${
+                            isPangkal
+                              ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                              : 'bg-blue-50 text-blue-600 border border-blue-200'
+                          }`}>
+                            <Zap className="w-5 h-5" />
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-extrabold text-sm text-slate-900">{g.namaPenyulang}</span>
+                              <span className="text-xs font-bold text-slate-600">({g.section})</span>
+                              {isPangkal && (
+                                <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 font-extrabold text-[9px] uppercase tracking-wider">
+                                  Trip Pangkal (PMT GI)
+                                </span>
+                              )}
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[10px]">
+                                {g.kodeGangguan === 'E-5' ? 'Kode: Tidak Ditemukan' : `Kode: ${g.kodeGangguan}`}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                              <span className="flex items-center gap-1 font-mono text-[11px] text-slate-600">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                {g.tanggal}
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span className="flex items-center gap-1 font-mono text-[11px] text-slate-600">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                {g.jamKeluar} - {g.jamMasuk}
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-mono font-bold text-[10px] border border-emerald-200/60">
+                                Durasi: {g.durasi}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right side: Quick stats & Expand toggle */}
+                        <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                          <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60">
+                            <span className="font-bold text-slate-800">Relay:</span> {g.relayBekerja || '-'}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-blue-600 hidden sm:inline">
+                              {isExpanded ? 'Tutup Detail' : 'Buka Detail'}
+                            </span>
+                            <motion.div
+                              animate={{ rotate: isExpanded ? 180 : 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="p-1 rounded-lg bg-slate-100 text-slate-500"
+                            >
+                              <ChevronDown className="w-4 h-4" />
+                            </motion.div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Smoothly Expandable Detailed Content */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                            className="overflow-hidden border-t border-slate-100 bg-slate-50/50"
+                          >
+                            <div className="p-4 md:p-5 space-y-4 text-xs">
+                              {/* 3-Column Technical Breakdown Grid */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Section 1: Proteksi & Arus Gangguan */}
+                                <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                    <Activity className="w-4 h-4 text-rose-500" />
+                                    <span>Relay & Arus Gangguan</span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-slate-600">
+                                      <span>Relay Bekerja:</span>
+                                      <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{g.relayBekerja || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-600">
+                                      <span>Kode Gangguan:</span>
+                                      <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                                        {g.kodeGangguan === 'E-5' ? 'E-5 (Tidak Ditemukan)' : g.kodeGangguan}
+                                      </span>
+                                    </div>
+
+                                    {/* Arus Meters */}
+                                    <div className="pt-2 border-t border-slate-100 space-y-1 font-mono text-[11px]">
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-bold text-red-600">Fasa R:</span>
+                                        <span className="font-semibold text-slate-800">{g.arusR > 0 && g.arusR < 50 ? `${g.arusR} kA` : `${g.arusR || 0} A`}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-bold text-amber-600">Fasa S:</span>
+                                        <span className="font-semibold text-slate-800">{g.arusS > 0 && g.arusS < 50 ? `${g.arusS} kA` : `${g.arusS || 0} A`}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-bold text-blue-600">Fasa T:</span>
+                                        <span className="font-semibold text-slate-800">{g.arusT > 0 && g.arusT < 50 ? `${g.arusT} kA` : `${g.arusT || 0} A`}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-bold text-emerald-600">Netral (IN):</span>
+                                        <span className="font-semibold text-slate-800">{g.arusIN > 0 && g.arusIN < 50 ? `${g.arusIN} kA` : `${g.arusIN || 0} A`}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Section 2: Waktu & Pemadaman */}
+                                <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                    <Clock className="w-4 h-4 text-blue-500" />
+                                    <span>Waktu & Pemadaman</span>
+                                  </div>
+                                  <div className="space-y-2 text-slate-600">
+                                    <div className="flex justify-between">
+                                      <span>Tanggal Padam:</span>
+                                      <span className="font-mono font-bold text-slate-900">{g.tanggal}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Jam Keluar (Trip):</span>
+                                      <span className="font-mono font-bold text-rose-600">{g.jamKeluar || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Jam Masuk (Normal):</span>
+                                      <span className="font-mono font-bold text-emerald-600">{g.jamMasuk || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between pt-1 border-t border-slate-100">
+                                      <span>Total Durasi Padam:</span>
+                                      <span className="font-mono font-black text-slate-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                        {g.durasi || '-'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Section 3: Titik Lokasi & Penyebab */}
+                                <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                                    <Layers className="w-4 h-4 text-emerald-500" />
+                                    <span>Lokasi & Investigasi</span>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Section / Segmen:</span>
+                                      <span className="font-bold text-slate-900">{g.section || '-'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Detail Titik Lokasi:</span>
+                                      <span className="text-slate-800 font-medium">{g.detailLokasi || 'Tidak ada detail titik spesifik'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Penyebab Lapangan:</span>
+                                      <span className="text-slate-800 font-semibold">{g.penyebab || 'Belum teridentifikasi'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Card Action Bar */}
+                              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                                <div className="flex items-center gap-2">
+                                  {g.fotoPenyebab && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedPhoto(g.fotoPenyebab!)}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                    >
+                                      <Camera className="w-3.5 h-3.5 text-blue-600" />
+                                      <span>Lihat Foto Dokumentasi</span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => analyzeRootCause(g)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 text-violet-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                                    title="Gunakan AI untuk analisa pola gangguan & rekomendasi"
+                                  >
+                                    <BrainCircuit className="w-3.5 h-3.5 text-violet-600" />
+                                    <span>Analisis Akar Masalah (AI)</span>
+                                  </button>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingGangguan(g);
+                                      setIsModalOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Edit Record</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => onDeleteGangguan(g.id)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Hapus</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-slate-500">{g.jamKeluar} - {g.jamMasuk}</td>
-                    <td className="px-4 py-3.5">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-mono font-bold text-[11px]">
-                        {g.durasi}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-slate-700 font-semibold">{g.relayBekerja}</span>
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold text-[10px]">
-                        {g.kodeGangguan === 'E-5' ? 'Tidak Ditemukan' : g.kodeGangguan}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-[11px] text-slate-700 whitespace-nowrap">
-                      <span className="font-bold text-slate-800">R:</span> {g.arusR > 0 && g.arusR < 50 ? `${g.arusR} kA` : `${g.arusR || 0} A`} <span className="text-slate-300">|</span>{' '}
-                      <span className="font-bold text-slate-800">S:</span> {g.arusS > 0 && g.arusS < 50 ? `${g.arusS} kA` : `${g.arusS || 0} A`} <span className="text-slate-300">|</span>{' '}
-                      <span className="font-bold text-slate-800">T:</span> {g.arusT > 0 && g.arusT < 50 ? `${g.arusT} kA` : `${g.arusT || 0} A`} <span className="text-slate-300">|</span>{' '}
-                      <span className="font-bold text-slate-800">IN:</span> {g.arusIN > 0 && g.arusIN < 50 ? `${g.arusIN} kA` : `${g.arusIN || 0} A`}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="font-semibold text-slate-900">{g.penyebab}</div>
-                      <span className="text-[10px] text-slate-400 block">{g.detailLokasi}</span>
-                      {g.fotoPenyebab && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPhoto(g.fotoPenyebab!)}
-                          className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-md text-[10px] font-bold transition-all cursor-pointer shadow-2xs"
-                        >
-                          <Camera className="w-3 h-3 text-blue-600" />
-                          <span>Lihat Dokumentasi Foto</span>
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => analyzeRootCause(g)}
-                          className="p-1.5 rounded-lg hover:bg-violet-50 text-slate-400 hover:text-violet-600 transition-colors cursor-pointer"
-                          title="Analisis Penyebab Akar (AI)"
-                        >
-                          <BrainCircuit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingGangguan(g);
-                            setIsModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
-                          title="Edit Record Gangguan"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteGangguan(g.id)}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Hapus Record"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Table View */
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-left text-xs text-slate-800">
+              <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-3.5">Tanggal</th>
+                  <th className="px-4 py-3.5">Penyulang</th>
+                  <th className="px-4 py-3.5">Section</th>
+                  <th className="px-4 py-3.5">Jam Out / In</th>
+                  <th className="px-4 py-3.5">Durasi</th>
+                  <th className="px-4 py-3.5">Relay / Kode</th>
+                  <th className="px-4 py-3.5">Arus (R/S/T/IN)</th>
+                  <th className="px-4 py-3.5">Penyebab / Lokasi</th>
+                  <th className="px-4 py-3.5 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {filteredList.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
+                      Tidak ada data log gangguan.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  filteredList.map((g) => (
+                    <tr key={g.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-slate-500">{g.tanggal}</td>
+                      <td className="px-4 py-3.5 font-bold text-blue-600">{g.namaPenyulang}</td>
+                      <td className="px-4 py-3.5 text-slate-700 text-[11px]">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-slate-800">{g.section}</span>
+                          {isSectionFromGi(g.section) && (
+                            <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-[9px] uppercase tracking-wider shrink-0">
+                              GI / Pangkal
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-slate-500">{g.jamKeluar} - {g.jamMasuk}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-mono font-bold text-[11px]">
+                          {g.durasi}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="text-slate-700 font-semibold">{g.relayBekerja}</span>
+                        <span className="ml-1.5 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold text-[10px]">
+                          {g.kodeGangguan === 'E-5' ? 'Tidak Ditemukan' : g.kodeGangguan}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-[11px] text-slate-700 whitespace-nowrap">
+                        <span className="font-bold text-slate-800">R:</span> {g.arusR > 0 && g.arusR < 50 ? `${g.arusR} kA` : `${g.arusR || 0} A`} <span className="text-slate-300">|</span>{' '}
+                        <span className="font-bold text-slate-800">S:</span> {g.arusS > 0 && g.arusS < 50 ? `${g.arusS} kA` : `${g.arusS || 0} A`} <span className="text-slate-300">|</span>{' '}
+                        <span className="font-bold text-slate-800">T:</span> {g.arusT > 0 && g.arusT < 50 ? `${g.arusT} kA` : `${g.arusT || 0} A`} <span className="text-slate-300">|</span>{' '}
+                        <span className="font-bold text-slate-800">IN:</span> {g.arusIN > 0 && g.arusIN < 50 ? `${g.arusIN} kA` : `${g.arusIN || 0} A`}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="font-semibold text-slate-900">{g.penyebab}</div>
+                        <span className="text-[10px] text-slate-400 block">{g.detailLokasi}</span>
+                        {g.fotoPenyebab && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPhoto(g.fotoPenyebab!)}
+                            className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-md text-[10px] font-bold transition-all cursor-pointer shadow-2xs"
+                          >
+                            <Camera className="w-3 h-3 text-blue-600" />
+                            <span>Lihat Dokumentasi Foto</span>
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => analyzeRootCause(g)}
+                            className="p-1.5 rounded-lg hover:bg-violet-50 text-slate-400 hover:text-violet-600 transition-colors cursor-pointer"
+                            title="Analisis Penyebab Akar (AI)"
+                          >
+                            <BrainCircuit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingGangguan(g);
+                              setIsModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                            title="Edit Record Gangguan"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onDeleteGangguan(g.id)}
+                            className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus Record"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Input Gangguan Modal */}

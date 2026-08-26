@@ -459,6 +459,7 @@ export interface MapLayerItem {
   tanggalImport: string;
   kategori: 'Utama' | 'Percabangan' | 'ROW' | 'Inspeksi' | 'Maintenance' | string;
   ulp?: string;
+  unit?: string;
   kodeUnit?: string;
   namaPenyulang?: string;
   iconType?: 'zap' | 'git-branch' | 'map-pin' | 'building' | 'gardu-dist' | 'lbs' | 'pmcb' | 'recloser' | 'trees' | 'wrench' | 'activity' | 'shield' | string;

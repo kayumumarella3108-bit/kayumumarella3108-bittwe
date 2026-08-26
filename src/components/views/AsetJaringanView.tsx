@@ -15,6 +15,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { AsetJaringan, Penyulang } from '../../types';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface AsetJaringanViewProps {
   asetList: AsetJaringan[];
@@ -22,6 +23,7 @@ interface AsetJaringanViewProps {
   onAdd: (data: Omit<AsetJaringan, 'id'>) => void;
   onUpdate: (id: string, data: Partial<AsetJaringan>) => void;
   onDelete: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export const AsetJaringanView: React.FC<AsetJaringanViewProps> = ({
@@ -29,7 +31,8 @@ export const AsetJaringanView: React.FC<AsetJaringanViewProps> = ({
   penyulangList,
   onAdd,
   onUpdate,
-  onDelete
+  onDelete,
+  isLoading = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -350,8 +353,11 @@ export const AsetJaringanView: React.FC<AsetJaringanViewProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {isLoading ? (
+          <TableSkeletonLoader columns={17} rows={6} headerTitle="Data Aset Jaringan" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider">
                 <th rowSpan={2} className="px-4 py-4 border border-slate-800 text-center sticky left-0 bg-slate-900 z-10">Nama Penyulang</th>
@@ -466,6 +472,7 @@ export const AsetJaringanView: React.FC<AsetJaringanViewProps> = ({
             )}
           </table>
         </div>
+        )}
       </div>
 
       {/* Info Card */}

@@ -26,6 +26,7 @@ import { db, doc, setDoc, deleteDoc, handleFirestoreError, OperationType, regist
 import { sanitizeForFirestore } from '../../utils/firestoreHelper';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
 interface InspeksiTier1GTTViewProps {
   currentUser: User | null;
@@ -33,6 +34,7 @@ interface InspeksiTier1GTTViewProps {
   penyulangList: Penyulang[];
   sectionList: SectionJaringan[];
   masterGarduList: MasterGardu[];
+  isLoading?: boolean;
 }
 
 const INITIAL_FORM_STATE: Omit<InspeksiTier1GTT, 'id'> = {
@@ -112,7 +114,8 @@ export const InspeksiTier1GTTView: React.FC<InspeksiTier1GTTViewProps> = ({
   tier1GttList,
   penyulangList,
   sectionList,
-  masterGarduList
+  masterGarduList,
+  isLoading = false
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -386,8 +389,11 @@ export const InspeksiTier1GTTView: React.FC<InspeksiTier1GTTViewProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {isLoading ? (
+          <TableSkeletonLoader columns={6} rows={7} headerTitle="Checklist Inspeksi Gardu Trafo Tiang (GTT)" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 <th className="px-6 py-4">Tanggal</th>
@@ -460,6 +466,7 @@ export const InspeksiTier1GTTView: React.FC<InspeksiTier1GTTViewProps> = ({
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Modal Form */}

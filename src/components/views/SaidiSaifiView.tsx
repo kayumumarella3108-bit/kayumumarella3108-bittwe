@@ -360,34 +360,34 @@ export const SaidiSaifiView: React.FC<SaidiSaifiViewProps> = ({
       />
 
       {/* Title Bar */}
-      <div className="p-5 bg-white border border-slate-200 shadow-sm rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      <div className="p-5 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-2 border-teal-500/60 shadow-xl rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-white">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
+              <h2 className="text-sm font-extrabold text-white uppercase tracking-wider drop-shadow-xs">
                 Monitoring SAIDI, SAIFI &amp; ENS Kumulatif
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold text-[10px]">
                 PLN {activeUnitInfo.namaUnit.toUpperCase()}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-teal-100/90 mt-0.5">
               Kalkulasi kuantitatif energi tidak tersalurkan dan estimasi kerugian rupiah untuk UP3
             </p>
           </div>
 
           {/* Dropdown Filter Unit untuk Manajemen / Owner */}
           {isOwnerUser(currentUser) && onSelectUnitFilter && (
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs">
-              <span className="text-[10px] font-black text-slate-500 whitespace-nowrap uppercase tracking-wider">Filter Unit:</span>
+            <div className="flex items-center gap-2 bg-[#012521] border border-teal-700/80 px-3 py-1.5 rounded-xl shadow-inner">
+              <span className="text-[10px] font-black text-teal-300 whitespace-nowrap uppercase tracking-wider">Filter Unit:</span>
               <select
                 value={ownerSelectedUnitFilter}
                 onChange={(e) => onSelectUnitFilter(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-800 text-xs font-extrabold px-2.5 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-xs min-w-[150px]"
+                className="bg-[#02312b] border border-teal-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs min-w-[150px]"
               >
                 <option value="SEMUA">🌐 Semua Unit (Global)</option>
                 {DAFTAR_UNIT_PLN.map((u, idx) => (
-                  <option key={`saidi_unit_${u.kodeUnit}_${idx}`} value={u.namaUnit}>
+                  <option key={`saidi_unit_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-[#02312b] text-white">
                     {u.namaUnit} ({u.kodeUnit})
                   </option>
                 ))}
@@ -399,7 +399,7 @@ export const SaidiSaifiView: React.FC<SaidiSaifiViewProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setIsPptModalOpen(true)}
-            className="px-3.5 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-sky-500/20 border border-sky-400/30"
+            className="px-3.5 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-sky-500/20 border border-sky-400/30 active:scale-95"
             title="Prinjau & Eksport Laporan ke File PPT PowerPoint dengan Template Danantara PLN"
           >
             <Presentation className="w-4 h-4" />
@@ -407,7 +407,7 @@ export const SaidiSaifiView: React.FC<SaidiSaifiViewProps> = ({
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-rose-500/20"
+            className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-rose-500/20 active:scale-95"
             title="Unduh laporan PDF untuk dilaporkan ke UP3"
           >
             <FileText className="w-4 h-4" />
@@ -415,7 +415,7 @@ export const SaidiSaifiView: React.FC<SaidiSaifiViewProps> = ({
           </button>
           <button
             onClick={handleExportCSV}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-emerald-500/20"
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-emerald-500/20 active:scale-95"
             title="Ekspor ke format Excel/CSV"
           >
             <FileSpreadsheet className="w-4 h-4" />
@@ -430,10 +430,10 @@ export const SaidiSaifiView: React.FC<SaidiSaifiViewProps> = ({
               setEditingSaidi(null);
               setIsModalOpen(true);
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-blue-500/20"
+            className="px-4 py-2 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-teal-950/40 border border-teal-200 active:scale-95"
           >
-            <Plus className="w-4 h-4" />
-            <span>+ Input SAIDI/SAIFI & ENS</span>
+            <Plus className="w-4 h-4 text-slate-950" />
+            <span>+ Input SAIDI/SAIFI &amp; ENS</span>
           </button>
         </div>
       </div>
