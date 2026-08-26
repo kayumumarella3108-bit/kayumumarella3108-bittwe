@@ -50,7 +50,11 @@ import {
   Upload,
   Wifi,
   WifiOff,
-  RefreshCw
+  RefreshCw,
+  TrendingDown,
+  Scale,
+  FileCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { ViewType, User } from '../types';
 import { canManageUsers, isPemasaranUser, isInspeksiUser, isPetugasRowUser, canAccessMenu, canEditData, isOwnerUser } from '../utils/permissions';
@@ -80,21 +84,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isBgModalOpen, setIsBgModalOpen] = useState(false);
+
   // Accordion open/close states
-  const [inspeksiOpen, setInspeksiOpen] = useState(
-    ['inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'inspeksi_gardu'].includes(activeView)
+  const [masterDataOpen, setMasterDataOpen] = useState(
+    ['master_data', 'input_peta_penyulang', 'master_unit'].includes(activeView)
+  );
+
+  const [pemasaranOpen, setPemasaranOpen] = useState(
+    ['survey_pb_pd'].includes(activeView)
+  );
+
+  const [teknikOpen, setTeknikOpen] = useState(
+    ['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu', 'peta_penyulang', 'peta'].includes(activeView)
+  );
+
+  const [transaksiEnergiOpen, setTransaksiEnergiOpen] = useState(
+    ['peremajaan_meter', 'meter_sl', 'monitoring_susut'].includes(activeView)
   );
 
   const [suratSpkOpen, setSuratSpkOpen] = useState(
-    ['perintah_kerja', 'format_surat'].includes(activeView)
+    ['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml'].includes(activeView)
   );
 
   const [saidiSaifiOpen, setSaidiSaifiOpen] = useState(
     ['saidi_saifi', 'estimasi_saidi_saifi'].includes(activeView)
   );
 
-  const [monitoringYantekOpen, setMonitoringYantekOpen] = useState(
-    ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'alker_apd', 'material', 'jadwal_piket', 'kendaraan_operasional'].includes(activeView)
+  const [yantekOpen, setYantekOpen] = useState(
+    ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket'].includes(activeView)
+  );
+
+  const [yantekRowOpen, setYantekRowOpen] = useState(
+    ['peta_pohon', 'row'].includes(activeView) || true
+  );
+
+  const [yantekInspeksiOpen, setYantekInspeksiOpen] = useState(
+    ['inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'inspeksi_gardu'].includes(activeView) || true
+  );
+
+  const [yantekYangguOpen, setYantekYangguOpen] = useState(
+    ['jadwal_piket'].includes(activeView) || true
   );
 
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -154,27 +183,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Auto expand active accordion on activeView change
   useEffect(() => {
-    if (['inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'inspeksi_gardu'].includes(activeView)) {
-      setInspeksiOpen(true);
+    if (['master_data', 'input_peta_penyulang', 'master_unit'].includes(activeView)) {
+      setMasterDataOpen(true);
     }
-    if (['perintah_kerja', 'format_surat'].includes(activeView)) {
+    if (['survey_pb_pd'].includes(activeView)) {
+      setPemasaranOpen(true);
+    }
+    if (['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu', 'peta_penyulang', 'peta'].includes(activeView)) {
+      setTeknikOpen(true);
+    }
+    if (['peremajaan_meter', 'meter_sl', 'monitoring_susut'].includes(activeView)) {
+      setTransaksiEnergiOpen(true);
+    }
+    if (['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml'].includes(activeView)) {
       setSuratSpkOpen(true);
     }
     if (['saidi_saifi', 'estimasi_saidi_saifi'].includes(activeView)) {
       setSaidiSaifiOpen(true);
     }
-    if (['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'alker_apd', 'material', 'jadwal_piket', 'kendaraan_operasional'].includes(activeView)) {
-      setMonitoringYantekOpen(true);
+    if (['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket'].includes(activeView)) {
+      setYantekOpen(true);
+      if (['peta_pohon', 'row'].includes(activeView)) setYantekRowOpen(true);
+      if (['inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound'].includes(activeView)) setYantekInspeksiOpen(true);
+      if (['jadwal_piket'].includes(activeView)) setYantekYangguOpen(true);
     }
   }, [activeView]);
 
   if (!isOpen) return null;
 
-  const isInspeksiActive = ['inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'inspeksi_gardu'].includes(activeView);
-  const isSuratSpkActive = ['perintah_kerja', 'format_surat'].includes(activeView);
-  const isMasterAsetActive = ['master_data', 'aset_jaringan', 'sld_visio'].includes(activeView);
+  const isMasterDataActive = ['master_data', 'input_peta_penyulang', 'master_unit'].includes(activeView);
+  const isPemasaranActive = ['survey_pb_pd'].includes(activeView);
+  const isTeknikActive = ['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu', 'peta_penyulang', 'peta'].includes(activeView);
+  const isTransaksiEnergiActive = ['peremajaan_meter', 'meter_sl', 'monitoring_susut'].includes(activeView);
+  const isSuratSpkActive = ['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml'].includes(activeView);
   const isSaidiSaifiActive = ['saidi_saifi', 'estimasi_saidi_saifi'].includes(activeView);
-  const isMonitoringYantekActive = ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'alker_apd', 'material', 'jadwal_piket', 'kendaraan_operasional'].includes(activeView);
+  const isYantekActive = ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket'].includes(activeView);
 
   const isPemasaran = isPemasaranUser(currentUser);
   const isInspeksi = isInspeksiUser(currentUser);
@@ -309,156 +352,341 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           )}
 
-          {canAccessMenu(currentUser, 'peta') && (
-            <button
-              onClick={() => onSelectView('peta_penyulang')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'peta_penyulang' || activeView === 'peta'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                activeView === 'peta_penyulang' || activeView === 'peta'
-                  ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                  : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-              }`}>
-                <Map className="w-4 h-4" />
-              </div>
-              <span className="font-bold">Peta Penyulang</span>
-            </button>
+          {/* 1. MENU MASTER DATA (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'master_data') || isOwnerUser(currentUser)) && (
+            <div>
+              <button
+                onClick={() => setMasterDataOpen(!masterDataOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isMasterDataActive && !masterDataOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isMasterDataActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <Database className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">Master Data</span>
+                </div>
+                <div>
+                  {masterDataOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {masterDataOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('master_data')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'master_data'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Database className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Master Data Penyulang</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('input_peta_penyulang')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'input_peta_penyulang'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Upload className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Input Peta Penyulang</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('master_unit')}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'master_unit'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Building2 className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                      <span>Master Data Unit PLN</span>
+                    </div>
+                    {isOwnerUser(currentUser) && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] bg-amber-400/30 text-amber-200 border border-amber-300/40">
+                        Owner
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
-          {canAccessMenu(currentUser, 'peta') && (
-            <button
-              onClick={() => onSelectView('input_peta_penyulang')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'input_peta_penyulang'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                activeView === 'input_peta_penyulang'
-                  ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                  : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-              }`}>
-                <Upload className="w-4 h-4" />
-              </div>
-              <span className="font-bold">Input Peta Penyulang</span>
-            </button>
+          {/* 2. MENU PEMASARAN (ACCORDION) */}
+          {canAccessMenu(currentUser, 'survey_pb_pd') && (
+            <div>
+              <button
+                onClick={() => setPemasaranOpen(!pemasaranOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isPemasaranActive && !pemasaranOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isPemasaranActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">Pemasaran</span>
+                </div>
+                <div>
+                  {pemasaranOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {pemasaranOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('survey_pb_pd')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'survey_pb_pd'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Survey PB PD</span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
-          {canAccessMenu(currentUser, 'master_data') && (
+          {/* 3. MENU K3L */}
+          {(canAccessMenu(currentUser, 'alker_apd') || canAccessMenu(currentUser, 'k3l')) && (
             <button
-              onClick={() => onSelectView('master_data')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'master_data'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                activeView === 'master_data'
-                  ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                  : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-              }`}>
-                <Database className="w-4 h-4" />
-              </div>
-              <span className="font-bold">Master Data Penyulang</span>
-            </button>
-          )}
-
-          {/* Master Data Unit (Khusus Owner) */}
-          {isOwnerUser(currentUser) && (
-            <button
-              onClick={() => onSelectView('master_unit')}
+              onClick={() => onSelectView('alker_apd')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'master_unit'
-                  ? 'bg-gradient-to-r from-amber-500/35 via-teal-500/25 to-teal-900/10 text-white border-l-4 border-l-amber-300 border-y border-r border-amber-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-amber-500/30'
+                activeView === 'alker_apd'
+                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  activeView === 'master_unit'
-                    ? 'bg-gradient-to-tr from-amber-400 via-yellow-300 to-teal-300 text-teal-950 shadow-md shadow-amber-400/40 border border-white/80 scale-105'
-                    : 'bg-teal-900/70 text-amber-300 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  activeView === 'alker_apd'
+                    ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                    : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
                 }`}>
-                  <Building2 className="w-4 h-4" />
+                  <ShieldCheck className="w-4 h-4" />
                 </div>
-                <span className="font-bold">Master Data Unit PLN</span>
+                <span className="font-bold">K3L</span>
               </div>
-              <span className="px-2 py-0.5 rounded-md bg-amber-500/30 text-amber-200 text-[9px] font-black uppercase tracking-wider border border-amber-400/40 shadow-xs">
-                Owner
+              <span className="px-2 py-0.5 rounded-md bg-teal-500/30 text-teal-200 text-[9px] font-black uppercase tracking-wider border border-teal-400/40 shadow-xs">
+                APD & Alker
               </span>
             </button>
           )}
 
-          {canAccessMenu(currentUser, 'health_index') && (
-            <button
-              onClick={() => onSelectView('health_index')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'health_index'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                activeView === 'health_index'
-                  ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                  : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-              }`}>
-                <TrendingUp className="w-4 h-4" />
-              </div>
-              <span className="font-bold">Health Index Penyulang</span>
-            </button>
-          )}
-
-          {/* 5. Gangguan Trip Feeder */}
-          {canAccessMenu(currentUser, 'gangguan') && (
-            <button
-              onClick={() => onSelectView('matriks_gangguan')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'matriks_gangguan'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                activeView === 'matriks_gangguan'
-                  ? 'bg-gradient-to-tr from-amber-400 via-yellow-300 to-teal-300 text-teal-950 shadow-md shadow-amber-400/40 border border-white/80 scale-105'
-                  : 'bg-teal-900/70 text-amber-300 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-              }`}>
-                <Zap className="w-4 h-4" />
-              </div>
-              <span className="font-bold">Gangguan Trip Feeder</span>
-            </button>
-          )}
-
-          {/* 6. Pemeliharaan 20kV (Monitoring) */}
+          {/* 4. MENU TEKNIK (ACCORDION) */}
           {canAccessMenu(currentUser, 'pemeliharaan') && (
-            <button
-              onClick={() => onSelectView('pemeliharaan_20kv')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'pemeliharaan_20kv'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                activeView === 'pemeliharaan_20kv'
-                  ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                  : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-              }`}>
-                <Wrench className="w-4 h-4" />
-              </div>
-              <span className="font-bold">Monitoring Pemeliharaan</span>
-            </button>
+            <div>
+              <button
+                onClick={() => setTeknikOpen(!teknikOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isTeknikActive && !teknikOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isTeknikActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <Wrench className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">Teknik</span>
+                </div>
+                <div>
+                  {teknikOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {teknikOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('matriks_gangguan')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'matriks_gangguan'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Gangguan Trip Feeder</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('pemeliharaan_20kv')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'pemeliharaan_20kv'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Wrench className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Monitoring Pemeliharaan</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('saidi_saifi')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'saidi_saifi' || activeView === 'estimasi_saidi_saifi'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>SAIDI SAIFI</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('health_index')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'health_index'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Healthy Index Penyulang</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('pengukuran_gardu')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'pengukuran_gardu'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Gauge className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Pengukuran Gardu Distribusi</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('peta_penyulang')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'peta_penyulang' || activeView === 'peta'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Map className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Peta Penyulang</span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
-          {/* 7. Format Surat & SPK (ACCORDION) */}
-          {canAccessMenu(currentUser, 'spk') && (
+          {/* 5. MENU TRANSAKSI ENERGI (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'transaksi_energi') || canAccessMenu(currentUser, 'peremajaan_meter')) && (
+            <div>
+              <button
+                onClick={() => setTransaksiEnergiOpen(!transaksiEnergiOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isTransaksiEnergiActive && !transaksiEnergiOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isTransaksiEnergiActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">Transaksi Energi</span>
+                </div>
+                <div>
+                  {transaksiEnergiOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {transaksiEnergiOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('peremajaan_meter')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'peremajaan_meter'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Peremajaan Meter</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('meter_sl')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'meter_sl'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Scale className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Meter SL (Sambungan Langsung)</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('monitoring_susut')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'monitoring_susut'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <TrendingDown className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>Monitoring Susut</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 6. MENU SURAT & SPK (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'perintah_kerja') || canAccessMenu(currentUser, 'format_surat') || canAccessMenu(currentUser, 'ba_pemeriksaan_iml')) && (
             <div>
               <button
                 onClick={() => setSuratSpkOpen(!suratSpkOpen)}
@@ -476,7 +704,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }`}>
                     <FileText className="w-4 h-4" />
                   </div>
-                  <span className="font-bold">Format Surat & SPK</span>
+                  <span className="font-bold">Surat & SPK</span>
                 </div>
                 <div>
                   {suratSpkOpen ? (
@@ -497,8 +725,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
                     }`}
                   >
-                    <ClipboardList className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span>Perintah Kerja Harian (SPK)</span>
+                    <FileCheck className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Perintah Kerja (SPK)</span>
                   </button>
 
                   <button
@@ -510,311 +738,272 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }`}
                   >
                     <FileText className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span>Format Pembuatan Surat</span>
+                    <span>Format Surat Keluar</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('ba_pemeriksaan_iml')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'ba_pemeriksaan_iml'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>BA Pemeriksaan IML</span>
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* 8. Pengukuran & Beban Gardu */}
-          {canAccessMenu(currentUser, 'pengukuran_gardu') && (
-            <button
-              onClick={() => onSelectView('pengukuran_gardu')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'pengukuran_gardu'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                activeView === 'pengukuran_gardu'
-                  ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                  : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-              }`}>
-                <Gauge className="w-4 h-4" />
-              </div>
-              <span className="font-bold">Pengukuran & Beban Gardu</span>
-            </button>
+          {/* 7. MENU YANTEK (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'monitoring_yantek') || canAccessMenu(currentUser, 'yantek') || canAccessMenu(currentUser, 'row') || canAccessMenu(currentUser, 'inspeksi') || canAccessMenu(currentUser, 'jadwal_piket')) && (
+            <div>
+              <button
+                onClick={() => setYantekOpen(!yantekOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isYantekActive && !yantekOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isYantekActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <HardHat className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">Yantek</span>
+                </div>
+                <div>
+                  {yantekOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {yantekOpen && (
+                <div className="pl-3 mt-1.5 space-y-2 border-l-2 border-teal-500/40 ml-5">
+                  {/* SUB-MENU: ROW */}
+                  <div className="rounded-lg bg-teal-950/40 border border-teal-700/30 overflow-hidden">
+                    <button
+                      onClick={() => setYantekRowOpen(!yantekRowOpen)}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-bold text-emerald-300 hover:bg-teal-800/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Trees className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>ROW</span>
+                      </div>
+                      {yantekRowOpen ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-emerald-400/80" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-emerald-400/80" />
+                      )}
+                    </button>
+
+                    {yantekRowOpen && (
+                      <div className="px-1.5 pb-1.5 pt-0.5 space-y-0.5 border-t border-teal-800/40">
+                        <button
+                          onClick={() => onSelectView('peta_pohon')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'peta_pohon'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Trees className="w-3 h-3 text-emerald-300 shrink-0" />
+                          <span className="truncate">Peta Pohon</span>
+                        </button>
+
+                        <button
+                          onClick={() => onSelectView('inspeksi_tier1')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'inspeksi_tier1'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Search className="w-3 h-3 text-amber-300 shrink-0" />
+                          <span className="truncate">Temuan Inspeksi Pohon</span>
+                        </button>
+
+                        <button
+                          onClick={() => onSelectView('row')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'row'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Trees className="w-3 h-3 text-teal-300 shrink-0" />
+                          <span className="truncate">Realisasi ROW</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SUB-MENU: INSPEKSI */}
+                  <div className="rounded-lg bg-teal-950/40 border border-teal-700/30 overflow-hidden">
+                    <button
+                      onClick={() => setYantekInspeksiOpen(!yantekInspeksiOpen)}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-bold text-teal-300 hover:bg-teal-800/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Search className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                        <span>Inspeksi</span>
+                      </div>
+                      {yantekInspeksiOpen ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-teal-400/80" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-teal-400/80" />
+                      )}
+                    </button>
+
+                    {yantekInspeksiOpen && (
+                      <div className="px-1.5 pb-1.5 pt-0.5 space-y-1 border-t border-teal-800/40">
+                        {/* Tier 1 Section */}
+                        <div className="pt-1 pb-0.5 px-2 text-[9px] font-black uppercase text-amber-300 tracking-wider">
+                          Tier 1
+                        </div>
+                        <button
+                          onClick={() => onSelectView('inspeksi_tier1')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'inspeksi_tier1'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Search className="w-3 h-3 text-amber-300 shrink-0" />
+                          <span className="truncate">Inspeksi Pohon</span>
+                        </button>
+                        <button
+                          onClick={() => onSelectView('inspeksi_tier1_jtm')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'inspeksi_tier1_jtm'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Search className="w-3 h-3 text-teal-300 shrink-0" />
+                          <span className="truncate">Konstruksi JTM</span>
+                        </button>
+                        <button
+                          onClick={() => onSelectView('inspeksi_tier1_gtt')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'inspeksi_tier1_gtt'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Search className="w-3 h-3 text-teal-300 shrink-0" />
+                          <span className="truncate">Konstruksi GTT</span>
+                        </button>
+                        <button
+                          onClick={() => onSelectView('inspeksi_tier1_switching')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'inspeksi_tier1_switching'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Search className="w-3 h-3 text-teal-300 shrink-0" />
+                          <span className="truncate">Konstruksi Switching</span>
+                        </button>
+
+                        {/* Tier 2 Section */}
+                        <div className="pt-1.5 pb-0.5 px-2 text-[9px] font-black uppercase text-teal-300 tracking-wider border-t border-teal-800/50">
+                          Tier 2
+                        </div>
+                        <button
+                          onClick={() => onSelectView('inspeksi_tier2_thermovision')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'inspeksi_tier2_thermovision'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Search className="w-3 h-3 text-teal-300 shrink-0" />
+                          <span className="truncate">Thermovision</span>
+                        </button>
+                        <button
+                          onClick={() => onSelectView('inspeksi_tier2_ultrasound')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'inspeksi_tier2_ultrasound'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Search className="w-3 h-3 text-teal-300 shrink-0" />
+                          <span className="truncate">Ultrasound</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SUB-MENU: YANGGU */}
+                  <div className="rounded-lg bg-teal-950/40 border border-teal-700/30 overflow-hidden">
+                    <button
+                      onClick={() => setYantekYangguOpen(!yantekYangguOpen)}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-bold text-amber-300 hover:bg-teal-800/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span>Yanggu</span>
+                      </div>
+                      {yantekYangguOpen ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-amber-400/80" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-amber-400/80" />
+                      )}
+                    </button>
+
+                    {yantekYangguOpen && (
+                      <div className="px-1.5 pb-1.5 pt-0.5 space-y-0.5 border-t border-teal-800/40">
+                        <button
+                          onClick={() => onSelectView('jadwal_piket')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'jadwal_piket'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Calendar className="w-3 h-3 text-teal-300 shrink-0" />
+                          <span className="truncate">Jadwal Piket Petugas</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
-          {/* 9. Survey PB PD */}
-          {canAccessMenu(currentUser, 'survey_pb_pd') && (
+          {/* 8. MENU UTAMA: GUDANG MATERIAL */}
+          {canAccessMenu(currentUser, 'material') && (
             <button
-              onClick={() => onSelectView('survey_pb_pd')}
+              onClick={() => onSelectView('material')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'survey_pb_pd'
+                activeView === 'material'
                   ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
                   : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  activeView === 'survey_pb_pd'
+                  activeView === 'material'
                     ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
                     : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
                 }`}>
-                  <Zap className="w-4 h-4" />
+                  <Package className="w-4 h-4" />
                 </div>
-                <span className="font-bold">Survey PB & PD</span>
+                <span className="font-bold">Gudang Material</span>
               </div>
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/25 text-amber-200 text-[9px] font-black uppercase border border-amber-400/40 shadow-xs">
-                PB PD
-              </span>
             </button>
-          )}
-
-          {/* 10. Saidi Saifi (ACCORDION) */}
-          {canAccessMenu(currentUser, 'saidi_saifi') && (
-            <div>
-              <button
-                onClick={() => setSaidiSaifiOpen(!saidiSaifiOpen)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                  isSaidiSaifiActive && !saidiSaifiOpen
-                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                    isSaidiSaifiActive
-                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-                  }`}>
-                    <BarChart3 className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold">Saidi Saifi</span>
-                </div>
-                <div>
-                  {saidiSaifiOpen ? (
-                    <ChevronDown className="w-4 h-4 text-teal-300" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
-                  )}
-                </div>
-              </button>
-
-              {saidiSaifiOpen && (
-                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
-                  <button
-                    onClick={() => onSelectView('saidi_saifi')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'saidi_saifi'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Activity className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span>Realisasi SAIDI & SAIFI</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('estimasi_saidi_saifi')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'estimasi_saidi_saifi'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Calculator className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                    <span>Estimasi SAIDI/SAIFI (Event)</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 6.5. Monitoring Yantek (ACCORDION) */}
-          {canAccessMenu(currentUser, 'monitoring_yantek') && (
-            <div>
-              <button
-                onClick={() => {
-                  setMonitoringYantekOpen(!monitoringYantekOpen);
-                  if (!monitoringYantekOpen) {
-                    onSelectView('monitoring_yantek');
-                  }
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                  isMonitoringYantekActive && !monitoringYantekOpen
-                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                    isMonitoringYantekActive
-                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-                  }`}>
-                    <HardHat className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold">Monitoring Yantek</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 rounded bg-teal-500/30 text-teal-200 border border-teal-400/40 text-[9px] font-black uppercase">
-                    Live GPS
-                  </span>
-                  {monitoringYantekOpen ? (
-                    <ChevronDown className="w-4 h-4 text-teal-300" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
-                  )}
-                </div>
-              </button>
-
-              {monitoringYantekOpen && (
-                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
-                  <button
-                    onClick={() => onSelectView('peta_pohon')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'peta_pohon'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Trees className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                    <span>Peta Titik Pohon (GIS)</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('row')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'row'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Trees className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span>Realisasi ROW (Pangkas)</span>
-                  </button>
-
-                  {/* Menu Inspeksi Tier 1 */}
-                  <div className="pt-2.5 pb-1 px-3 text-[10px] font-black uppercase text-amber-300 tracking-wider border-t border-teal-800/60">
-                    Inspeksi Tier 1 (Visual)
-                  </div>
-                  <button
-                    onClick={() => onSelectView('inspeksi_tier1')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'inspeksi_tier1'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Search className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                    <span className="truncate font-extrabold text-amber-200">Inspeksi Pohon & SUTM</span>
-                  </button>
-                  <button
-                    onClick={() => onSelectView('inspeksi_tier1_jtm')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'inspeksi_tier1_jtm'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Search className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span className="truncate">Checklist JTM (Jaringan)</span>
-                  </button>
-                  <button
-                    onClick={() => onSelectView('inspeksi_tier1_gtt')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'inspeksi_tier1_gtt'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Search className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span className="truncate">Checklist GTT (Gardu)</span>
-                  </button>
-                  <button
-                    onClick={() => onSelectView('inspeksi_tier1_switching')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'inspeksi_tier1_switching'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Search className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span className="truncate">Checklist Switching</span>
-                  </button>
-
-                  {/* Menu Inspeksi Tier 2 */}
-                  <div className="pt-2.5 pb-1 px-3 text-[10px] font-black uppercase text-teal-300 tracking-wider border-t border-teal-800/60">
-                    Inspeksi Tier 2 (Alat)
-                  </div>
-                  <button
-                    onClick={() => onSelectView('inspeksi_tier2_thermovision')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'inspeksi_tier2_thermovision'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Search className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span className="truncate">Thermovision (Hotspot)</span>
-                  </button>
-                  <button
-                    onClick={() => onSelectView('inspeksi_tier2_ultrasound')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'inspeksi_tier2_ultrasound'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Search className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span className="truncate">Ultrasound (Corona)</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('jadwal_piket')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'jadwal_piket'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Calendar className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span>Jadwal Piket Yantek</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('kendaraan_operasional')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'kendaraan_operasional'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Car className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span className="flex-1 truncate">Kendaraan Live GPS</span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('material')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'material'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Package className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span className="truncate">Manajemen Material</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('alker_apd')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'alker_apd'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Wrench className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span className="truncate">Peralatan & APD (Alker)</span>
-                  </button>
-                </div>
-              )}
-            </div>
           )}
 
           {/* 13. Share Laporan */}

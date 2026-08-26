@@ -16,7 +16,10 @@ import {
   X,
   PlusCircle,
   MapPin,
-  ClipboardList
+  ClipboardList,
+  HardHat,
+  Gauge,
+  ClipboardCheck
 } from 'lucide-react';
 import {
   db,
@@ -36,13 +39,14 @@ import { SuratItem, JenisSurat, User } from '../../types';
 
 interface FormatSuratViewProps {
   currentUser?: User | null;
+  initialTypeFilter?: string;
 }
 
-export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser }) => {
+export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser, initialTypeFilter }) => {
   const [suratList, setSuratList] = useState<SuratItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>(initialTypeFilter || 'all');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editItem, setEditItem] = useState<SuratItem | null>(null);
   
@@ -50,7 +54,9 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
   const [printItem, setPrintItem] = useState<SuratItem | null>(null);
 
   // Form states
-  const [jenisSurat, setJenisSurat] = useState<JenisSurat>('surat_cuti');
+  const [jenisSurat, setJenisSurat] = useState<JenisSurat>(
+    initialTypeFilter === 'ba_pemeriksaan_iml' ? 'ba_pemeriksaan_iml' : 'surat_cuti'
+  );
   const [nomorSurat, setNomorSurat] = useState<string>('');
   const [tanggalSurat, setTanggalSurat] = useState<string>(new Date().toISOString().split('T')[0]);
   const [perihal, setPerihal] = useState<string>('');
@@ -61,6 +67,31 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
   const [catatan, setCatatan] = useState<string>('');
 
   // Specific Payload States
+  // 0. BA Pemeriksaan IML
+  const [idPelanggan, setIdPelanggan] = useState<string>('');
+  const [noMeter, setNoMeter] = useState<string>('');
+  const [namaPelanggan, setNamaPelanggan] = useState<string>('');
+  const [alamatPelanggan, setAlamatPelanggan] = useState<string>('');
+  const [tarifDaya, setTarifDaya] = useState<string>('R1 / 1300 VA');
+  const [fasa, setFasa] = useState<'1 Fasa' | '3 Fasa' | string>('1 Fasa');
+  const [tipeMeter, setTipeMeter] = useState<'Prabayar (Token)' | 'Pascabayar' | string>('Prabayar (Token)');
+  const [standKwh, setStandKwh] = useState<string>('');
+  const [standKvarh, setStandKvarh] = useState<string>('');
+  const [mcbTerpasang, setMcbTerpasang] = useState<string>('6A (CL6)');
+  const [kondisiSegelMeter, setKondisiSegelMeter] = useState<string>('Baik / Utuh');
+  const [kondisiSegelTerminal, setKondisiSegelTerminal] = useState<string>('Baik / Utuh');
+  const [kondisiSegelMcb, setKondisiSegelMcb] = useState<string>('Baik / Utuh');
+  const [teganganVolt, setTeganganVolt] = useState<string>('220 V');
+  const [arusAmpere, setArusAmpere] = useState<string>('3.5 A');
+  const [ujiAkurasiPutaran, setUjiAkurasiPutaran] = useState<string>('Normal / Akurat (0%)');
+  const [kesimpulanPemeriksaan, setKesimpulanPemeriksaan] = useState<string>('Normal & Sesuai Standar');
+  const [uraianTemuan, setUraianTemuan] = useState<string>('');
+  const [tindakanPetugas, setTindakanPetugas] = useState<string>('Pemeriksaan berkala selesai, instalasi & segel dinyatakan laik operasi.');
+  const [petugas1, setPetugas1] = useState<string>(currentUser?.name || 'Petugas Teknik ULP');
+  const [petugas2, setPetugas2] = useState<string>('Petugas Yantek');
+  const [namaSaksiPelanggan, setNamaSaksiPelanggan] = useState<string>('');
+  const [noHpPelanggan, setNoHpPelanggan] = useState<string>('');
+
   // 1. Surat Cuti
   const [namaPegawai, setNamaPegawai] = useState<string>('');
   const [nip, setNip] = useState<string>('');
@@ -102,6 +133,16 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
   const [newMatSatuan, setNewMatSatuan] = useState<string>('Pcs');
   const [newMatVolume, setNewMatVolume] = useState<number>(1);
 
+  // Sync initialTypeFilter
+  useEffect(() => {
+    if (initialTypeFilter) {
+      setSelectedTypeFilter(initialTypeFilter);
+      if (initialTypeFilter === 'ba_pemeriksaan_iml') {
+        setJenisSurat('ba_pemeriksaan_iml');
+      }
+    }
+  }, [initialTypeFilter]);
+
   // Load items from Firestore
   useEffect(() => {
     const q = query(collection(db, 'surat_keluar'), orderBy('createdAt', 'desc'));
@@ -126,7 +167,10 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
   // Update default perihal and kepada based on selected letter type
   useEffect(() => {
     if (!editItem) {
-      if (jenisSurat === 'surat_cuti') {
+      if (jenisSurat === 'ba_pemeriksaan_iml') {
+        setPerihal('Berita Acara Pemeriksaan Instalasi Milik Pelanggan (IML) & APP');
+        setKepada('Pelanggan / Arsip Transaksi Energi & Pelayanan Pelanggan');
+      } else if (jenisSurat === 'surat_cuti') {
         setPerihal('Permohonan Izin Cuti Tahunan Pegawai');
         setKepada('Manager Bagian SDM & Organisasi');
       } else if (jenisSurat === 'permintaan_alker') {
@@ -173,6 +217,31 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
     setStatus(item.status);
     setCatatan(item.catatan || '');
 
+    // 0. BA Pemeriksaan IML
+    setIdPelanggan(item.payload.idPelanggan || '');
+    setNoMeter(item.payload.noMeter || '');
+    setNamaPelanggan(item.payload.namaPelanggan || '');
+    setAlamatPelanggan(item.payload.alamatPelanggan || '');
+    setTarifDaya(item.payload.tarifDaya || 'R1 / 1300 VA');
+    setFasa(item.payload.fasa || '1 Fasa');
+    setTipeMeter(item.payload.tipeMeter || 'Prabayar (Token)');
+    setStandKwh(item.payload.standKwh || '');
+    setStandKvarh(item.payload.standKvarh || '');
+    setMcbTerpasang(item.payload.mcbTerpasang || '6A (CL6)');
+    setKondisiSegelMeter(item.payload.kondisiSegelMeter || 'Baik / Utuh');
+    setKondisiSegelTerminal(item.payload.kondisiSegelTerminal || 'Baik / Utuh');
+    setKondisiSegelMcb(item.payload.kondisiSegelMcb || 'Baik / Utuh');
+    setTeganganVolt(item.payload.teganganVolt || '220 V');
+    setArusAmpere(item.payload.arusAmpere || '3.5 A');
+    setUjiAkurasiPutaran(item.payload.ujiAkurasiPutaran || 'Normal / Akurat (0%)');
+    setKesimpulanPemeriksaan(item.payload.kesimpulanPemeriksaan || 'Normal & Sesuai Standar');
+    setUraianTemuan(item.payload.uraianTemuan || '');
+    setTindakanPetugas(item.payload.tindakanPetugas || 'Pemeriksaan berkala selesai, instalasi & segel dinyatakan laik operasi.');
+    setPetugas1(item.payload.petugas1 || currentUser?.name || 'Petugas Teknik ULP');
+    setPetugas2(item.payload.petugas2 || 'Petugas Yantek');
+    setNamaSaksiPelanggan(item.payload.namaSaksiPelanggan || '');
+    setNoHpPelanggan(item.payload.noHpPelanggan || '');
+
     // Reset and populate payload states
     setNamaPegawai(item.payload.namaPegawai || '');
     setNip(item.payload.nip || '');
@@ -212,12 +281,37 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
 
   const handleOpenNewModal = () => {
     setEditItem(null);
-    setNomorSurat(`PLN/BGA/${new Date().getFullYear()}/${Math.floor(100 + Math.random() * 900)}`);
+    const prefix = jenisSurat === 'ba_pemeriksaan_iml' ? 'BA-IML/PLN-BGA' : 'PLN/BGA';
+    setNomorSurat(`${prefix}/${new Date().getFullYear()}/${Math.floor(100 + Math.random() * 900)}`);
     setTanggalSurat(new Date().toISOString().split('T')[0]);
     setStatus('Draft');
     setCatatan('');
     
     // Clear payloads
+    setIdPelanggan('');
+    setNoMeter('');
+    setNamaPelanggan('');
+    setAlamatPelanggan('');
+    setTarifDaya('R1 / 1300 VA');
+    setFasa('1 Fasa');
+    setTipeMeter('Prabayar (Token)');
+    setStandKwh('');
+    setStandKvarh('');
+    setMcbTerpasang('6A (CL6)');
+    setKondisiSegelMeter('Baik / Utuh');
+    setKondisiSegelTerminal('Baik / Utuh');
+    setKondisiSegelMcb('Baik / Utuh');
+    setTeganganVolt('220 V');
+    setArusAmpere('3.5 A');
+    setUjiAkurasiPutaran('Normal / Akurat (0%)');
+    setKesimpulanPemeriksaan('Normal & Sesuai Standar');
+    setUraianTemuan('');
+    setTindakanPetugas('Pemeriksaan berkala selesai, instalasi & segel dinyatakan laik operasi.');
+    setPetugas1(currentUser?.name || 'Petugas Teknik ULP');
+    setPetugas2('Petugas Yantek');
+    setNamaSaksiPelanggan('');
+    setNoHpPelanggan('');
+
     setNamaPegawai('');
     setNip('');
     setJabatan('');
@@ -257,7 +351,31 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
 
     // Construct Payload
     const payload: SuratItem['payload'] = {};
-    if (jenisSurat === 'surat_cuti') {
+    if (jenisSurat === 'ba_pemeriksaan_iml') {
+      payload.idPelanggan = idPelanggan;
+      payload.noMeter = noMeter;
+      payload.namaPelanggan = namaPelanggan;
+      payload.alamatPelanggan = alamatPelanggan;
+      payload.tarifDaya = tarifDaya;
+      payload.fasa = fasa;
+      payload.tipeMeter = tipeMeter;
+      payload.standKwh = standKwh;
+      payload.standKvarh = standKvarh;
+      payload.mcbTerpasang = mcbTerpasang;
+      payload.kondisiSegelMeter = kondisiSegelMeter;
+      payload.kondisiSegelTerminal = kondisiSegelTerminal;
+      payload.kondisiSegelMcb = kondisiSegelMcb;
+      payload.teganganVolt = teganganVolt;
+      payload.arusAmpere = arusAmpere;
+      payload.ujiAkurasiPutaran = ujiAkurasiPutaran;
+      payload.kesimpulanPemeriksaan = kesimpulanPemeriksaan;
+      payload.uraianTemuan = uraianTemuan;
+      payload.tindakanPetugas = tindakanPetugas;
+      payload.petugas1 = petugas1;
+      payload.petugas2 = petugas2;
+      payload.namaSaksiPelanggan = namaSaksiPelanggan;
+      payload.noHpPelanggan = noHpPelanggan;
+    } else if (jenisSurat === 'surat_cuti') {
       payload.namaPegawai = namaPegawai;
       payload.nip = nip;
       payload.jabatan = jabatan;
@@ -333,6 +451,8 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
   // Helper formatting names
   const getJenisSuratBadge = (type: JenisSurat) => {
     switch (type) {
+      case 'ba_pemeriksaan_iml':
+        return <span className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-teal-50 text-teal-700 border border-teal-200">BA Pemeriksaan IML</span>;
       case 'surat_cuti':
         return <span className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">Surat Cuti</span>;
       case 'permintaan_alker':
@@ -356,6 +476,9 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
         s.perihal.toLowerCase().includes(q) ||
         s.kepada.toLowerCase().includes(q) ||
         s.pembuat.toLowerCase().includes(q) ||
+        (s.payload.namaPelanggan && s.payload.namaPelanggan.toLowerCase().includes(q)) ||
+        (s.payload.idPelanggan && s.payload.idPelanggan.toLowerCase().includes(q)) ||
+        (s.payload.noMeter && s.payload.noMeter.toLowerCase().includes(q)) ||
         (s.payload.namaPegawai && s.payload.namaPegawai.toLowerCase().includes(q)) ||
         (s.payload.namaProyek && s.payload.namaProyek.toLowerCase().includes(q));
       return matchType && matchQuery;
@@ -365,13 +488,14 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
   // Aggregate stats
   const stats = useMemo(() => {
     const total = suratList.length;
+    const iml = suratList.filter((s) => s.jenisSurat === 'ba_pemeriksaan_iml').length;
     const cuti = suratList.filter((s) => s.jenisSurat === 'surat_cuti').length;
     const alker = suratList.filter((s) => s.jenisSurat === 'permintaan_alker').length;
     const cmc = suratList.filter((s) => s.jenisSurat === 'cmc_petugas').length;
     const panggil = suratList.filter((s) => s.jenisSurat === 'surat_panggilan').length;
     const mat = suratList.filter((s) => s.jenisSurat === 'permintaan_material').length;
 
-    return { total, cuti, alker, cmc, panggil, mat };
+    return { total, iml, cuti, alker, cmc, panggil, mat };
   }, [suratList]);
 
   // Formatter Date Indonesian
@@ -425,30 +549,69 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
       </div>
 
       {/* METRIC SUMMARY */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Surat</span>
-          <span className="text-xl font-black text-slate-800 mt-1">{stats.total}</span>
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
+        <div 
+          onClick={() => setSelectedTypeFilter('all')}
+          className={`p-4 rounded-xl border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
+            selectedTypeFilter === 'all' ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-slate-400' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <span className={`text-[10px] font-black uppercase tracking-wider ${selectedTypeFilter === 'all' ? 'text-slate-300' : 'text-slate-400'}`}>Total Surat</span>
+          <span className={`text-xl font-black mt-1 ${selectedTypeFilter === 'all' ? 'text-white' : 'text-slate-800'}`}>{stats.total}</span>
         </div>
-        <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 shadow-xs flex flex-col justify-between">
-          <span className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Surat Cuti</span>
-          <span className="text-xl font-black text-emerald-700 mt-1">{stats.cuti}</span>
+        <div 
+          onClick={() => setSelectedTypeFilter('ba_pemeriksaan_iml')}
+          className={`p-4 rounded-xl border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
+            selectedTypeFilter === 'ba_pemeriksaan_iml' ? 'bg-teal-700 text-white border-teal-700 ring-2 ring-teal-300' : 'bg-teal-50/60 border-teal-200 hover:border-teal-300'
+          }`}
+        >
+          <span className={`text-[10px] font-black uppercase tracking-wider ${selectedTypeFilter === 'ba_pemeriksaan_iml' ? 'text-teal-100' : 'text-teal-700'}`}>BA IML</span>
+          <span className={`text-xl font-black mt-1 ${selectedTypeFilter === 'ba_pemeriksaan_iml' ? 'text-white' : 'text-teal-800'}`}>{stats.iml}</span>
         </div>
-        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200 shadow-xs flex flex-col justify-between">
-          <span className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Request Alker</span>
-          <span className="text-xl font-black text-amber-700 mt-1">{stats.alker}</span>
+        <div 
+          onClick={() => setSelectedTypeFilter('surat_cuti')}
+          className={`p-4 rounded-xl border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
+            selectedTypeFilter === 'surat_cuti' ? 'bg-emerald-700 text-white border-emerald-700 ring-2 ring-emerald-300' : 'bg-emerald-50/50 border-emerald-200 hover:border-emerald-300'
+          }`}
+        >
+          <span className={`text-[10px] font-black uppercase tracking-wider ${selectedTypeFilter === 'surat_cuti' ? 'text-emerald-100' : 'text-emerald-600'}`}>Surat Cuti</span>
+          <span className={`text-xl font-black mt-1 ${selectedTypeFilter === 'surat_cuti' ? 'text-white' : 'text-emerald-700'}`}>{stats.cuti}</span>
         </div>
-        <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-200 shadow-xs flex flex-col justify-between">
-          <span className="text-[10px] font-black uppercase text-purple-600 tracking-wider">CMC Petugas</span>
-          <span className="text-xl font-black text-purple-700 mt-1">{stats.cmc}</span>
+        <div 
+          onClick={() => setSelectedTypeFilter('permintaan_alker')}
+          className={`p-4 rounded-xl border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
+            selectedTypeFilter === 'permintaan_alker' ? 'bg-amber-700 text-white border-amber-700 ring-2 ring-amber-300' : 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
+          }`}
+        >
+          <span className={`text-[10px] font-black uppercase tracking-wider ${selectedTypeFilter === 'permintaan_alker' ? 'text-amber-100' : 'text-amber-600'}`}>Request Alker</span>
+          <span className={`text-xl font-black mt-1 ${selectedTypeFilter === 'permintaan_alker' ? 'text-white' : 'text-amber-700'}`}>{stats.alker}</span>
         </div>
-        <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-200 shadow-xs flex flex-col justify-between">
-          <span className="text-[10px] font-black uppercase text-rose-600 tracking-wider">Panggilan</span>
-          <span className="text-xl font-black text-rose-700 mt-1">{stats.panggil}</span>
+        <div 
+          onClick={() => setSelectedTypeFilter('cmc_petugas')}
+          className={`p-4 rounded-xl border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
+            selectedTypeFilter === 'cmc_petugas' ? 'bg-purple-700 text-white border-purple-700 ring-2 ring-purple-300' : 'bg-purple-50/50 border-purple-200 hover:border-purple-300'
+          }`}
+        >
+          <span className={`text-[10px] font-black uppercase tracking-wider ${selectedTypeFilter === 'cmc_petugas' ? 'text-purple-100' : 'text-purple-600'}`}>CMC Petugas</span>
+          <span className={`text-xl font-black mt-1 ${selectedTypeFilter === 'cmc_petugas' ? 'text-white' : 'text-purple-700'}`}>{stats.cmc}</span>
         </div>
-        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 shadow-xs flex flex-col justify-between">
-          <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Minta Material</span>
-          <span className="text-xl font-black text-blue-700 mt-1">{stats.mat}</span>
+        <div 
+          onClick={() => setSelectedTypeFilter('surat_panggilan')}
+          className={`p-4 rounded-xl border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
+            selectedTypeFilter === 'surat_panggilan' ? 'bg-rose-700 text-white border-rose-700 ring-2 ring-rose-300' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'
+          }`}
+        >
+          <span className={`text-[10px] font-black uppercase tracking-wider ${selectedTypeFilter === 'surat_panggilan' ? 'text-rose-100' : 'text-rose-600'}`}>Panggilan</span>
+          <span className={`text-xl font-black mt-1 ${selectedTypeFilter === 'surat_panggilan' ? 'text-white' : 'text-rose-700'}`}>{stats.panggil}</span>
+        </div>
+        <div 
+          onClick={() => setSelectedTypeFilter('permintaan_material')}
+          className={`p-4 rounded-xl border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
+            selectedTypeFilter === 'permintaan_material' ? 'bg-blue-700 text-white border-blue-700 ring-2 ring-blue-300' : 'bg-blue-50/50 border-blue-200 hover:border-blue-300'
+          }`}
+        >
+          <span className={`text-[10px] font-black uppercase tracking-wider ${selectedTypeFilter === 'permintaan_material' ? 'text-blue-100' : 'text-blue-600'}`}>Minta Material</span>
+          <span className={`text-xl font-black mt-1 ${selectedTypeFilter === 'permintaan_material' ? 'text-white' : 'text-blue-700'}`}>{stats.mat}</span>
         </div>
       </div>
 
@@ -458,10 +621,10 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
           <Search className="w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Cari nomor, perihal, nama pegawai..."
+            placeholder="Cari nomor, IDPEL, pelanggan, perihal..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs w-full md:w-64 focus:outline-none focus:bg-white focus:border-blue-500"
+            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs w-full md:w-72 focus:outline-none focus:bg-white focus:border-teal-500"
           />
         </div>
         <div className="flex gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
@@ -474,6 +637,16 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
             }`}
           >
             Semua
+          </button>
+          <button
+            onClick={() => setSelectedTypeFilter('ba_pemeriksaan_iml')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+              selectedTypeFilter === 'ba_pemeriksaan_iml'
+                ? 'bg-teal-600 text-white'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+            }`}
+          >
+            BA IML
           </button>
           <button
             onClick={() => setSelectedTypeFilter('surat_cuti')}
@@ -531,9 +704,9 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
       {/* MAIN LIST TABLE */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
         {loading ? (
-          <div className="p-8 text-center text-slate-500 text-xs">Memuat daftar surat...</div>
+          <div className="p-8 text-center text-slate-500 text-xs">Memuat daftar surat & berita acara...</div>
         ) : filteredSurat.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 text-xs">Belum ada surat yang terdaftar atau cocok dengan pencarian Anda.</div>
+          <div className="p-12 text-center text-slate-500 text-xs">Belum ada dokumen yang terdaftar atau cocok dengan pencarian Anda.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
@@ -542,7 +715,7 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
                   <th className="p-3.5">Tanggal / No Surat</th>
                   <th className="p-3.5">Jenis</th>
                   <th className="p-3.5">Perihal & Kepada</th>
-                  <th className="p-3.5">Detail Pegawai / Pekerjaan</th>
+                  <th className="p-3.5">Detail Pelanggan / Pegawai</th>
                   <th className="p-3.5">Status</th>
                   <th className="p-3.5 text-right">Aksi</th>
                 </tr>
@@ -560,6 +733,12 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
                       <div className="text-slate-500 text-[11px] mt-0.5">Yth. {surat.kepada}</div>
                     </td>
                     <td className="p-3.5">
+                      {surat.jenisSurat === 'ba_pemeriksaan_iml' && (
+                        <div>
+                          <div className="text-slate-800 font-bold">{surat.payload.namaPelanggan || 'Pelanggan'} <span className="font-mono text-[11px] text-teal-700">({surat.payload.idPelanggan || '-'})</span></div>
+                          <div className="text-[10px] text-slate-500">Tarif/Daya: {surat.payload.tarifDaya || '-'} | Kesimpulan: <strong className="text-slate-700">{surat.payload.kesimpulanPemeriksaan || '-'}</strong></div>
+                        </div>
+                      )}
                       {surat.jenisSurat === 'surat_cuti' && (
                         <div>
                           <div className="text-slate-800 font-bold">{surat.payload.namaPegawai || '-'}</div>
@@ -657,13 +836,14 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Jenis Surat */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Jenis Format Surat</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Jenis Format Dokumen</label>
                   <select
                     disabled={!!editItem}
                     value={jenisSurat}
                     onChange={(e) => setJenisSurat(e.target.value as JenisSurat)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 cursor-pointer disabled:opacity-60"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-teal-500 cursor-pointer disabled:opacity-60"
                   >
+                    <option value="ba_pemeriksaan_iml">Berita Acara Pemeriksaan IML (APP & KWh Meter)</option>
                     <option value="surat_cuti">Surat Cuti Pegawai</option>
                     <option value="permintaan_alker">Permintaan Alat Kerja (Alker)</option>
                     <option value="cmc_petugas">CMC Petugas (Checklist & Monitoring)</option>
@@ -674,26 +854,26 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
 
                 {/* Nomor Surat */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Nomor Surat</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Nomor Surat / Berita Acara</label>
                   <input
                     type="text"
                     required
                     value={nomorSurat}
                     onChange={(e) => setNomorSurat(e.target.value)}
-                    placeholder="Contoh: PLN/BGA/2026/045"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500"
+                    placeholder="Contoh: BA-IML/PLN-BGA/2026/045"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-teal-500"
                   />
                 </div>
 
                 {/* Tanggal Surat */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Tanggal Surat</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Tanggal Surat / Pemeriksaan</label>
                   <input
                     type="date"
                     required
                     value={tanggalSurat}
                     onChange={(e) => setTanggalSurat(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-teal-500"
                   />
                 </div>
 
@@ -705,38 +885,280 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
                     required
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-teal-500"
                   />
                 </div>
 
                 {/* Perihal */}
                 <div className="md:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Perihal</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Perihal Dokumen</label>
                   <input
                     type="text"
                     required
                     value={perihal}
                     onChange={(e) => setPerihal(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-teal-500"
                   />
                 </div>
 
                 {/* Kepada */}
                 <div className="md:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Tujuan Surat (Kepada Yth.)</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Tujuan Dokumen (Kepada Yth.)</label>
                   <input
                     type="text"
                     required
                     value={kepada}
                     onChange={(e) => setKepada(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-teal-500"
                   />
                 </div>
               </div>
 
               {/* DYNAMIC FORM CONTROLS ACCORDING TO JENIS SURAT */}
               <div className="border-t border-slate-100 pt-4 space-y-4">
-                <span className="text-[11px] font-extrabold text-blue-700 uppercase tracking-wider block">Input Payload Konten Surat</span>
+                <span className="text-[11px] font-extrabold text-teal-700 uppercase tracking-wider block">Input Payload Konten Surat</span>
+
+                {/* 0. BA PEMERIKSAAN IML PAYLOAD */}
+                {jenisSurat === 'ba_pemeriksaan_iml' && (
+                  <div className="space-y-4 bg-teal-50/40 p-4 rounded-xl border border-teal-200/70">
+                    <div className="text-xs font-bold text-teal-900 border-b border-teal-200 pb-1 flex items-center gap-1.5">
+                      <HardHat className="w-3.5 h-3.5 text-teal-700" />
+                      1. Data Pelanggan & APP Terpasang
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">ID Pelanggan (IDPEL)</label>
+                        <input
+                          type="text"
+                          required
+                          value={idPelanggan}
+                          onChange={(e) => setIdPelanggan(e.target.value)}
+                          placeholder="Contoh: 541200192837"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">No. Seri KWh Meter</label>
+                        <input
+                          type="text"
+                          required
+                          value={noMeter}
+                          onChange={(e) => setNoMeter(e.target.value)}
+                          placeholder="Contoh: 14209847123"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Nama Pelanggan</label>
+                        <input
+                          type="text"
+                          required
+                          value={namaPelanggan}
+                          onChange={(e) => setNamaPelanggan(e.target.value)}
+                          placeholder="Nama lengkap sesuai kontrak"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Alamat Lengkap</label>
+                        <input
+                          type="text"
+                          required
+                          value={alamatPelanggan}
+                          onChange={(e) => setAlamatPelanggan(e.target.value)}
+                          placeholder="Jl. / RT / RW / Desa / Kecamatan"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Tarif / Daya Kontrak</label>
+                        <input
+                          type="text"
+                          required
+                          value={tarifDaya}
+                          onChange={(e) => setTarifDaya(e.target.value)}
+                          placeholder="Contoh: R1 / 1300 VA"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Jumlah Fasa</label>
+                        <select
+                          value={fasa}
+                          onChange={(e) => setFasa(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        >
+                          <option value="1 Fasa">1 Fasa</option>
+                          <option value="3 Fasa">3 Fasa</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Jenis KWh Meter</label>
+                        <select
+                          value={tipeMeter}
+                          onChange={(e) => setTipeMeter(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        >
+                          <option value="Prabayar (Token)">Prabayar (Token / Smart Meter)</option>
+                          <option value="Pascabayar">Pascabayar (Reguler)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Pembatas Arus (MCB)</label>
+                        <input
+                          type="text"
+                          required
+                          value={mcbTerpasang}
+                          onChange={(e) => setMcbTerpasang(e.target.value)}
+                          placeholder="Contoh: 6A (CL6)"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-bold text-teal-900 border-b border-teal-200 pb-1 pt-2 flex items-center gap-1.5">
+                      <Gauge className="w-3.5 h-3.5 text-teal-700" />
+                      2. Pengukuran & Kondisi Fisik APP
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Stand Akhir kWh</label>
+                        <input
+                          type="text"
+                          value={standKwh}
+                          onChange={(e) => setStandKwh(e.target.value)}
+                          placeholder="Contoh: 14820.5"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Tegangan Terukur (Volt)</label>
+                        <input
+                          type="text"
+                          value={teganganVolt}
+                          onChange={(e) => setTeganganVolt(e.target.value)}
+                          placeholder="Contoh: 220 V"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Arus Beban Terukur (Ampere)</label>
+                        <input
+                          type="text"
+                          value={arusAmpere}
+                          onChange={(e) => setArusAmpere(e.target.value)}
+                          placeholder="Contoh: 4.2 A"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Kondisi Segel KWh Meter</label>
+                        <select
+                          value={kondisiSegelMeter}
+                          onChange={(e) => setKondisiSegelMeter(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        >
+                          <option value="Baik / Utuh">Baik / Utuh</option>
+                          <option value="Rusak / Putus">Rusak / Putus</option>
+                          <option value="Tidak Terpasang">Tidak Terpasang</option>
+                          <option value="Bukan Segel Resmi">Bukan Segel Resmi</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Kondisi Segel Terminal</label>
+                        <select
+                          value={kondisiSegelTerminal}
+                          onChange={(e) => setKondisiSegelTerminal(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        >
+                          <option value="Baik / Utuh">Baik / Utuh</option>
+                          <option value="Rusak / Putus">Rusak / Putus</option>
+                          <option value="Tidak Terpasang">Tidak Terpasang</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Uji Akurasi Putaran Meter</label>
+                        <input
+                          type="text"
+                          value={ujiAkurasiPutaran}
+                          onChange={(e) => setUjiAkurasiPutaran(e.target.value)}
+                          placeholder="Normal / Akurat (0%)"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-bold text-teal-900 border-b border-teal-200 pb-1 pt-2 flex items-center gap-1.5">
+                      <ClipboardCheck className="w-3.5 h-3.5 text-teal-700" />
+                      3. Kesimpulan, Temuan & Petugas Pemeriksa
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Kesimpulan Pemeriksaan</label>
+                        <select
+                          value={kesimpulanPemeriksaan}
+                          onChange={(e) => setKesimpulanPemeriksaan(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-teal-500"
+                        >
+                          <option value="Normal & Sesuai Standar">Normal & Sesuai Standar Operasi</option>
+                          <option value="Perlu Peremajaan KWh Meter">Perlu Penggantian / Peremajaan Meter Rusak</option>
+                          <option value="Pengawatan Terbalik / Salah Sambung">Pengawatan Terbalik / Salah Sambung</option>
+                          <option value="MCB Tidak Sesuai Kontrak">MCB Tidak Sesuai Kontrak (Diperbesar/Bypass)</option>
+                          <option value="Indikasi Pelanggaran P2TL">Indikasi Pelanggaran P2TL</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Nama Saksi / Pelanggan</label>
+                        <input
+                          type="text"
+                          value={namaSaksiPelanggan}
+                          onChange={(e) => setNamaSaksiPelanggan(e.target.value)}
+                          placeholder="Nama pemilik rumah / penghuni"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Uraian Temuan / Catatan Khusus di Lokasi</label>
+                        <textarea
+                          value={uraianTemuan}
+                          onChange={(e) => setUraianTemuan(e.target.value)}
+                          rows={2}
+                          placeholder="Tuliskan catatan kondisi visual, kendala, atau temuan teknis lainnya di lapangan..."
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Tindakan Petugas Lapangan</label>
+                        <input
+                          type="text"
+                          value={tindakanPetugas}
+                          onChange={(e) => setTindakanPetugas(e.target.value)}
+                          placeholder="Contoh: Pemeriksaan berkala selesai, segel dinormalkan kembali..."
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Petugas Pemeriksa 1</label>
+                        <input
+                          type="text"
+                          required
+                          value={petugas1}
+                          onChange={(e) => setPetugas1(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Petugas Pemeriksa 2 (Pendamping)</label>
+                        <input
+                          type="text"
+                          value={petugas2}
+                          onChange={(e) => setPetugas2(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* 1. SURAT CUTI PAYLOAD */}
                 {jenisSurat === 'surat_cuti' && (
@@ -1266,6 +1688,60 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
               {/* BODY CONTENT - CONDITIONALLY RENDERED BY JENIS SURAT */}
               <div className="text-xs space-y-4 text-justify min-h-[400px]">
                 
+                {/* 0. BERITA ACARA PEMERIKSAAN IML */}
+                {printItem.jenisSurat === 'ba_pemeriksaan_iml' && (
+                  <>
+                    <div className="text-center font-bold uppercase mb-4 border-b pb-2">
+                      <h4 className="text-sm underline">BERITA ACARA PEMERIKSAAN INSTALASI & APP PELANGGAN</h4>
+                      <p className="text-[10px] text-slate-600 font-normal tracking-wide normal-case mt-0.5">
+                        Pemeriksaan Fisik KWh Meter, Pembatas Arus (MCB), Segel dan Pengawatan Instalasi Milik PLN (IML)
+                      </p>
+                    </div>
+
+                    <p>
+                      Pada hari ini tanggal <strong>{formatDateIndo(printItem.tanggalSurat)}</strong>, kami yang bertanda tangan di bawah ini Petugas PT PLN (Persero) ULP Baguala telah melaksanakan pemeriksaan teknis terhadap Alat Pembatas dan Pengukur (APP) serta Instalasi Milik PLN di lokasi pelanggan dengan rincian data sebagai berikut:
+                    </p>
+
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 my-2 space-y-1.5">
+                      <div className="font-bold text-slate-800 text-[11px] border-b border-slate-200 pb-1">A. DATA PELANGGAN & APP TERPASANG</div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                        <div><span className="inline-block w-32 font-semibold">ID Pelanggan (IDPEL)</span>: <strong className="font-mono">{printItem.payload.idPelanggan || '-'}</strong></div>
+                        <div><span className="inline-block w-32 font-semibold">No Seri Meter</span>: <span className="font-mono">{printItem.payload.noMeter || '-'}</span></div>
+                        <div><span className="inline-block w-32 font-semibold">Nama Pelanggan</span>: <strong>{printItem.payload.namaPelanggan || '-'}</strong></div>
+                        <div><span className="inline-block w-32 font-semibold">Tarif / Daya</span>: {printItem.payload.tarifDaya || '-'}</div>
+                        <div><span className="inline-block w-32 font-semibold">Tipe Meter / Fasa</span>: {printItem.payload.tipeMeter || 'Prabayar'} / {printItem.payload.fasa || '1 Fasa'}</div>
+                        <div><span className="inline-block w-32 font-semibold">MCB Pembatas</span>: {printItem.payload.mcbTerpasang || '-'}</div>
+                        <div className="col-span-2"><span className="inline-block w-32 font-semibold">Alamat Lokasi</span>: {printItem.payload.alamatPelanggan || '-'}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 my-2 space-y-1.5">
+                      <div className="font-bold text-slate-800 text-[11px] border-b border-slate-200 pb-1">B. HASIL PENGUKURAN & KONDISI FISIK APP</div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                        <div><span className="inline-block w-32 font-semibold">Stand Akhir kWh</span>: <span className="font-mono font-bold">{printItem.payload.standKwh || '-'}</span></div>
+                        <div><span className="inline-block w-32 font-semibold">Tegangan (Volt)</span>: {printItem.payload.teganganVolt || '-'}</div>
+                        <div><span className="inline-block w-32 font-semibold">Arus Beban (Ampere)</span>: {printItem.payload.arusAmpere || '-'}</div>
+                        <div><span className="inline-block w-32 font-semibold">Akurasi Putaran</span>: {printItem.payload.ujiAkurasiPutaran || 'Normal (0%)'}</div>
+                        <div><span className="inline-block w-32 font-semibold">Segel Meter</span>: {printItem.payload.kondisiSegelMeter || 'Baik / Utuh'}</div>
+                        <div><span className="inline-block w-32 font-semibold">Segel Terminal</span>: {printItem.payload.kondisiSegelTerminal || 'Baik / Utuh'}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 my-2 space-y-1.5">
+                      <div className="font-bold text-slate-800 text-[11px] border-b border-slate-200 pb-1">C. KESIMPULAN & TINDAKAN PETUGAS</div>
+                      <div className="space-y-1 text-xs">
+                        <div><span className="font-semibold">Kesimpulan Pemeriksaan:</span> <strong className="text-teal-900 bg-teal-100/70 px-2 py-0.5 rounded">{printItem.payload.kesimpulanPemeriksaan || 'Normal & Sesuai Standar'}</strong></div>
+                        <div><span className="font-semibold">Uraian Temuan / Kondisi:</span> {printItem.payload.uraianTemuan || 'Semua rangkaian pengawatan, terminal, dan pembatas arus berfungsi dengan baik sesuai ketentuan PLN.'}</div>
+                        <div><span className="font-semibold">Tindakan Lapangan:</span> {printItem.payload.tindakanPetugas || 'Pemeriksaan rutin selesai dilaksanakan, segel ditutup dan dinormalkan.'}</div>
+                      </div>
+                    </div>
+
+                    <p>
+                      Demikian Berita Acara Pemeriksaan Instalasi Milik PLN (IML) ini dibuat dengan sebenarnya dalam rangkap secukupnya serta disaksikan oleh pihak Pelanggan/Saksi yang berhak untuk dipergunakan sebagaimana mestinya.
+                    </p>
+                  </>
+                )}
+
                 {/* 1. SURAT CUTI BODY */}
                 {printItem.jenisSurat === 'surat_cuti' && (
                   <>
@@ -1430,30 +1906,71 @@ export const FormatSuratView: React.FC<FormatSuratViewProps> = ({ currentUser })
               </div>
 
               {/* CORPORATE SIGNATURE BLOCK */}
-              <div className="mt-12 grid grid-cols-2 text-xs gap-6 text-center">
-                <div className="space-y-16">
-                  <div>
-                    <span className="block text-slate-500">Penerima Tugas / Pemohon,</span>
+              {printItem.jenisSurat === 'ba_pemeriksaan_iml' ? (
+                <div className="mt-10 grid grid-cols-3 text-xs gap-4 text-center">
+                  <div className="space-y-16">
+                    <div>
+                      <span className="block text-slate-500">Pelanggan / Saksi,</span>
+                    </div>
+                    <div>
+                      <strong className="block text-slate-800 underline">
+                        {printItem.payload.namaSaksiPelanggan || printItem.payload.namaPelanggan || 'Pelanggan'}
+                      </strong>
+                      <span className="block text-[10px] text-slate-400 font-mono">Tanda Tangan & Nama Terang</span>
+                    </div>
                   </div>
-                  <div>
-                    <strong className="block text-slate-800 underline">
-                      {printItem.jenisSurat === 'surat_cuti' ? printItem.payload.namaPegawai : (printItem.jenisSurat === 'cmc_petugas' ? printItem.payload.namaKetua : 'Mitra Pelaksana')}
-                    </strong>
-                    <span className="block text-[10px] text-slate-400 font-mono">PT PLN (Persero) ULP Bagua</span>
-                  </div>
-                </div>
 
-                <div className="space-y-16">
-                  <div>
-                    <span className="block text-slate-500">Meyetujui,</span>
-                    <strong className="text-slate-800">Manajer PT PLN (Persero) ULP Bagua</strong>
+                  <div className="space-y-16">
+                    <div>
+                      <span className="block text-slate-500">Petugas Pemeriksa IML,</span>
+                    </div>
+                    <div>
+                      <strong className="block text-slate-800 underline">
+                        {printItem.payload.petugas1 || 'Petugas Teknik'}
+                      </strong>
+                      <span className="block text-[10px] text-slate-400 font-mono">
+                        {printItem.payload.petugas2 ? `& ${printItem.payload.petugas2}` : 'Petugas Pelaksana ULP'}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <strong className="block text-slate-800 underline">{printItem.pembuat}</strong>
-                    <span className="block text-[10px] text-slate-400 font-mono">NIP. 8912345XYZ / MANAGER</span>
+
+                  <div className="space-y-16">
+                    <div>
+                      <span className="block text-slate-500">Mengetahui,</span>
+                      <strong className="text-slate-800">Manajer ULP Baguala</strong>
+                    </div>
+                    <div>
+                      <strong className="block text-slate-800 underline">{printItem.pembuat}</strong>
+                      <span className="block text-[10px] text-slate-400 font-mono">NIP. 8912345XYZ / MANAGER</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-12 grid grid-cols-2 text-xs gap-6 text-center">
+                  <div className="space-y-16">
+                    <div>
+                      <span className="block text-slate-500">Penerima Tugas / Pemohon,</span>
+                    </div>
+                    <div>
+                      <strong className="block text-slate-800 underline">
+                        {printItem.jenisSurat === 'surat_cuti' ? printItem.payload.namaPegawai : (printItem.jenisSurat === 'cmc_petugas' ? printItem.payload.namaKetua : 'Mitra Pelaksana')}
+                      </strong>
+                      <span className="block text-[10px] text-slate-400 font-mono">PT PLN (Persero) ULP Bagua</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-16">
+                    <div>
+                      <span className="block text-slate-500">Menyetujui,</span>
+                      <strong className="text-slate-800">Manajer PT PLN (Persero) ULP Bagua</strong>
+                    </div>
+                    <div>
+                      <strong className="block text-slate-800 underline">{printItem.pembuat}</strong>
+                      <span className="block text-[10px] text-slate-400 font-mono">NIP. 8912345XYZ / MANAGER</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* FOOTER NOTICE (HIDDEN IN PRINT) */}
               <div className="mt-12 pt-4 border-t border-slate-200 text-slate-400 text-[10px] text-center font-mono print:hidden">

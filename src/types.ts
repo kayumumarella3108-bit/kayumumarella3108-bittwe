@@ -21,6 +21,7 @@ export type ViewType =
   | 'monitoring_target_realisasi'
   | 'perintah_kerja'
   | 'format_surat'
+  | 'ba_pemeriksaan_iml'
   | 'master_data'
   | 'master_unit'
   | 'pengukuran_gardu'
@@ -37,7 +38,12 @@ export type ViewType =
   | 'share_laporan'
   | 'survey_pb_pd'
   | 'monitoring_yantek'
-  | 'helpdesk';
+  | 'helpdesk'
+  | 'input_peta_penyulang'
+  | 'peremajaan_meter'
+  | 'meter_sl'
+  | 'monitoring_susut'
+  | 'k3l';
 
 export interface HelpDeskMessage {
   id: string;
@@ -1057,6 +1063,7 @@ export interface JadwalPiket {
 }
 
 export type JenisSurat = 
+  | 'ba_pemeriksaan_iml'
   | 'surat_cuti' 
   | 'permintaan_alker' 
   | 'cmc_petugas' 
@@ -1075,6 +1082,31 @@ export interface SuratItem {
   kodeUnit?: string;
   status: 'Draft' | 'Diajukan' | 'Disetujui' | 'Selesai';
   payload: {
+    // BA Pemeriksaan IML fields
+    idPelanggan?: string;
+    noMeter?: string;
+    namaPelanggan?: string;
+    alamatPelanggan?: string;
+    tarifDaya?: string;
+    fasa?: '1 Fasa' | '3 Fasa' | string;
+    tipeMeter?: 'Prabayar (Token)' | 'Pascabayar' | string;
+    standKwh?: number | string;
+    standKvarh?: number | string;
+    mcbTerpasang?: string;
+    kondisiSegelMeter?: 'Baik / Utuh' | 'Rusak' | 'Putus' | 'Tidak Ada' | string;
+    kondisiSegelTerminal?: 'Baik / Utuh' | 'Rusak' | 'Putus' | 'Tidak Ada' | string;
+    kondisiSegelMcb?: 'Baik / Utuh' | 'Rusak' | 'Putus' | 'Tidak Ada' | string;
+    teganganVolt?: number | string;
+    arusAmpere?: number | string;
+    ujiAkurasiPutaran?: string;
+    kesimpulanPemeriksaan?: 'Normal & Sesuai Standar' | 'Perlu Penggantian Meter' | 'Anomali Pembatas / MCB' | 'Indikasi Pelanggaran / P2TL' | 'Kabel / Pengawatan Rusak' | string;
+    uraianTemuan?: string;
+    tindakanPetugas?: string;
+    petugas1?: string;
+    petugas2?: string;
+    namaSaksiPelanggan?: string;
+    noHpPelanggan?: string;
+
     namaPegawai?: string;
     nip?: string;
     jabatan?: string;
@@ -1269,5 +1301,87 @@ export interface AutoReplyRule {
   createdBy?: string;
   createdAt?: string;
 }
+
+export interface PeremajaanMeterItem {
+  id: string;
+  idPelanggan: string;
+  namaPelanggan: string;
+  tarifDaya: string;
+  alamat: string;
+  noMeterLama: string;
+  merekMeterLama: string;
+  standMeterLama: number;
+  noMeterBaru: string;
+  merekMeterBaru: string;
+  standMeterBaru: number;
+  noSegelBaru: string;
+  alasanPeremajaan: string;
+  petugasPelaksana: string;
+  tglPelaksanaan: string;
+  status: 'SELESAI' | 'DALAM_PROSES' | 'MENUNGGU_APPROVAL';
+  catatan?: string;
+  fotoMeter?: string;
+  unit: string;
+  kodeUnit?: string;
+  createdAt?: string;
+}
+
+export interface MeterSLItem {
+  id: string;
+  idPelangganOrLokasi: string;
+  namaPemohonOrPelanggan: string;
+  kategoriSL: 'PJU (Penerangan Jalan Umum)' | 'Pesta / Penerangan Sementara' | 'Proyek Konstruksi' | 'Pelanggan Prabayar SL' | 'Audit Sambungan Langsung' | string;
+  lokasiAlamat: string;
+  dayaKva: number;
+  arusNominalAmpere: number;
+  tipePengukuran: 'Langsung (Direct)' | 'CT / Indirect' | string;
+  pembatasArus: string;
+  faktorKaliMeter: number;
+  tglPemeriksaan: string;
+  statusKelayakan: 'SESUAI_STANDAR' | 'ANOMALI_ARUS' | 'POTENSI_SUSUT' | 'TERTIBKAN_P2TL' | string;
+  tindakanRekomendasi: string;
+  petugasPemeriksa: string;
+  unit: string;
+  kodeUnit?: string;
+  createdAt?: string;
+}
+
+export interface MonitoringSusutItem {
+  id: string;
+  bulanTahun: string;
+  namaPenyulangOrUnit: string;
+  kwhKirim: number;
+  kwhTerimaOrTerjual: number;
+  kwhSusut: number;
+  persentaseSusut: number;
+  targetSusutPersen: number;
+  kategoriSusut: 'SUSUT_TEKNIS' | 'SUSUT_NON_TEKNIS' | 'GABUNGAN' | string;
+  statusTarget: 'TERCAPAI' | 'WASPADA' | 'OVER_TARGET' | string;
+  akarMasalah: string;
+  tindakanUpaya: string;
+  unit: string;
+  kodeUnit?: string;
+  createdAt?: string;
+}
+
+export interface K3LItem {
+  id: string;
+  namaItem: string;
+  kategori: 'APD Wajib' | 'Alat Pelindung Kolektif (APK)' | 'Peralatan Kerja Bertegangan' | 'Alat Ukur & Uji K3' | 'Kotak P3K & Safety Kit' | string;
+  jumlahTersedia: number;
+  jumlahKondisiBaik: number;
+  jumlahRusak: number;
+  satuan: string;
+  lokasiPenyimpanan: string;
+  tglUjiKelayakanTerakhir?: string;
+  tglKadaluarsaOrReuji?: string;
+  statusKelayakan: 'LAYAK_PAKAI' | 'PERLU_UJI_ULANG' | 'RUSAK_AFKIR' | 'KADALUARSA' | string;
+  penanggungJawab: string;
+  keterangan?: string;
+  unit: string;
+  kodeUnit?: string;
+  createdAt?: string;
+}
+
 
 

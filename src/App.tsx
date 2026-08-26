@@ -114,6 +114,9 @@ import { KalkulatorListrikView } from './components/views/KalkulatorListrikView'
 import { MonitoringYantekView } from './components/views/MonitoringYantekView';
 import { MasterUnitView } from './components/views/MasterUnitView';
 import { HelpDeskView } from './components/views/HelpDeskView';
+import { PeremajaanMeterView } from './components/views/PeremajaanMeterView';
+import { MeterSLView } from './components/views/MeterSLView';
+import { MonitoringSusutView } from './components/views/MonitoringSusutView';
 
 export default function App() {
   // Authentication state
@@ -2833,8 +2836,11 @@ export default function App() {
             />
           )}
 
-          {activeView === 'format_surat' && (
-            <FormatSuratView currentUser={user} />
+          {(activeView === 'format_surat' || activeView === 'ba_pemeriksaan_iml') && (
+            <FormatSuratView
+              currentUser={user}
+              initialTypeFilter={activeView === 'ba_pemeriksaan_iml' ? 'ba_pemeriksaan_iml' : undefined}
+            />
           )}
 
           {activeView === 'pengukuran_gardu' && (
@@ -2954,6 +2960,27 @@ export default function App() {
               kendaraanList={kendaraanList}
               onUpdateKendaraan={handleUpdateKendaraan}
               onSelectView={setActiveView}
+            />
+          )}
+
+          {activeView === 'peremajaan_meter' && (
+            <PeremajaanMeterView
+              currentUser={user}
+              penyulangList={filteredPenyulangList}
+            />
+          )}
+
+          {activeView === 'meter_sl' && (
+            <MeterSLView
+              currentUser={user}
+              penyulangList={filteredPenyulangList}
+            />
+          )}
+
+          {activeView === 'monitoring_susut' && (
+            <MonitoringSusutView
+              currentUser={user}
+              penyulangList={filteredPenyulangList}
             />
           )}
 
