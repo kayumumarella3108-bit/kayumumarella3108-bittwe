@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, MessageSquare, History } from 'lucide-react';
+import { Menu, MessageSquare } from 'lucide-react';
 import { User as UserType, ViewType } from '../types';
 import { isOwnerUser } from '../utils/permissions';
 import { useSearch } from '../context/SearchContext';
@@ -62,7 +62,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           </div>
         </div>
         
-        {/* Search Input - Moved here */}
+        {/* Search Input */}
         <div className="items-center bg-[#012521] border border-teal-700 rounded-xl px-3 py-1.5 shadow-inner hidden md:flex w-64">
           <input
             type="text"
@@ -74,54 +74,38 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right Section: Live Chat, Online Monitoring */}
-      <div className="flex items-center gap-2.5 md:gap-4">
+      {/* Right Section: Header Navigation Menu */}
+      <div className="flex items-center gap-2 sm:gap-3 bg-teal-950/70 border border-teal-500/40 p-1.5 rounded-2xl shadow-inner backdrop-blur-md">
+        {/* Menu Live Chat */}
         <button
           onClick={() => onSelectView('live_chat')}
-          className={`hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-md backdrop-blur-xs ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-xs ${
             activeView === 'live_chat'
-              ? 'bg-teal-400 text-slate-950 border-teal-200 shadow-teal-500/40 scale-105'
-              : 'bg-teal-900/70 text-white hover:bg-teal-800/90 border-teal-500/60 hover:border-teal-300'
+              ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 border-teal-200 font-black shadow-teal-500/30 scale-[1.02]'
+              : 'bg-teal-900/60 text-white hover:bg-teal-800/80 border-teal-600/50 hover:border-teal-300'
           }`}
           title="Buka Live Chat"
         >
-          <MessageSquare className={`w-4 h-4 md:w-5 md:h-5 ${activeView === 'live_chat' ? 'text-slate-950' : 'text-teal-300'}`} />
+          <MessageSquare className={`w-4 h-4 ${activeView === 'live_chat' ? 'text-slate-950' : 'text-teal-300'}`} />
           <span>Live Chat</span>
         </button>
 
-        {isOwner && (
-          <button
-            onClick={() => onSelectView('log_aktivitas')}
-            className={`hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-md backdrop-blur-xs ${
-              activeView === 'log_aktivitas'
-                ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-amber-500/40 scale-105'
-                : 'bg-amber-900/70 text-white hover:bg-amber-800/90 border-amber-500/60 hover:border-amber-300'
-            }`}
-            title="Buka Log Aktivitas"
-          >
-            <History className={`w-4 h-4 md:w-5 md:h-5 ${activeView === 'log_aktivitas' ? 'text-slate-950' : 'text-amber-300'}`} />
-            <span>Log Aktivitas</span>
-          </button>
-        )}
-
+        {/* Menu Monitoring Online */}
         {isOwner && (
           <button
             onClick={() => onSelectView('monitoring_online')}
-            className={`hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-md backdrop-blur-xs ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-xs ${
               activeView === 'monitoring_online'
-                ? 'bg-emerald-400 text-slate-950 border-emerald-200 shadow-emerald-400/40 scale-105'
-                : 'bg-[#02312b]/85 text-white hover:bg-teal-800/90 border-teal-500/60 hover:border-emerald-300'
+                ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 border-emerald-300 font-black shadow-emerald-400/30 scale-[1.02]'
+                : 'bg-[#02312b]/90 text-white hover:bg-teal-800/80 border-teal-600/50 hover:border-emerald-300'
             }`}
             title="Buka Monitoring User Online (Live)"
           >
-            <span className="relative flex h-3 w-3">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
             </span>
-            <span className="text-white font-black">{onlineCount !== undefined ? `${onlineCount} Online` : 'Live Online'}</span>
-            <span className="px-2 py-0.5 bg-emerald-500/30 text-emerald-200 text-[10px] font-black rounded-md uppercase border border-emerald-400/40">
-              Sistem
-            </span>
+            <span className="font-bold">{onlineCount !== undefined ? `${onlineCount} Online` : 'Live Online'}</span>
           </button>
         )}
       </div>

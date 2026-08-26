@@ -193,5 +193,10 @@ service cloud.firestore {
       allow get, write: if isValidId(id);
       allow list: if true;
     }
+
+    match /monitoring_lembur/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
   }
 }

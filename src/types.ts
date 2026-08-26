@@ -5,6 +5,7 @@ export type ViewType =
   | 'spklu'
   | 'peta'
   | 'peta_penyulang'
+  | 'peta_gardu'
   | 'peta_pohon'
   | 'peta_konstruksi'
   | 'health_index'
@@ -23,6 +24,7 @@ export type ViewType =
   | 'format_surat'
   | 'ba_pemeriksaan_iml'
   | 'master_data'
+  | 'master_pelanggan'
   | 'master_unit'
   | 'pengukuran_gardu'
   | 'saidi_saifi'
@@ -34,6 +36,7 @@ export type ViewType =
   | 'sld_visio'
   | 'aset_jaringan'
   | 'jadwal_piket'
+  | 'monitoring_lembur'
   | 'gangguan'
   | 'share_laporan'
   | 'survey_pb_pd'
@@ -43,7 +46,14 @@ export type ViewType =
   | 'peremajaan_meter'
   | 'meter_sl'
   | 'monitoring_susut'
-  | 'k3l';
+  | 'cash_flow_bop'
+  | 'k3l'
+  | 'manbill'
+  | 'pembagian_invoice'
+  | 'realisasi_tusbung'
+  | 'foto_meter'
+  | 'jadwal_security'
+  | 'patroli_kelistrikan';
 
 export interface HelpDeskMessage {
   id: string;
@@ -1382,6 +1392,156 @@ export interface K3LItem {
   kodeUnit?: string;
   createdAt?: string;
 }
+
+export type KategoriBiayaBop = 
+  | 'Dropping Dana BOP'
+  | 'BBM & Pelumas Operasional'
+  | 'ATK & Cetak Dokumen'
+  | 'Konsumsi & Snack Piket/Kegiatan'
+  | 'Pemeliharaan Kendaraan & Alat Kerja'
+  | 'Pemeliharaan Gedung & Fasilitas ULP'
+  | 'Perlengkapan K3 & Kebersihan'
+  | 'Biaya Utility & Jasa Pelanggan'
+  | 'Honor / Lembur / Transport Petugas'
+  | 'Lain-lain';
+
+export interface CashFlowBopItem {
+  id: string;
+  tanggal: string; // YYYY-MM-DD
+  noVoucher: string; // e.g. BKK/BOP/2026/08/001 or BKM/BOP/2026/08/001
+  tipe: 'PEMASUKAN' | 'PENGELUARAN';
+  kategori: KategoriBiayaBop;
+  jumlah: number;
+  keterangan: string;
+  penerimaOrPemohon: string;
+  penanggungJawab: string;
+  unit: string; // ULP Baguala, ULP Namlea, etc.
+  kodeUnit?: string;
+  status: 'DISETUJUI' | 'MENUNGGU_APPROVAL' | 'DRAFT' | 'DITOLAK';
+  noNotaOrRef?: string;
+  catatanSupervisor?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PaguBopUnit {
+  id: string;
+  unit: string;
+  kodeUnit?: string;
+  tahun: number;
+  paguTahunan: number;
+  paguBulanan: number;
+  keterangan?: string;
+}
+
+// Manbill Types
+export interface InvoiceItem {
+  id: string;
+  noInvoice: string;
+  idpel: string;
+  namaPelanggan: string;
+  tarifDaya: string;
+  periodeBulan: string;
+  jumlahTagihan: number;
+  statusPembayaran: 'Lunas' | 'Belum Lunas' | 'Terbit';
+  tanggalTerbit: string;
+  petugasDistribusi: string;
+  unit: string;
+  kodeUnit?: string;
+  keterangan?: string;
+}
+
+export interface TusbungItem {
+  id: string;
+  noWOTusbung: string;
+  idpel: string;
+  namaPelanggan: string;
+  alamat: string;
+  tarifDaya: string;
+  jumlahTunggakan: number;
+  lembarTunggakan: number;
+  statusTusbung: 'Belum Dieksekusi' | 'Diputus Temporary' | 'Diputus Permanen' | 'Disambung Kembali' | 'Lunas Lapangan';
+  tanggalTindakan?: string;
+  petugasEksekutor: string;
+  unit: string;
+  kodeUnit?: string;
+  fotoBuktiUrl?: string;
+  catatan?: string;
+}
+
+export interface FotoMeterItem {
+  id: string;
+  idpel: string;
+  namaPelanggan: string;
+  nomorMeter: string;
+  tarifDaya: string;
+  standMeter: number;
+  bulanTahun: string;
+  tanggalFoto: string;
+  petugasPetam: string;
+  unit: string;
+  kodeUnit?: string;
+  fotoMeterUrl?: string;
+  statusVerifikasi: 'Valid' | 'Unusual' | 'Koreksi Needed';
+  catatan?: string;
+}
+
+// K3L Types
+export interface JadwalSecurityItem {
+  id: string;
+  namaSecurity: string;
+  nipn?: string;
+  regu: string;
+  shift: 'Pagi (08.00-16.00)' | 'Siang (16.00-24.00)' | 'Malam (00.00-08.00)';
+  posPenjagaan: string;
+  tanggal: string;
+  unit: string;
+  kodeUnit?: string;
+  statusKehadiran: 'Hadir' | 'Izin' | 'Piket';
+  telepon?: string;
+  catatan?: string;
+}
+
+export interface PatroliKelistrikanItem {
+  id: string;
+  lokasiPatroli: string;
+  areaK3L: string;
+  tanggalPatroli: string;
+  petugasInspeksi: string;
+  kondisiApar: 'Aman' | 'Kadaluarsa' | 'Perlu Isi Ulang';
+  kondisiGrounding: 'Baik' | 'Putus' | 'Perlu Perbaikan';
+  kondisiRambuK3: 'Lengkap' | 'Rusak' | 'Hilang';
+  potensiBahaya: string;
+  tindakanKoreksi: string;
+  statusPotensi: 'Aman' | 'Kondisi Kritis' | 'Tindak Lanjut Needed';
+  unit: string;
+  kodeUnit?: string;
+  fotoPatroliUrl?: string;
+  catatan?: string;
+}
+
+export interface MonitoringLemburItem {
+  id: string;
+  namaPetugas: string;
+  nipOrNik?: string;
+  regu: string;
+  unit: string;
+  kodeUnit?: string;
+  noSpkOrSuratTugas?: string;
+  tanggalLembur: string; // YYYY-MM-DD
+  jamMulai: string; // HH:mm
+  jamSelesai: string; // HH:mm
+  totalJam: number;
+  alasanLembur: string;
+  jenisPekerjaan: 'Penanganan Gangguan' | 'Pemeliharaan Darurat' | 'Piket Siaga Extra' | 'Pekerjaan ROW Malam' | 'Lainnya';
+  status: 'APPROVED' | 'PENDING' | 'REJECTED';
+  nominalEstimasi?: number;
+  catatanSupervisor?: string;
+  approvedBy?: string;
+  createdAt?: string;
+}
+
+
 
 
 

@@ -24,6 +24,7 @@ import {
   Gauge,
   Car,
   Calendar,
+  Clock,
   Thermometer,
   Network,
   Calculator,
@@ -54,7 +55,11 @@ import {
   TrendingDown,
   Scale,
   FileCheck,
-  ShieldAlert
+  ShieldAlert,
+  Wallet,
+  Receipt,
+  ZapOff,
+  Camera
 } from 'lucide-react';
 import { ViewType, User } from '../types';
 import { canManageUsers, isPemasaranUser, isInspeksiUser, isPetugasRowUser, canAccessMenu, canEditData, isOwnerUser } from '../utils/permissions';
@@ -87,7 +92,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Accordion open/close states
   const [masterDataOpen, setMasterDataOpen] = useState(
-    ['master_data', 'input_peta_penyulang', 'master_unit'].includes(activeView)
+    ['master_data', 'input_peta_penyulang', 'master_pelanggan', 'master_unit'].includes(activeView)
+  );
+
+  const [petaOpen, setPetaOpen] = useState(
+    ['peta', 'peta_penyulang', 'peta_gardu', 'peta_pohon', 'peta_konstruksi'].includes(activeView)
   );
 
   const [pemasaranOpen, setPemasaranOpen] = useState(
@@ -95,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   const [teknikOpen, setTeknikOpen] = useState(
-    ['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu', 'peta_penyulang', 'peta'].includes(activeView)
+    ['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu'].includes(activeView)
   );
 
   const [transaksiEnergiOpen, setTransaksiEnergiOpen] = useState(
@@ -103,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   const [suratSpkOpen, setSuratSpkOpen] = useState(
-    ['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml'].includes(activeView)
+    ['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml', 'cash_flow_bop'].includes(activeView)
   );
 
   const [saidiSaifiOpen, setSaidiSaifiOpen] = useState(
@@ -124,6 +133,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const [yantekYangguOpen, setYantekYangguOpen] = useState(
     ['jadwal_piket'].includes(activeView) || true
+  );
+
+  const [manbillOpen, setManbillOpen] = useState(
+    ['manbill', 'pembagian_invoice', 'realisasi_tusbung', 'foto_meter'].includes(activeView)
+  );
+
+  const [k3lOpen, setK3lOpen] = useState(
+    ['k3l', 'jadwal_security', 'alker_apd', 'patroli_kelistrikan'].includes(activeView)
   );
 
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -183,41 +200,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Auto expand active accordion on activeView change
   useEffect(() => {
-    if (['master_data', 'input_peta_penyulang', 'master_unit'].includes(activeView)) {
+    if (['master_data', 'master_pelanggan', 'input_peta_penyulang', 'master_unit'].includes(activeView)) {
       setMasterDataOpen(true);
+    }
+    if (['peta', 'peta_penyulang', 'peta_gardu', 'peta_pohon', 'peta_konstruksi'].includes(activeView)) {
+      setPetaOpen(true);
     }
     if (['survey_pb_pd'].includes(activeView)) {
       setPemasaranOpen(true);
     }
-    if (['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu', 'peta_penyulang', 'peta'].includes(activeView)) {
+    if (['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu'].includes(activeView)) {
       setTeknikOpen(true);
     }
     if (['peremajaan_meter', 'meter_sl', 'monitoring_susut'].includes(activeView)) {
       setTransaksiEnergiOpen(true);
     }
-    if (['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml'].includes(activeView)) {
+    if (['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml', 'cash_flow_bop'].includes(activeView)) {
       setSuratSpkOpen(true);
     }
     if (['saidi_saifi', 'estimasi_saidi_saifi'].includes(activeView)) {
       setSaidiSaifiOpen(true);
     }
-    if (['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket'].includes(activeView)) {
+    if (['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket', 'monitoring_lembur'].includes(activeView)) {
       setYantekOpen(true);
       if (['peta_pohon', 'row'].includes(activeView)) setYantekRowOpen(true);
       if (['inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound'].includes(activeView)) setYantekInspeksiOpen(true);
-      if (['jadwal_piket'].includes(activeView)) setYantekYangguOpen(true);
+      if (['jadwal_piket', 'monitoring_lembur'].includes(activeView)) setYantekYangguOpen(true);
+    }
+    if (['manbill', 'pembagian_invoice', 'realisasi_tusbung', 'foto_meter'].includes(activeView)) {
+      setManbillOpen(true);
+    }
+    if (['k3l', 'jadwal_security', 'alker_apd', 'patroli_kelistrikan'].includes(activeView)) {
+      setK3lOpen(true);
     }
   }, [activeView]);
 
   if (!isOpen) return null;
 
-  const isMasterDataActive = ['master_data', 'input_peta_penyulang', 'master_unit'].includes(activeView);
+  const isMasterDataActive = ['master_data', 'master_pelanggan', 'input_peta_penyulang', 'master_unit'].includes(activeView);
+  const isPetaActive = ['peta', 'peta_penyulang', 'peta_gardu', 'peta_pohon', 'peta_konstruksi'].includes(activeView);
   const isPemasaranActive = ['survey_pb_pd'].includes(activeView);
-  const isTeknikActive = ['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu', 'peta_penyulang', 'peta'].includes(activeView);
+  const isTeknikActive = ['matriks_gangguan', 'pemeliharaan_20kv', 'saidi_saifi', 'estimasi_saidi_saifi', 'health_index', 'pengukuran_gardu'].includes(activeView);
   const isTransaksiEnergiActive = ['peremajaan_meter', 'meter_sl', 'monitoring_susut'].includes(activeView);
-  const isSuratSpkActive = ['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml'].includes(activeView);
+  const isSuratSpkActive = ['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml', 'cash_flow_bop'].includes(activeView);
   const isSaidiSaifiActive = ['saidi_saifi', 'estimasi_saidi_saifi'].includes(activeView);
-  const isYantekActive = ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket'].includes(activeView);
+  const isYantekActive = ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket', 'monitoring_lembur'].includes(activeView);
+  const isManbillActive = ['manbill', 'pembagian_invoice', 'realisasi_tusbung', 'foto_meter'].includes(activeView);
+  const isK3LActive = ['k3l', 'jadwal_security', 'alker_apd', 'patroli_kelistrikan'].includes(activeView);
 
   const isPemasaran = isPemasaranUser(currentUser);
   const isInspeksi = isInspeksiUser(currentUser);
@@ -409,6 +438,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
 
                   <button
+                    onClick={() => onSelectView('master_pelanggan')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'master_pelanggan'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Master Data Pelanggan</span>
+                  </button>
+
+                  <button
                     onClick={() => onSelectView('master_unit')}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
                       activeView === 'master_unit'
@@ -425,6 +466,78 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         Owner
                       </span>
                     )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 1.5. MENU PETA (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'peta') || canAccessMenu(currentUser, 'peta_penyulang') || canAccessMenu(currentUser, 'peta_gardu') || canAccessMenu(currentUser, 'peta_pohon')) && (
+            <div>
+              <button
+                onClick={() => setPetaOpen(!petaOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isPetaActive && !petaOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isPetaActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <Map className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">Peta</span>
+                </div>
+                <div>
+                  {petaOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {petaOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('peta_penyulang')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'peta_penyulang' || activeView === 'peta'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Map className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Peta Penyulang</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('peta_gardu')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'peta_gardu'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Gauge className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Peta Gardu</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('peta_pohon')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'peta_pohon'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Trees className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>Peta Pohon</span>
                   </button>
                 </div>
               )}
@@ -479,30 +592,148 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          {/* 3. MENU K3L */}
-          {(canAccessMenu(currentUser, 'alker_apd') || canAccessMenu(currentUser, 'k3l')) && (
-            <button
-              onClick={() => onSelectView('alker_apd')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
-                activeView === 'alker_apd'
-                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
-                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  activeView === 'alker_apd'
-                    ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
-                    : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
-                }`}>
-                  <ShieldCheck className="w-4 h-4" />
+          {/* MENU MANBILL (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'manbill') || canAccessMenu(currentUser, 'transaksi_energi') || isPemasaranUser(currentUser) || isOwnerUser(currentUser)) && (
+            <div>
+              <button
+                onClick={() => setManbillOpen(!manbillOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isManbillActive && !manbillOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isManbillActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">Manbill</span>
                 </div>
-                <span className="font-bold">K3L</span>
-              </div>
-              <span className="px-2 py-0.5 rounded-md bg-teal-500/30 text-teal-200 text-[9px] font-black uppercase tracking-wider border border-teal-400/40 shadow-xs">
-                APD & Alker
-              </span>
-            </button>
+                <div>
+                  {manbillOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {manbillOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('pembagian_invoice')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'pembagian_invoice' || activeView === 'manbill'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Receipt className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Pembagian Invoice</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('realisasi_tusbung')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'realisasi_tusbung'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <ZapOff className="w-3.5 h-3.5 text-rose-300 shrink-0" />
+                    <span>Realisasi Tusbung</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('foto_meter')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'foto_meter'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Camera className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>Foto Meter</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* MENU K3L (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'alker_apd') || canAccessMenu(currentUser, 'k3l') || isOwnerUser(currentUser)) && (
+            <div>
+              <button
+                onClick={() => setK3lOpen(!k3lOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isK3LActive && !k3lOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isK3LActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">K3L</span>
+                </div>
+                <div>
+                  {k3lOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {k3lOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('jadwal_security')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'jadwal_security'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Jadwal Security</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('alker_apd')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'alker_apd'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <HardHat className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>APD &amp; Alker</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('patroli_kelistrikan')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'patroli_kelistrikan' || activeView === 'k3l'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Activity className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>Patroli Kelistrikan</span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
           {/* 4. MENU TEKNIK (ACCORDION) */}
@@ -593,20 +824,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
                     }`}
                   >
-                    <Gauge className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span>Pengukuran Gardu Distribusi</span>
-                  </button>
-
-                  <button
-                    onClick={() => onSelectView('peta_penyulang')}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'peta_penyulang' || activeView === 'peta'
-                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
-                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
-                    }`}
-                  >
-                    <Map className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                    <span>Peta Penyulang</span>
+                    <Gauge className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>Gardu Distribusi</span>
                   </button>
                 </div>
               )}
@@ -685,8 +904,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          {/* 6. MENU SURAT & SPK (ACCORDION) */}
-          {(canAccessMenu(currentUser, 'perintah_kerja') || canAccessMenu(currentUser, 'format_surat') || canAccessMenu(currentUser, 'ba_pemeriksaan_iml')) && (
+          {/* 6. MENU ADMIN TEKNIK (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'perintah_kerja') || canAccessMenu(currentUser, 'format_surat') || canAccessMenu(currentUser, 'cash_flow_bop') || canAccessMenu(currentUser, 'spk')) && (
             <div>
               <button
                 onClick={() => setSuratSpkOpen(!suratSpkOpen)}
@@ -704,7 +923,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }`}>
                     <FileText className="w-4 h-4" />
                   </div>
-                  <span className="font-bold">Surat & SPK</span>
+                  <span className="font-bold">Admin Teknik</span>
                 </div>
                 <div>
                   {suratSpkOpen ? (
@@ -742,15 +961,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
 
                   <button
-                    onClick={() => onSelectView('ba_pemeriksaan_iml')}
+                    onClick={() => onSelectView('cash_flow_bop')}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
-                      activeView === 'ba_pemeriksaan_iml'
+                      activeView === 'cash_flow_bop'
                         ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
                         : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
                     }`}
                   >
-                    <ShieldAlert className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                    <span>BA Pemeriksaan IML</span>
+                    <Wallet className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Cash Flow</span>
                   </button>
                 </div>
               )}
@@ -974,6 +1193,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         >
                           <Calendar className="w-3 h-3 text-teal-300 shrink-0" />
                           <span className="truncate">Jadwal Piket Petugas</span>
+                        </button>
+
+                        <button
+                          onClick={() => onSelectView('monitoring_lembur')}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-left cursor-pointer ${
+                            activeView === 'monitoring_lembur'
+                              ? 'bg-teal-600/40 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                              : 'text-teal-100/90 hover:text-white hover:bg-teal-800/50'
+                          }`}
+                        >
+                          <Clock className="w-3 h-3 text-amber-300 shrink-0" />
+                          <span className="truncate">Monitoring Lembur</span>
                         </button>
                       </div>
                     )}

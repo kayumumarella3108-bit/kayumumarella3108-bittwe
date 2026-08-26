@@ -204,16 +204,16 @@ export const MaterialView: React.FC<MaterialViewProps> = ({
     <div className="p-4 md:p-6 space-y-6 bg-slate-50 min-h-screen text-slate-900 font-sans">
       
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white border border-slate-200 rounded-3xl shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-md shadow-blue-500/20">
-            <Package className="w-6 h-6" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 text-white rounded-3xl shadow-xl border border-teal-500/30">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 bg-gradient-to-tr from-teal-400 via-emerald-400 to-teal-300 text-teal-950 rounded-2xl shadow-lg shadow-teal-950/40">
+            <Package className="w-6 h-6 stroke-[2.5]" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl font-black text-white tracking-tight drop-shadow-xs">
               Manajemen Stok & Pemakaian Material
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-teal-100/90 mt-0.5">
               Monitoring Realtime Stok Akhir, Penerimaan Gudang, dan Pemakaian Lapangan 20kV
             </p>
           </div>
@@ -221,7 +221,7 @@ export const MaterialView: React.FC<MaterialViewProps> = ({
 
         {/* Top Action Buttons */}
         {canEdit && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={() => {
                 setEditingStok(null);
@@ -235,9 +235,9 @@ export const MaterialView: React.FC<MaterialViewProps> = ({
                 });
                 setShowStokModal(true);
               }}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 transition-all cursor-pointer"
+              className="px-4 py-2.5 bg-teal-800/80 hover:bg-teal-700 text-teal-100 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-teal-500/40 transition-all cursor-pointer shadow-xs active:scale-95"
             >
-              <ArrowDownRight className="w-4 h-4" />
+              <ArrowDownRight className="w-4 h-4 text-emerald-300" />
               <span>+ Stok Masuk</span>
             </button>
 
@@ -255,9 +255,9 @@ export const MaterialView: React.FC<MaterialViewProps> = ({
                 });
                 setShowPemakaianModal(true);
               }}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+              className="px-4 py-2.5 bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-300 hover:from-teal-300 hover:to-emerald-300 text-teal-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-teal-950/40 border border-teal-200/80 cursor-pointer active:scale-95"
             >
-              <ArrowUpRight className="w-4 h-4" />
+              <ArrowUpRight className="w-4 h-4 text-teal-950 stroke-[3]" />
               <span>+ Pemakaian Material</span>
             </button>
           </div>

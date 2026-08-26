@@ -359,82 +359,89 @@ export const SaidiSaifiView: React.FC<SaidiSaifiViewProps> = ({
         kronisCount={penyulangList.filter((p) => p.healthIndexStatus === 'Kronis').length}
       />
 
-      {/* Title Bar */}
-      <div className="p-5 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-2 border-teal-500/60 shadow-xl rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-white">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
+      {/* Title Bar Banner */}
+      <div className="p-6 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] border-2 border-teal-500/60 shadow-xl rounded-2xl flex flex-col gap-4 text-white relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Title & Description Section */}
+        <div className="flex items-center gap-4 z-10">
+          <div className="p-3 bg-teal-950/80 rounded-2xl text-teal-300 border border-teal-500/40 shadow-inner shrink-0">
+            <BarChart3 className="w-6 h-6 text-teal-300" />
+          </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm font-extrabold text-white uppercase tracking-wider drop-shadow-xs">
-                Monitoring SAIDI, SAIFI &amp; ENS Kumulatif
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold text-[10px]">
-                PLN {activeUnitInfo.namaUnit.toUpperCase()}
-              </span>
-            </div>
+            <h2 className="text-xl font-black text-white uppercase tracking-wider drop-shadow-xs">
+              Monitoring SAIDI, SAIFI &amp; ENS Kumulatif
+            </h2>
             <p className="text-xs text-teal-100/90 mt-0.5">
               Kalkulasi kuantitatif energi tidak tersalurkan dan estimasi kerugian rupiah untuk UP3
             </p>
           </div>
-
-          {/* Dropdown Filter Unit untuk Manajemen / Owner */}
-          {isOwnerUser(currentUser) && onSelectUnitFilter && (
-            <div className="flex items-center gap-2 bg-[#012521] border border-teal-700/80 px-3 py-1.5 rounded-xl shadow-inner">
-              <span className="text-[10px] font-black text-teal-300 whitespace-nowrap uppercase tracking-wider">Filter Unit:</span>
-              <select
-                value={ownerSelectedUnitFilter}
-                onChange={(e) => onSelectUnitFilter(e.target.value)}
-                className="bg-[#02312b] border border-teal-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs min-w-[150px]"
-              >
-                <option value="SEMUA">🌐 Semua Unit (Global)</option>
-                {DAFTAR_UNIT_PLN.map((u, idx) => (
-                  <option key={`saidi_unit_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-[#02312b] text-white">
-                    {u.namaUnit} ({u.kodeUnit})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setIsPptModalOpen(true)}
-            className="px-3.5 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-sky-500/20 border border-sky-400/30 active:scale-95"
-            title="Prinjau & Eksport Laporan ke File PPT PowerPoint dengan Template Danantara PLN"
-          >
-            <Presentation className="w-4 h-4" />
-            <span>Export PPT (.pptx)</span>
-          </button>
-          <button
-            onClick={handleDownloadPDF}
-            className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-rose-500/20 active:scale-95"
-            title="Unduh laporan PDF untuk dilaporkan ke UP3"
-          >
-            <FileText className="w-4 h-4" />
-            <span>Unduh PDF (UP3)</span>
-          </button>
-          <button
-            onClick={handleExportCSV}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-emerald-500/20 active:scale-95"
-            title="Ekspor ke format Excel/CSV"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Ekspor CSV</span>
-          </button>
-          <button
-            onClick={() => {
-              if (currentUser && !canEditModule(currentUser, 'saidi')) {
-                alert('Akses Dibatasi: Admin Teknik hanya dapat entri & edit data untuk modul ROW dan Inspeksi.');
-                return;
-              }
-              setEditingSaidi(null);
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-teal-950/40 border border-teal-200 active:scale-95"
-          >
-            <Plus className="w-4 h-4 text-slate-950" />
-            <span>+ Input SAIDI/SAIFI &amp; ENS</span>
-          </button>
+        {/* Bottom Bar: Filter Unit & Export/Action Buttons */}
+        <div className="pt-4 border-t border-teal-500/30 flex flex-wrap items-center justify-between gap-3 z-10">
+          {/* Left Side: Filter Unit */}
+          <div className="flex flex-wrap items-center gap-3">
+            {isOwnerUser(currentUser) && onSelectUnitFilter && (
+              <div className="flex items-center gap-2 bg-[#012521] border border-teal-700/80 px-3.5 py-1.5 rounded-xl shadow-inner">
+                <span className="text-[10px] font-black text-teal-300 whitespace-nowrap uppercase tracking-wider">FILTER UNIT:</span>
+                <select
+                  value={ownerSelectedUnitFilter}
+                  onChange={(e) => onSelectUnitFilter(e.target.value)}
+                  className="bg-[#02312b] border border-teal-600 text-white text-xs font-extrabold px-3 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs min-w-[170px]"
+                >
+                  <option value="SEMUA">🌐 Semua Unit (Global)</option>
+                  {DAFTAR_UNIT_PLN.map((u, idx) => (
+                    <option key={`saidi_unit_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-[#02312b] text-white">
+                      {u.namaUnit} ({u.kodeUnit})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Right Side: Export & Input Action Buttons */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={() => setIsPptModalOpen(true)}
+              className="px-3.5 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-sky-500/20 border border-sky-400/30 active:scale-95"
+              title="Prinjau & Eksport Laporan ke File PPT PowerPoint dengan Template Danantara PLN"
+            >
+              <Presentation className="w-4 h-4" />
+              <span>Export PPT (.pptx)</span>
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-rose-500/20 border border-rose-500/30 active:scale-95"
+              title="Unduh laporan PDF untuk dilaporkan ke UP3"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Unduh PDF (UP3)</span>
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-emerald-500/20 border border-emerald-500/30 active:scale-95"
+              title="Ekspor ke format Excel/CSV"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Ekspor CSV</span>
+            </button>
+            <button
+              onClick={() => {
+                if (currentUser && !canEditModule(currentUser, 'saidi')) {
+                  alert('Akses Dibatasi: Admin Teknik hanya dapat entri & edit data untuk modul ROW dan Inspeksi.');
+                  return;
+                }
+                setEditingSaidi(null);
+                setIsModalOpen(true);
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-300 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-teal-950/40 border border-teal-200/80 active:scale-95"
+            >
+              <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
+              <span>+ Input SAIDI/SAIFI &amp; ENS</span>
+            </button>
+          </div>
         </div>
       </div>
 

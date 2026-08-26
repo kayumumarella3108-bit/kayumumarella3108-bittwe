@@ -501,6 +501,32 @@
         "gpsTrack": { "type": "object" }
       },
       "required": ["id", "namaKendaraan", "noPolisi"]
+    },
+    "MonitoringLemburItem": {
+      "title": "MonitoringLemburItem",
+      "description": "Overtime logs and tracking for workers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "namaPetugas": { "type": "string" },
+        "nipOrNik": { "type": "string" },
+        "regu": { "type": "string" },
+        "unit": { "type": "string" },
+        "kodeUnit": { "type": "string" },
+        "noSpkOrSuratTugas": { "type": "string" },
+        "tanggalLembur": { "type": "string" },
+        "jamMulai": { "type": "string" },
+        "jamSelesai": { "type": "string" },
+        "totalJam": { "type": "number" },
+        "alasanLembur": { "type": "string" },
+        "jenisPekerjaan": { "type": "string" },
+        "status": { "type": "string" },
+        "nominalEstimasi": { "type": "number" },
+        "catatanSupervisor": { "type": "string" },
+        "approvedBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "namaPetugas", "regu", "unit", "tanggalLembur", "jamMulai", "jamSelesai", "totalJam", "alasanLembur", "jenisPekerjaan", "status"]
     }
   },
   "firestore": {
@@ -615,6 +641,10 @@
     "kendaraan_operasional": {
       "schema": "KendaraanOperasional",
       "description": "Operational vehicles with live GPS tracking data"
+    },
+    "monitoring_lembur": {
+      "schema": "MonitoringLemburItem",
+      "description": "Staff overtime submission and tracking logs"
     }
   }
 }

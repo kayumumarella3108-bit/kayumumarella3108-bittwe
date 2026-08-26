@@ -35,7 +35,9 @@ import {
   ChatMessage,
   AutoReplyRule,
   MasterUnitPLN,
-  HelpDeskMessage
+  HelpDeskMessage,
+  CashFlowBopItem,
+  MonitoringLemburItem
 } from './types';
 import {
   INITIAL_PENYULANG,
@@ -63,7 +65,8 @@ import {
   INITIAL_KONSTRUKSI_GIS,
   INITIAL_SURVEY_PB_PD,
   INITIAL_CHAT_MESSAGES,
-  INITIAL_AUTO_REPLY_RULES
+  INITIAL_AUTO_REPLY_RULES,
+  INITIAL_CASH_FLOW_BOP
 } from './data/mockData';
 import { db, collection, onSnapshot, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch, query, limit, OperationType, handleFirestoreError, registerDeletedId, filterDeleted } from './lib/firebase';
 import { sanitizeForFirestore } from './utils/firestoreHelper';
@@ -117,6 +120,12 @@ import { HelpDeskView } from './components/views/HelpDeskView';
 import { PeremajaanMeterView } from './components/views/PeremajaanMeterView';
 import { MeterSLView } from './components/views/MeterSLView';
 import { MonitoringSusutView } from './components/views/MonitoringSusutView';
+import { CashFlowBopView } from './components/views/CashFlowBopView';
+import { MasterPelangganView } from './components/views/MasterPelangganView';
+import { PetaGarduView } from './components/views/PetaGarduView';
+import { ManbillView } from './components/views/ManbillView';
+import { K3LView } from './components/views/K3LView';
+import { MonitoringLemburView } from './components/views/MonitoringLemburView';
 
 export default function App() {
   // Authentication state
@@ -324,6 +333,32 @@ export default function App() {
 
   // Help Desk Messages State
   const [helpDeskMessages, setHelpDeskMessages] = useState<HelpDeskMessage[]>([]);
+
+  // Cash Flow BOP State
+  const [cashFlowList, setCashFlowList] = useState<CashFlowBopItem[]>(() => filterDeleted(INITIAL_CASH_FLOW_BOP));
+
+  // Monitoring Lembur State
+  const [lemburList, setLemburList] = useState<MonitoringLemburItem[]>([]);
+
+  const handleAddCashFlow = (item: CashFlowBopItem) => {
+    setCashFlowList(prev => [item, ...prev]);
+  };
+
+  const handleUpdateCashFlow = (item: CashFlowBopItem) => {
+    setCashFlowList(prev => prev.map(i => i.id === item.id ? item : i));
+  };
+
+  const handleDeleteCashFlow = (id: string) => {
+    setCashFlowList(prev => prev.filter(i => i.id !== id));
+  };
+
+  const handleUpdatePenyulang = (updated: Penyulang) => {
+    setPenyulangList(prev => prev.map(p => p.id === updated.id ? updated : p));
+  };
+
+  const handleUpdateSection = (updated: SectionJaringan) => {
+    setSectionList(prev => prev.map(s => s.id === updated.id ? updated : s));
+  };
 
   // User Management State (RBAC)
   const [usersList, setUsersList] = useState<User[]>(() => filterDeleted([
@@ -888,6 +923,63 @@ export default function App() {
       console.warn('Broadcast messages sync (handled):', error);
     });
 
+    // 36. Sync Monitoring Lembur
+    const unsubLembur = onSnapshot(collection(db, 'monitoring_lembur'), (snapshot) => {
+      const items: MonitoringLemburItem[] = [];
+      snapshot.forEach((docSnap) => items.push({ id: docSnap.id, ...docSnap.data() } as MonitoringLemburItem));
+      const filtered = filterDeleted(items);
+      if (filtered.length > 0) {
+        setLemburList(filtered);
+      } else {
+        // Initial mock data if database is empty
+        const initialLembur: MonitoringLemburItem[] = [
+          {
+            id: 'lbr_1',
+            namaPetugas: 'Aris Wattimena',
+            nipOrNik: '9518023Z',
+            regu: 'Regu Alfa',
+            unit: 'ULP Baguala',
+            kodeUnit: '54110',
+            noSpkOrSuratTugas: '012.SPK/TEK/BAG/2026',
+            tanggalLembur: '2026-08-25',
+            jamMulai: '17:00',
+            jamSelesai: '21:00',
+            totalJam: 4,
+            alasanLembur: 'Penanganan gangguan tiang miring & trafo trip penyulang Passo',
+            jenisPekerjaan: 'Penanganan Gangguan',
+            status: 'APPROVED',
+            nominalEstimasi: 100000,
+            approvedBy: 'Bpk. Daniel Wattimena',
+            createdAt: '2026-08-25T16:00:00.000Z'
+          },
+          {
+            id: 'lbr_2',
+            namaPetugas: 'Yunus Lekahena',
+            nipOrNik: '9617045B',
+            regu: 'Regu Delta',
+            unit: 'ULP Baguala',
+            kodeUnit: '54110',
+            noSpkOrSuratTugas: '015.SPK/TEK/BAG/2026',
+            tanggalLembur: '2026-08-26',
+            jamMulai: '18:00',
+            jamSelesai: '22:30',
+            totalJam: 4.5,
+            alasanLembur: 'Pembersihan dahan pohon bambu menyentuh kabel JTM Passo',
+            jenisPekerjaan: 'Pekerjaan ROW Malam',
+            status: 'PENDING',
+            nominalEstimasi: 112500,
+            createdAt: '2026-08-26T17:30:00.000Z'
+          }
+        ];
+        setLemburList(initialLembur);
+        initialLembur.forEach((item) => {
+          setDoc(doc(db, 'monitoring_lembur', item.id), sanitizeForFirestore(item)).catch(() => {});
+        });
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'monitoring_lembur');
+    });
+
     const loadingTimer = setTimeout(() => {
       setIsDataLoading(false);
     }, 600);
@@ -927,6 +1019,7 @@ export default function App() {
       unsubChatMessages();
       unsubOnlineUsers();
       unsubBroadcasts();
+      unsubLembur();
     };
   }, []);
 
@@ -1286,6 +1379,10 @@ export default function App() {
   const filteredMapLayers = useMemo(() => {
     return mapLayers.filter((l) => isDataAccessibleByUser(l, user, ownerSelectedUnitFilter));
   }, [mapLayers, user, ownerSelectedUnitFilter]);
+
+  const filteredLemburList = useMemo(() => {
+    return lemburList.filter((l) => isDataAccessibleByUser(l, user, ownerSelectedUnitFilter));
+  }, [lemburList, user, ownerSelectedUnitFilter]);
 
   // Handlers for Gangguan (Cloud Firestore synced)
   const handleAddGangguan = async (rawLog: GangguanLog) => {
@@ -2068,6 +2165,46 @@ export default function App() {
     logActivity('Menghapus data Jadwal Piket', 'Jadwal Piket');
   };
 
+  // Monitoring Lembur Handlers
+  const handleAddLembur = async (data: Omit<MonitoringLemburItem, 'id'>) => {
+    const id = `lbr-${Date.now()}`;
+    const userUnit = user?.unit || DEFAULT_UNIT;
+    const userKodeUnit = user?.kodeUnit || getKodeUnitByUnitName(userUnit);
+    const newLembur = { id, unit: userUnit, kodeUnit: userKodeUnit, ...data };
+    setLemburList(prev => [newLembur, ...prev]);
+    try {
+      await setDoc(doc(db, 'monitoring_lembur', id), sanitizeForFirestore(newLembur));
+    } catch (err) {
+      console.error('Error saving Monitoring Lembur to Firestore:', err);
+    }
+    logActivity(`Tambah Pengajuan Lembur: ${data.namaPetugas}`, 'Monitoring Lembur');
+  };
+
+  const handleUpdateLembur = async (id: string, data: Partial<MonitoringLemburItem>) => {
+    setLemburList(prev => prev.map(l => l.id === id ? { ...l, ...data } : l));
+    try {
+      const docRef = doc(db, 'monitoring_lembur', id);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        await setDoc(docRef, sanitizeForFirestore({ ...snap.data(), ...data }));
+      }
+    } catch (err) {
+      console.error('Error updating Monitoring Lembur in Firestore:', err);
+    }
+    logActivity(`Update Pengajuan Lembur: ${data.namaPetugas || id}`, 'Monitoring Lembur');
+  };
+
+  const handleDeleteLembur = async (id: string) => {
+    registerDeletedId(id);
+    setLemburList(prev => prev.filter(l => l.id !== id));
+    try {
+      await deleteDoc(doc(db, 'monitoring_lembur', id));
+    } catch (err) {
+      console.error('Error deleting Monitoring Lembur from Firestore:', err);
+    }
+    logActivity('Menghapus data Pengajuan Lembur', 'Monitoring Lembur');
+  };
+
   // Handlers for Peta Pohon GIS
   const handleAddPohonGis = async (rawItem: PohonGisItem) => {
     const userUnit = user?.unit || DEFAULT_UNIT;
@@ -2476,6 +2613,7 @@ export default function App() {
               onSelectUnitFilter={setOwnerSelectedUnitFilter}
               masterUnitList={masterUnitList}
               onSelectView={setActiveView}
+              allPenyulangList={syncedPenyulangList}
             />
           )}
 
@@ -2514,6 +2652,22 @@ export default function App() {
                 masterUnits={masterUnitList}
                 masterPenyulangs={penyulangList}
                 onSelectView={setActiveView}
+              />
+            </motion.div>
+          )}
+
+          {activeView === 'peta_gardu' && (
+            <motion.div
+              key="peta_gardu"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PetaGarduView
+                masterGarduList={filteredMasterGarduList}
+                pengukuranList={filteredPengukuranList}
+                onUpdateGardu={handleAddMasterGardu}
               />
             </motion.div>
           )}
@@ -2823,6 +2977,17 @@ export default function App() {
             />
           )}
 
+          {activeView === 'monitoring_lembur' && (
+            <MonitoringLemburView
+              currentUser={user}
+              lemburList={filteredLemburList}
+              onAddLembur={handleAddLembur}
+              onUpdateLembur={handleUpdateLembur}
+              onDeleteLembur={handleDeleteLembur}
+              isLoading={isDataLoading}
+            />
+          )}
+
           {activeView === 'perintah_kerja' && (
             <PerintahKerjaView
               currentUser={user}
@@ -2981,6 +3146,45 @@ export default function App() {
             <MonitoringSusutView
               currentUser={user}
               penyulangList={filteredPenyulangList}
+            />
+          )}
+
+          {activeView === 'cash_flow_bop' && (
+            <CashFlowBopView
+              currentUser={user}
+              cashFlowList={cashFlowList}
+              onAddTransaction={handleAddCashFlow}
+              onUpdateTransaction={handleUpdateCashFlow}
+              onDeleteTransaction={handleDeleteCashFlow}
+            />
+          )}
+
+          {activeView === 'master_pelanggan' && (
+            <MasterPelangganView
+              currentUser={user}
+              penyulangList={penyulangList}
+              sectionList={sectionList}
+              onUpdatePenyulang={handleUpdatePenyulang}
+              onUpdateSection={handleUpdateSection}
+            />
+          )}
+
+          {['manbill', 'pembagian_invoice', 'realisasi_tusbung', 'foto_meter'].includes(activeView) && (
+            <ManbillView
+              currentUser={user}
+              activeTab={activeView === 'manbill' ? 'pembagian_invoice' : activeView as any}
+            />
+          )}
+
+          {['k3l', 'jadwal_security', 'patroli_kelistrikan'].includes(activeView) && (
+            <K3LView
+              currentUser={user}
+              activeTab={activeView === 'k3l' ? 'jadwal_security' : activeView as any}
+              alkerApdList={filteredAlkerApdList}
+              onAddAlkerApd={handleAddAlkerApd}
+              onUpdateAlkerApd={handleUpdateAlkerApd}
+              onDeleteAlkerApd={handleDeleteAlkerApd}
+              isLoading={isDataLoading}
             />
           )}
 

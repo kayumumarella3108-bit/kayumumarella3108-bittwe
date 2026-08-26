@@ -25,7 +25,8 @@ import {
   KonstruksiGisItem,
   SurveyPbPdItem,
   ChatMessage,
-  AutoReplyRule
+  AutoReplyRule,
+  CashFlowBopItem
 } from '../types';
 
 export const INITIAL_PENYULANG: Penyulang[] = [
@@ -2126,4 +2127,352 @@ export const INITIAL_AUTO_REPLY_RULES: AutoReplyRule[] = [
     createdAt: new Date().toISOString()
   }
 ];
+
+export const INITIAL_CASH_FLOW_BOP: CashFlowBopItem[] = [
+  {
+    id: 'bop-001',
+    tanggal: '2026-08-01',
+    noVoucher: 'BKM/BOP/2026/08/001',
+    tipe: 'PEMASUKAN',
+    kategori: 'Dropping Dana BOP',
+    jumlah: 25000000,
+    keterangan: 'Dropping Dana Anggaran Operasional BOP ULP Bulan Agustus 2026 dari Keuangan UP3',
+    penerimaOrPemohon: 'Bendahara ULP Baguala',
+    penanggungJawab: 'Supervisor K3L & Adum',
+    unit: 'ULP Baguala',
+    kodeUnit: '54110',
+    status: 'DISETUJUI',
+    noNotaOrRef: 'REF-UP3-88219',
+    createdAt: '2026-08-01T08:00:00.000Z'
+  },
+  {
+    id: 'bop-002',
+    tanggal: '2026-08-03',
+    noVoucher: 'BKK/BOP/2026/08/002',
+    tipe: 'PENGELUARAN',
+    kategori: 'BBM & Pelumas Operasional',
+    jumlah: 1850000,
+    keterangan: 'Pembelian Pertalite / Dexlite Kendaraan Operasional Yantek Regu Alpha & Beta (4 Mobil Mobilisasi)',
+    penerimaOrPemohon: 'Rivaldo Demny (Yantek)',
+    penanggungJawab: 'Supervisor Pelayanan & K3L',
+    unit: 'ULP Baguala',
+    kodeUnit: '54110',
+    status: 'DISETUJUI',
+    noNotaOrRef: 'STRUK-SPBU-849102',
+    createdAt: '2026-08-03T09:30:00.000Z'
+  },
+  {
+    id: 'bop-003',
+    tanggal: '2026-08-05',
+    noVoucher: 'BKK/BOP/2026/08/003',
+    tipe: 'PENGELUARAN',
+    kategori: 'ATK & Cetak Dokumen',
+    jumlah: 750000,
+    keterangan: 'Pembelian kertas A4 80gr, toner printer HP LaserJet, dan ordner arsip Berita Acara ROW',
+    penerimaOrPemohon: 'Staf Administrasi ULP',
+    penanggungJawab: 'Supervisor Adum',
+    unit: 'ULP Baguala',
+    kodeUnit: '54110',
+    status: 'DISETUJUI',
+    noNotaOrRef: 'NOTA-TOKO-ARTHA-901',
+    createdAt: '2026-08-05T11:15:00.000Z'
+  },
+  {
+    id: 'bop-004',
+    tanggal: '2026-08-10',
+    noVoucher: 'BKK/BOP/2026/08/004',
+    tipe: 'PENGELUARAN',
+    kategori: 'Konsumsi & Snack Piket/Kegiatan',
+    jumlah: 1250000,
+    keterangan: 'Konsumsi dan Snack Petugas Piket Siaga Pemadaman & Penormalan Feeder LATERI 1 & 2',
+    penerimaOrPemohon: 'Danang W (Petugas Piket)',
+    penanggungJawab: 'Supervisor Teknik',
+    unit: 'ULP Baguala',
+    kodeUnit: '54110',
+    status: 'DISETUJUI',
+    noNotaOrRef: 'RM-NUSA-INDAH-441',
+    createdAt: '2026-08-10T19:00:00.000Z'
+  },
+  {
+    id: 'bop-005',
+    tanggal: '2026-08-14',
+    noVoucher: 'BKK/BOP/2026/08/005',
+    tipe: 'PENGELUARAN',
+    kategori: 'Pemeliharaan Kendaraan & Alat Kerja',
+    jumlah: 2400000,
+    keterangan: 'Servis rutin, ganti oli mesin & penggantian ban spare unit kendaraan operasional DEK-02',
+    penerimaOrPemohon: 'Tim Armada ULP',
+    penanggungJawab: 'Supervisor K3L',
+    unit: 'ULP Baguala',
+    kodeUnit: '54110',
+    status: 'DISETUJUI',
+    noNotaOrRef: 'BENGKEL-AMBON-MOTOR-77',
+    createdAt: '2026-08-14T14:20:00.000Z'
+  },
+  {
+    id: 'bop-006',
+    tanggal: '2026-08-18',
+    noVoucher: 'BKK/BOP/2026/08/006',
+    tipe: 'PENGELUARAN',
+    kategori: 'Honor / Lembur / Transport Petugas',
+    jumlah: 3200000,
+    keterangan: 'Uang makan & transport penugasan inspeksi khusus Thermovision Malam hari SUTM Passo-Tulehu',
+    penerimaOrPemohon: 'Tim Inspeksi Tier 2',
+    penanggungJawab: 'Manager ULP',
+    unit: 'ULP Baguala',
+    kodeUnit: '54110',
+    status: 'DISETUJUI',
+    noNotaOrRef: 'SPK-INSPEKSI-THV-08',
+    createdAt: '2026-08-18T10:00:00.000Z'
+  },
+  {
+    id: 'bop-007',
+    tanggal: '2026-08-22',
+    noVoucher: 'BKM/BOP/2026/08/007',
+    tipe: 'PEMASUKAN',
+    kategori: 'Dropping Dana BOP',
+    jumlah: 20000000,
+    keterangan: 'Dropping Dana Tambahan BOP ULP Namlea Tahap II',
+    penerimaOrPemohon: 'Bendahara ULP Namlea',
+    penanggungJawab: 'Manager ULP Namlea',
+    unit: 'ULP Namlea',
+    kodeUnit: '54120',
+    status: 'DISETUJUI',
+    noNotaOrRef: 'REF-UP3-90012',
+    createdAt: '2026-08-22T08:30:00.000Z'
+  },
+  {
+    id: 'bop-008',
+    tanggal: '2026-08-24',
+    noVoucher: 'BKK/BOP/2026/08/008',
+    tipe: 'PENGELUARAN',
+    kategori: 'Perlengkapan K3 & Kebersihan',
+    jumlah: 1100000,
+    keterangan: 'Pengisian ulang Kotak P3K, sarung tangan isolasi 1000V, dan disinfektan ruang pelayanan',
+    penerimaOrPemohon: 'Petugas K3 ULP',
+    penanggungJawab: 'Supervisor K3L',
+    unit: 'ULP Baguala',
+    kodeUnit: '54110',
+    status: 'MENUNGGU_APPROVAL',
+    noNotaOrRef: 'APOTEK-SEHAT-104',
+    createdAt: '2026-08-24T15:45:00.000Z'
+  }
+];
+
+export const INITIAL_INVOICE_MANBILL: any[] = [
+  {
+    id: 'inv-001',
+    noInvoice: 'INV/2026/08/54110-001',
+    idpel: '541100982312',
+    namaPelanggan: 'CV Maluku Mandiri',
+    tarifDaya: 'B2 / 6.600 VA',
+    periodeBulan: 'Agustus 2026',
+    jumlahTagihan: 4850000,
+    statusPembayaran: 'Lunas',
+    tanggalTerbit: '2026-08-01',
+    petugasDistribusi: 'Budi Santoso',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    keterangan: 'Invoice terkirim via Email & WhatsApp'
+  },
+  {
+    id: 'inv-002',
+    noInvoice: 'INV/2026/08/54110-002',
+    idpel: '541100451299',
+    namaPelanggan: 'PT Ambon Perdana',
+    tarifDaya: 'I2 / 33.000 VA',
+    periodeBulan: 'Agustus 2026',
+    jumlahTagihan: 18400000,
+    statusPembayaran: 'Belum Lunas',
+    tanggalTerbit: '2026-08-02',
+    petugasDistribusi: 'Rico Pattinama',
+    unit: 'ULP Ambon Kota',
+    kodeUnit: '54111',
+    keterangan: 'Jatuh tempo tanggal 20 Agustus'
+  },
+  {
+    id: 'inv-003',
+    noInvoice: 'INV/2026/08/54120-001',
+    idpel: '541200118834',
+    namaPelanggan: 'Toko Sumber Rezeki',
+    tarifDaya: 'R1M / 1.300 VA',
+    periodeBulan: 'Agustus 2026',
+    jumlahTagihan: 620000,
+    statusPembayaran: 'Terbit',
+    tanggalTerbit: '2026-08-05',
+    petugasDistribusi: 'Ahmad Latuconsina',
+    unit: 'ULP Namlea',
+    kodeUnit: '54120',
+    keterangan: 'Surat penagihan fisik diserahkan ke pemilik'
+  }
+];
+
+export const INITIAL_TUSBUNG_MANBILL: any[] = [
+  {
+    id: 'tsb-001',
+    noWOTusbung: 'WO/TB/2026/08/012',
+    idpel: '541100339912',
+    namaPelanggan: 'Usaha Laundry Wetar',
+    alamat: 'Jl. Lateri Indah No. 44, Ambon',
+    tarifDaya: 'R1 / 2.200 VA',
+    jumlahTunggakan: 1250000,
+    lembarTunggakan: 2,
+    statusTusbung: 'Diputus Temporary',
+    tanggalTindakan: '2026-08-10',
+    petugasEksekutor: 'Tim Tusbung Yantek 1',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    fotoBuktiUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
+    catatan: 'Segel merah terpasang pada MCB'
+  },
+  {
+    id: 'tsb-002',
+    noWOTusbung: 'WO/TB/2026/08/015',
+    idpel: '541100881203',
+    namaPelanggan: 'Bengkel Cahaya Motor',
+    alamat: 'Jl. Laha Bandara No. 12',
+    tarifDaya: 'B1 / 3.500 VA',
+    jumlahTunggakan: 2100000,
+    lembarTunggakan: 3,
+    statusTusbung: 'Lunas Lapangan',
+    tanggalTindakan: '2026-08-12',
+    petugasEksekutor: 'Tim Tusbung Yantek 2',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    catatan: 'Pelanggan melakukan pembayaran lunas di tempat via PLN Mobile'
+  },
+  {
+    id: 'tsb-003',
+    noWOTusbung: 'WO/TB/2026/08/019',
+    idpel: '541200772211',
+    namaPelanggan: 'Ruko Baru Namlea',
+    alamat: 'Jl. Pasar Baru Namlea',
+    tarifDaya: 'R1M / 900 VA',
+    jumlahTunggakan: 450000,
+    lembarTunggakan: 1,
+    statusTusbung: 'Belum Dieksekusi',
+    petugasEksekutor: 'Tim Tusbung ULP Namlea',
+    unit: 'ULP Namlea',
+    kodeUnit: '54120',
+    catatan: 'Jadwal penelusuran lapangan besok pagi'
+  }
+];
+
+export const INITIAL_FOTO_METER_MANBILL: any[] = [
+  {
+    id: 'ftm-001',
+    idpel: '541100982312',
+    namaPelanggan: 'CV Maluku Mandiri',
+    nomorMeter: '3218904412',
+    tarifDaya: 'B2 / 6.600 VA',
+    standMeter: 45210,
+    bulanTahun: 'Agustus 2026',
+    tanggalFoto: '2026-08-25',
+    petugasPetam: 'Hasan Pelu',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    fotoMeterUrl: 'https://images.unsplash.com/photo-1558441719-670b357024bf?auto=format&fit=crop&w=600&q=80',
+    statusVerifikasi: 'Valid',
+    catatan: 'Stand meter jelas dan sesuai akumulasi kWh'
+  },
+  {
+    id: 'ftm-002',
+    idpel: '541100451299',
+    namaPelanggan: 'PT Ambon Perdana',
+    nomorMeter: '5412990021',
+    tarifDaya: 'I2 / 33.000 VA',
+    standMeter: 128900,
+    bulanTahun: 'Agustus 2026',
+    tanggalFoto: '2026-08-25',
+    petugasPetam: 'Daniel Sahuleka',
+    unit: 'ULP Ambon Kota',
+    kodeUnit: '54111',
+    fotoMeterUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+    statusVerifikasi: 'Unusual',
+    catatan: 'Lonjakan pemakaian 40% dibanding bulan lalu, perlu validasi ulang'
+  }
+];
+
+export const INITIAL_JADWAL_SECURITY: any[] = [
+  {
+    id: 'sec-001',
+    namaSecurity: 'Yusuf Latuconsina',
+    nipn: 'SEC-PLN-01',
+    regu: 'Regu Alpha',
+    shift: 'Pagi (08.00-16.00)',
+    posPenjagaan: 'Pos Utama ULP Kantor',
+    tanggal: '2026-08-26',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    statusKehadiran: 'Hadir',
+    telepon: '081244556677',
+    catatan: 'Penjagaan pintu gerbang utama & penerimaan tamu kantor'
+  },
+  {
+    id: 'sec-002',
+    namaSecurity: 'Marcus Leimena',
+    nipn: 'SEC-PLN-02',
+    regu: 'Regu Alpha',
+    shift: 'Pagi (08.00-16.00)',
+    posPenjagaan: 'Pos Gardu Induk Passo',
+    tanggal: '2026-08-26',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    statusKehadiran: 'Hadir',
+    telepon: '081399887766',
+    catatan: 'Patroli perimeter switchyard GI 150kV tiap 2 jam'
+  },
+  {
+    id: 'sec-003',
+    namaSecurity: 'Risman Salatalohy',
+    nipn: 'SEC-PLN-03',
+    regu: 'Regu Bravo',
+    shift: 'Siang (16.00-24.00)',
+    posPenjagaan: 'Pos Logistik / Gudang',
+    tanggal: '2026-08-26',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    statusKehadiran: 'Piket',
+    telepon: '085211223344',
+    catatan: 'Pemeriksaan kendaraan keluar/masuk gudang material'
+  }
+];
+
+export const INITIAL_PATROLI_KELISTRIKAN: any[] = [
+  {
+    id: 'pat-001',
+    lokasiPatroli: 'Ruang Server & Control Room ULP',
+    areaK3L: 'Gedung Utama',
+    tanggalPatroli: '2026-08-25',
+    petugasInspeksi: 'Faisal Umarella (K3L)',
+    kondisiApar: 'Aman',
+    kondisiGrounding: 'Baik',
+    kondisiRambuK3: 'Lengkap',
+    potensiBahaya: 'Tidak ditemukan potensi bahaya',
+    tindakanKoreksi: 'Pertahankan kebersihan & kerapihan kabel data',
+    statusPotensi: 'Aman',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    fotoPatroliUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+    catatan: 'APAR CO2 5kg tekanan dalam batas hijau'
+  },
+  {
+    id: 'pat-002',
+    lokasiPatroli: 'Area Outdoor Switchyard & Trafo Pemakaian Sendiri',
+    areaK3L: 'Gardu Induk Passo',
+    tanggalPatroli: '2026-08-26',
+    petugasInspeksi: 'Tim K3L ULP & GI',
+    kondisiApar: 'Aman',
+    kondisiGrounding: 'Perlu Perbaikan',
+    kondisiRambuK3: 'Rusak',
+    potensiBahaya: 'Kawat grounding netral trafo sedikit kendur akibat korosi air laut',
+    tindakanKoreksi: 'Pengencangan klem kawat grounding dan penggantian stiker Rambu K3 tegangan tinggi',
+    statusPotensi: 'Tindak Lanjut Needed',
+    unit: 'ULP Passo',
+    kodeUnit: '54110',
+    fotoPatroliUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
+    catatan: 'Telah diterbitkan Perintah Kerja perbaikan k3l'
+  }
+];
+
 

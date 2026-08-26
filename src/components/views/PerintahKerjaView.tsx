@@ -210,27 +210,25 @@ export const PerintahKerjaView: React.FC<PerintahKerjaViewProps> = ({
 
   return (
     <div className="p-4 md:p-6 space-y-6 bg-slate-50 text-slate-900 font-sans min-h-screen">
-      {/* Header View */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] p-6 rounded-2xl border-2 border-teal-500/60 shadow-xl relative overflow-hidden text-white">
+      {/* Header View Banner */}
+      <div className="flex flex-col gap-4 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] p-6 rounded-2xl border-2 border-teal-500/60 shadow-xl relative overflow-hidden text-white">
         <div className="absolute right-0 top-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Title Section */}
         <div className="flex items-center gap-4 z-10">
-          <div className="p-3 bg-teal-950/80 rounded-2xl text-teal-300 border border-teal-500/40 shadow-inner">
+          <div className="p-3 bg-teal-950/80 rounded-2xl text-teal-300 border border-teal-500/40 shadow-inner shrink-0">
             <FileText className="w-6 h-6 text-amber-300" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black tracking-tight text-white drop-shadow-xs">Perintah Kerja Harian (SPK)</h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[11px] font-bold">
-                ULP Baguala
-              </span>
-            </div>
+            <h1 className="text-xl font-black tracking-tight text-white drop-shadow-xs">Perintah Kerja Harian (SPK)</h1>
             <p className="text-xs text-teal-100/90 mt-0.5">
               Manajemen penerbitan dan pemantauan Surat Perintah Kerja (SPK) ROW, Inspeksi, dan Pemeliharaan 20kV
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 z-10">
+        {/* Bottom Action Bar */}
+        <div className="pt-4 border-t border-teal-500/30 flex flex-wrap items-center justify-end gap-2.5 z-10">
           <button
             onClick={() => setIsScannerOpen(true)}
             className="px-4 py-2.5 bg-[#012521] hover:bg-[#02312b] text-teal-200 font-bold text-xs rounded-xl transition-all border border-teal-500/50 flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm active:scale-95"
@@ -241,9 +239,9 @@ export const PerintahKerjaView: React.FC<PerintahKerjaViewProps> = ({
 
           <button
             onClick={handleOpenAddModal}
-            className="px-4 py-2.5 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-lg shadow-teal-950/40 flex items-center justify-center gap-2 cursor-pointer shrink-0 border border-teal-200 active:scale-95"
+            className="px-4 py-2.5 bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-300 hover:from-teal-300 hover:to-emerald-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md shadow-teal-950/40 flex items-center justify-center gap-2 cursor-pointer shrink-0 border border-teal-200/80 active:scale-95"
           >
-            <Plus className="w-4 h-4 text-slate-950" />
+            <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
             <span>Input SPK Baru</span>
           </button>
         </div>

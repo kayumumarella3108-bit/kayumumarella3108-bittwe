@@ -22,7 +22,9 @@ import {
   TrendingDown,
   ArrowUpRight,
   Info,
-  Printer
+  Printer,
+  Filter,
+  Calendar
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -80,6 +82,7 @@ interface DashboardViewProps {
   onSelectUnitFilter?: (unit: string) => void;
   masterUnitList?: any[];
   onSelectView: (view: ViewType) => void;
+  allPenyulangList?: Penyulang[];
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -96,12 +99,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   ownerSelectedUnitFilter = 'SEMUA',
   onSelectUnitFilter,
   masterUnitList,
-  onSelectView
+  onSelectView,
+  allPenyulangList = []
 }) => {
-  // Active Tab for the 5 requested dashboards
-  const [activeTab, setActiveTab] = useState<'pangkal' | 'kode' | 'gardu' | 'yantek' | 'survey'>('pangkal');
+  // Active Tab for the 6 requested dashboards
+  const [activeTab, setActiveTab] = useState<'executive' | 'pangkal' | 'kode' | 'gardu' | 'yantek' | 'survey'>('executive');
   const [dateRange, setDateRange] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const [selectedFeeder, setSelectedFeeder] = useState<string | null>(null);
+  const [selectedFeederForSections, setSelectedFeederForSections] = useState<string | null>(null);
   const [selectedDashboardUlp, setSelectedDashboardUlp] = useState<string>(ownerSelectedUnitFilter);
   const { searchTerm } = useSearch();
 
@@ -170,8 +175,55 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Global counts for cards
   const totalPelanggan = useMemo(() => {
     const count = penyulangList.reduce((acc, curr) => acc + (curr.jumlahPelanggan || 0), 0);
-    return count || (ownerSelectedUnitFilter === 'SEMUA' ? 12450 : 0);
+    return count || (ownerSelectedUnitFilter === 'SEMUA' ? 85250 : 12450);
   }, [penyulangList, ownerSelectedUnitFilter]);
+
+  const totalPelangganSistemOverall = useMemo(() => {
+    const count = allPenyulangList.reduce((acc, curr) => acc + (curr.jumlahPelanggan || 0), 0);
+    return count || 85250;
+  }, [allPenyulangList]);
+
+  const customerDistributionData = useMemo(() => {
+    const data = penyulangList
+      .filter(p => (p.jumlahPelanggan || 0) > 0 || p.namaPenyulang)
+      .map(p => ({
+        id: p.id,
+        name: p.namaPenyulang || p.id,
+        pelanggan: p.jumlahPelanggan || 0,
+        panjangKms: p.panjangJaringanKms || 0,
+        indeksSehat: p.healthIndexStatus || 'Sehat',
+        jumlahGardu: p.jumlahGardu || 0,
+        unit: p.unit || 'ULP Baguala'
+      }))
+      .sort((a, b) => b.pelanggan - a.pelanggan);
+
+    if (data.length === 0) {
+      return [
+        { id: 'p_1', name: 'Penyulang Passo', pelanggan: 4850, panjangKms: 45.2, indeksSehat: 'Sehat', jumlahGardu: 38, unit: 'ULP Baguala' },
+        { id: 'p_2', name: 'Penyulang Hunuth', pelanggan: 3120, panjangKms: 32.8, indeksSehat: 'Sempurna', jumlahGardu: 25, unit: 'ULP Baguala' },
+        { id: 'p_3', name: 'Penyulang Tulehu', pelanggan: 2450, panjangKms: 28.5, indeksSehat: 'Sakit', jumlahGardu: 20, unit: 'ULP Baguala' },
+        { id: 'p_4', name: 'Penyulang Suli', pelanggan: 2030, panjangKms: 22.4, indeksSehat: 'Sehat', jumlahGardu: 15, unit: 'ULP Baguala' },
+        { id: 'p_5', name: 'Penyulang Waai', pelanggan: 1850, panjangKms: 18.2, indeksSehat: 'Kronis', jumlahGardu: 12, unit: 'ULP Baguala' }
+      ];
+    }
+    return data;
+  }, [penyulangList]);
+
+  const sectionsForSelectedFeeder = useMemo(() => {
+    if (!selectedFeederForSections) return [];
+    return sectionList
+      .filter(s => 
+        s.namaPenyulang?.trim().toUpperCase() === selectedFeederForSections.trim().toUpperCase() ||
+        s.penyulangId === selectedFeederForSections
+      )
+      .map(s => ({
+        id: s.id,
+        name: s.namaSection || s.id,
+        pelanggan: s.jumlahPelanggan || 0,
+        sistemOperasi: s.sistemOperasi || 'Radial'
+      }))
+      .sort((a, b) => b.pelanggan - a.pelanggan);
+  }, [sectionList, selectedFeederForSections]);
 
   // 2. DASHBOARD GANGGUAN PANGKAL DATA CALCULATIONS
   const gangguanPangkalStats = useMemo(() => {
@@ -578,61 +630,73 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div id="unified_dashboard_canvas" className="p-4 md:p-6 space-y-6 bg-slate-50 text-slate-950 font-sans min-h-screen">
       
-      {/* Upper Brand Card with Unit Dropdown */}
-      <div id="brand_header_container" className="p-5 bg-gradient-to-br from-teal-900 to-slate-900 text-white rounded-2xl shadow-md border border-teal-800/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <span className="px-2.5 py-1 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/30 font-extrabold text-[10px] tracking-widest uppercase">
-            SISTEM MONITORING REALTIME TERPADU
-          </span>
-          <h1 className="text-xl md:text-2xl font-black tracking-tight mt-1">
+      {/* Upper Brand Card */}
+      <div id="brand_header_container" className="p-6 bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] text-white rounded-2xl shadow-xl border border-teal-500/40 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Sistem Monitoring Realtime Terpadu
+            </span>
+          </div>
+          <h1 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+            <Activity className="w-6 h-6 text-emerald-400 shrink-0" />
             Dashboard Keandalan &amp; Distribusi 20kV
           </h1>
-          <p className="text-xs text-teal-200/80 mt-1 flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-teal-400" />
-            PLN Unit Layanan Pelanggan (ULP): <strong className="text-white uppercase">{unitInfo.namaUnit}</strong>
+          <p className="text-xs text-teal-200/90 flex items-center gap-1.5 pt-0.5">
+            <MapPin className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+            <span>PLN Unit Layanan Pelanggan (ULP): <strong className="text-white uppercase font-extrabold">{unitInfo.namaUnit}</strong></span>
           </p>
         </div>
+      </div>
 
-        {/* Global Unit Filter & Date Range Filter & Print Button inside the Dashboard Header */}
+      {/* Control Bar: Filter ULP, Rentang & Cetak PDF / Print (Placed Below Header) */}
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-[#022e2a] border border-teal-500/30 px-3.5 py-2 rounded-xl backdrop-blur-md shadow-lg">
-            <span className="text-[10px] font-black text-teal-200 uppercase tracking-widest whitespace-nowrap">Filter ULP:</span>
+          {/* Filter ULP */}
+          <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-3 py-1.5 rounded-xl">
+            <Filter className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+            <span className="text-[11px] font-extrabold text-teal-950 uppercase tracking-wider whitespace-nowrap">Filter ULP:</span>
             <select
               value={ownerSelectedUnitFilter}
               onChange={(e) => onSelectUnitFilter && onSelectUnitFilter(e.target.value)}
-              className="bg-[#012521] text-white border border-teal-700 text-xs font-extrabold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs min-w-[170px]"
+              className="bg-white text-slate-900 border border-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer shadow-2xs min-w-[170px]"
             >
               <option value="SEMUA">🌐 Semua Unit ULP</option>
               {DAFTAR_UNIT_PLN.filter(u => u.tipe === 'ULP').map((u, idx) => (
-                <option key={`dash_unit_opt_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-[#012521] text-white text-xs">
+                <option key={`dash_unit_opt_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-white text-slate-900 text-xs">
                   {u.namaUnit} ({u.kodeUnit})
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#022e2a] border border-teal-500/30 px-3.5 py-2 rounded-xl backdrop-blur-md shadow-lg">
-            <span className="text-[10px] font-black text-teal-200 uppercase tracking-widest whitespace-nowrap">Rentang:</span>
+          {/* Rentang */}
+          <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-3 py-1.5 rounded-xl">
+            <Calendar className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+            <span className="text-[11px] font-extrabold text-teal-950 uppercase tracking-wider whitespace-nowrap">Rentang:</span>
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value as any)}
-              className="bg-[#012521] text-white border border-teal-700 text-xs font-extrabold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs"
+              className="bg-white text-slate-900 border border-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer shadow-2xs"
             >
               <option value="weekly">📅 Mingguan</option>
               <option value="monthly">📅 Bulanan</option>
               <option value="yearly">📅 Tahunan</option>
             </select>
           </div>
-
-          <button
-            onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 active:scale-95 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-emerald-950/45 border border-emerald-400/40 transition-all cursor-pointer"
-            title="Cetak Laporan PDF Lengkap"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Cetak PDF / Print</span>
-          </button>
         </div>
+
+        {/* Cetak PDF / Print */}
+        <button
+          onClick={handleExportPDF}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-extrabold rounded-xl shadow-md shadow-teal-900/15 border border-teal-500/30 transition-all cursor-pointer whitespace-nowrap"
+          title="Cetak Laporan PDF Lengkap"
+        >
+          <Printer className="w-4 h-4 shrink-0" />
+          <span>Cetak PDF / Print</span>
+        </button>
       </div>
 
       {/* Grid of Total Unit Metrics */}
@@ -664,6 +728,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Dashboard Sub-Tabs Navigator */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200 scrollbar-none" id="sub_dashboards_navigation_bar">
         {[
+          { id: 'executive', label: '📊 Ringkasan Eksekutif ULP', icon: BarChart2, color: 'border-teal-500 text-teal-700 bg-teal-50' },
           { id: 'pangkal', label: '1. Gangguan Pangkal', icon: Zap, color: 'border-amber-500 text-amber-700 bg-amber-50' },
           { id: 'kode', label: '2. Per Kode Gangguan', icon: ShieldAlert, color: 'border-emerald-500 text-emerald-700 bg-emerald-50' },
           { id: 'gardu', label: '3. Pengukuran Gardu', icon: Gauge, color: 'border-blue-500 text-blue-700 bg-blue-50' },
@@ -688,49 +753,310 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         })}
       </div>
 
-      {/* Comparative Analysis Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <BarChart2 className="w-5 h-5 text-teal-600" />
-                Analisis Komparatif Gangguan per ULP
-            </h2>
-            <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={comparativeStats}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#0f766e" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
-            </div>
-        </div>
-        
-        {/* Monthly Trend Section */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-amber-600" />
-                Tren Gangguan Bulanan (12 Bulan Terakhir)
-            </h2>
-            <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={monthlyOutageData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="count" stroke="#d97706" strokeWidth={3} activeDot={{ r: 8 }} />
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
-        </div>
-      </div>
-
       {/* Sub-Dashboard Content Panel */}
       <div id="sub_dashboard_active_canvas" className="transition-all duration-300">
         
+        {/* TAB 0: DASHBOARD RINGKASAN EKSEKUTIF */}
+        {activeTab === 'executive' && (
+          <div className="space-y-6 animate-fade-in" id="dashboard_ringkasan_eksekutif">
+            
+            {/* KPI Executive row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              
+              {/* Grand Total Systems Customers */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-20 h-20 bg-teal-500/5 rounded-full pointer-events-none" />
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase text-teal-600 tracking-wider">Pelanggan Sistem (Overall)</span>
+                  <h3 className="text-2xl font-black text-slate-800 leading-none">{totalPelangganSistemOverall.toLocaleString()}</h3>
+                  <p className="text-[10px] text-slate-400 mt-1 font-bold">Total seluruh ULP di bawah UP3</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
+                  <span>Kontribusi UP3 Ambon</span>
+                  <span className="text-teal-600">100% Total</span>
+                </div>
+              </div>
+
+              {/* Selected Unit Total Customers */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-20 h-20 bg-blue-500/5 rounded-full pointer-events-none" />
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Pelanggan Unit Terpilih</span>
+                  <h3 className="text-2xl font-black text-slate-800 leading-none">{totalPelanggan.toLocaleString()}</h3>
+                  <p className="text-[10px] text-slate-400 mt-1 font-bold">Total pelanggan pada ULP terpilih</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
+                  <span>Kontribusi ke Sistem</span>
+                  <span className="text-blue-600">
+                    {totalPelangganSistemOverall > 0 
+                      ? ((totalPelanggan / totalPelangganSistemOverall) * 100).toFixed(1) 
+                      : '0.0'}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Total Penyulang / Feeders */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-20 h-20 bg-amber-500/5 rounded-full pointer-events-none" />
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Total Penyulang SUTM</span>
+                  <h3 className="text-2xl font-black text-slate-800 leading-none">{customerDistributionData.length} Feeder</h3>
+                  <p className="text-[10px] text-slate-400 mt-1 font-bold">Penyulang aktif termonitor</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
+                  <span>Panjang SUTM Total</span>
+                  <span className="text-amber-600">
+                    {customerDistributionData.reduce((acc, curr) => acc + curr.panjangKms, 0).toFixed(1)} Kms
+                  </span>
+                </div>
+              </div>
+
+              {/* Density Ratio */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-20 h-20 bg-rose-500/5 rounded-full pointer-events-none" />
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase text-rose-600 tracking-wider">Kepadatan Pelanggan</span>
+                  <h3 className="text-2xl font-black text-slate-800 leading-none">
+                    {customerDistributionData.length > 0 
+                      ? Math.round(totalPelanggan / customerDistributionData.length).toLocaleString() 
+                      : '0'}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 mt-1 font-bold">Rata-rata pelanggan per feeder</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
+                  <span>Rasio Kepadatan</span>
+                  <span className="text-rose-600">Sangat Tinggi</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Visual Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              
+              {/* Customer count per feeder visual chart */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs lg:col-span-2 flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">Visualisasi Jumlah Pelanggan per Penyulang SUTM 20kV</h3>
+                  <p className="text-[10px] text-slate-500">Perbandingan kapasitas beban pelanggan tersambung antar penyulang</p>
+                </div>
+
+                <div className="h-80 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={customerDistributionData}
+                      margin={{ top: 20, right: 10, left: -20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis 
+                        dataKey="name" 
+                        tick={{ fontSize: 9, fill: '#475569', fontWeight: 'bold' }} 
+                        axisLine={false} 
+                        tickLine={false} 
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 9, fill: '#475569' }} 
+                        axisLine={false} 
+                        tickLine={false} 
+                      />
+                      <Tooltip 
+                        contentStyle={{ fontSize: '10px', borderRadius: '8px' }} 
+                        formatter={(val) => [`${Number(val).toLocaleString()} Pelanggan`, 'Pelanggan']}
+                      />
+                      <Bar dataKey="pelanggan" fill="#0d9488" radius={[6, 6, 0, 0]} barSize={35}>
+                        {customerDistributionData.map((entry, index) => {
+                          const colors = ['#0d9488', '#0f766e', '#14b8a6', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
+                          return <Cell key={`cell-bar-${index}`} fill={colors[index % colors.length]} />;
+                        })}
+                        <LabelList 
+                          dataKey="pelanggan" 
+                          position="top" 
+                          formatter={(val: number) => val >= 1000 ? `${(val/1000).toFixed(1)}k` : val} 
+                          style={{ fontSize: 9, fill: '#475569', fontWeight: 'extrabold' }} 
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Pie Chart Representation */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">Proporsi Kepadatan Pelanggan</h3>
+                  <p className="text-[10px] text-slate-500">Distribusi persentase sebaran pelanggan di sistem</p>
+                </div>
+
+                <div className="h-64 w-full flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={customerDistributionData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={75}
+                        paddingAngle={3}
+                        dataKey="pelanggan"
+                      >
+                        {customerDistributionData.map((entry, index) => {
+                          const colors = ['#0f766e', '#0d9488', '#14b8a6', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
+                          return <Cell key={`cell-exec-pie-${index}`} fill={colors[index % colors.length]} />;
+                        })}
+                      </Pie>
+                      <Tooltip formatter={(val) => [`${Number(val).toLocaleString()} Pelanggan`, 'Jumlah']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  {customerDistributionData.map((item, idx) => {
+                    const pct = totalPelanggan > 0 ? ((item.pelanggan / totalPelanggan) * 100).toFixed(1) : '0';
+                    const colors = ['#0f766e', '#0d9488', '#14b8a6', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
+                    return (
+                      <div key={idx} className="flex items-center justify-between text-[11px] font-bold">
+                        <div className="flex items-center gap-1.5 text-slate-600 truncate">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colors[idx % colors.length] }}></span>
+                          <span className="truncate">{item.name}</span>
+                        </div>
+                        <span className="font-black text-slate-900 shrink-0">{pct}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Interactive Grid Table of Feeders */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-800">Daftar Kepadatan &amp; Detail Konstruksi per Penyulang</h3>
+                <p className="text-[10px] text-slate-500">Klik baris penyulang untuk menampilkan rincian pelanggan per section jaringan di bawahnya</p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px]">
+                      <th className="p-3">Nama Penyulang (Feeder)</th>
+                      <th className="p-3 text-right">Jumlah Pelanggan</th>
+                      <th className="p-3 text-center">Proporsi Unit</th>
+                      <th className="p-3 text-center">Panjang Jaringan</th>
+                      <th className="p-3 text-center">Jumlah Gardu</th>
+                      <th className="p-3">Indeks Keandalan</th>
+                      <th className="p-3 text-center">Kepadatan Visual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerDistributionData.map((item, idx) => {
+                      const pct = totalPelanggan > 0 ? ((item.pelanggan / totalPelanggan) * 100).toFixed(1) : '0';
+                      const maxPelanggan = Math.max(...customerDistributionData.map(d => d.pelanggan));
+                      const relativeDensity = maxPelanggan > 0 ? (item.pelanggan / maxPelanggan) * 100 : 0;
+                      
+                      let indexColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                      if (item.indeksSehat === 'Kronis' || item.indeksSehat === 'Sakit') {
+                        indexColor = 'bg-rose-50 text-rose-700 border-rose-200';
+                      } else if (item.indeksSehat === 'Sehat') {
+                        indexColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                      }
+
+                      const isSelected = selectedFeederForSections === item.name;
+
+                      return (
+                        <React.Fragment key={`exec-feeder-row-${idx}`}>
+                          <tr 
+                            onClick={() => setSelectedFeederForSections(isSelected ? null : item.name)}
+                            className={`border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer ${
+                              isSelected ? 'bg-slate-50/70 font-black' : ''
+                            }`}
+                          >
+                            <td className="p-3 font-extrabold text-slate-800 flex items-center gap-2">
+                              <span className="text-teal-600">⚡</span>
+                              <span>{item.name}</span>
+                              {isSelected ? (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-100 text-teal-800 uppercase font-black tracking-wider shrink-0">Aktif</span>
+                              ) : (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase font-bold shrink-0">Detail</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right font-black text-slate-800">{item.pelanggan.toLocaleString()}</td>
+                            <td className="p-3 text-center font-bold text-slate-500">{pct}%</td>
+                            <td className="p-3 text-center font-bold text-slate-600">{item.panjangKms} Kms</td>
+                            <td className="p-3 text-center font-bold text-slate-600">{item.jumlahGardu} Gardu</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${indexColor}`}>
+                                {item.indeksSehat}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2 justify-center">
+                                <div className="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                  <div 
+                                    className="bg-gradient-to-r from-teal-500 to-emerald-500 h-1.5 rounded-full" 
+                                    style={{ width: `${relativeDensity}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-[10px] font-mono font-bold text-slate-400">{Math.round(relativeDensity)}%</span>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Section detail table */}
+                          {isSelected && (
+                            <tr className="bg-slate-50/40">
+                              <td colSpan={7} className="p-4 border-b border-slate-200">
+                                <div className="space-y-3 pl-6 pr-6 py-2 border-l-4 border-teal-500 bg-white rounded-r-xl shadow-xs p-4">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="text-xs font-black text-teal-950 uppercase tracking-wider flex items-center gap-1.5">
+                                      <span>Rincian Section Jaringan (Feeder {item.name})</span>
+                                    </h4>
+                                    <button 
+                                      onClick={() => setSelectedFeederForSections(null)}
+                                      className="text-slate-400 hover:text-slate-600 font-extrabold text-xs"
+                                    >
+                                      Tutup Detail
+                                    </button>
+                                  </div>
+
+                                  {sectionsForSelectedFeeder.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                      {sectionsForSelectedFeeder.map((section, sIdx) => {
+                                        const secPct = item.pelanggan > 0 ? ((section.pelanggan / item.pelanggan) * 100).toFixed(1) : '0';
+                                        return (
+                                          <div key={sIdx} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center shadow-2xs">
+                                            <div>
+                                              <p className="text-xs font-extrabold text-slate-800">{section.name}</p>
+                                              <p className="text-[9px] text-slate-400 font-bold mt-0.5">Sistem Operasi: {section.sistemOperasi}</p>
+                                            </div>
+                                            <div className="text-right">
+                                              <p className="text-xs font-black text-teal-700">{section.pelanggan.toLocaleString()}</p>
+                                              <p className="text-[9px] text-slate-400 font-bold mt-0.5">{secPct}% beban</p>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-4 text-xs font-bold text-slate-400">
+                                      ⚠️ Tidak ada rincian section terdaftar untuk penyulang ini.
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
         {/* TAB 1: DASHBOARD GANGGUAN PANGKAL */}
         {activeTab === 'pangkal' && (
           <div className="space-y-6 animate-fade-in" id="dashboard_gangguan_pangkal">
@@ -773,25 +1099,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </button>
               </div>
 
-              {/* Center Column: Visual Chart of Feeders */}
+              {/* Center Column: Summary Cards of Feeders */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-4 lg:col-span-2">
                 <div>
-                  <h3 className="text-sm font-black text-slate-800">Frekuensi Outage per Pangkal Penyulang SUTM</h3>
-                  <p className="text-[10px] text-slate-500">Melihat feeder dengan intensitas gangguan trip tertinggi untuk prioritas pemeliharaan</p>
+                  <h3 className="text-sm font-black text-slate-800">Peringkat Kerawanan Feeder SUTM</h3>
+                  <p className="text-[10px] text-slate-500">Feeder dengan tingkat kejadian trip teratas pada sistem 20kV</p>
                 </div>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={gangguanPangkalStats} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#475569', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 9, fill: '#475569' }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '10px' }} />
-                      <Bar dataKey="jumlahGangguan" name="Jumlah Gangguan Trip" fill="#f59e0b" radius={[6, 6, 0, 0]}>
-                        {gangguanPangkalStats.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : index === 1 ? '#f97316' : '#f59e0b'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {gangguanPangkalStats.slice(0, 6).map((feeder, fIdx) => (
+                    <div key={fIdx} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                      <div className="text-xs font-bold text-slate-700 truncate" title={feeder.name}>{feeder.name}</div>
+                      <div className="text-lg font-black text-teal-800 mt-1">{feeder.jumlahGangguan} Trip</div>
+                      <div className="text-[10px] text-slate-500 font-medium">{feeder.totalDurasiMenit} m / {feeder.arusMaksimum}A</div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -800,58 +1121,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {/* Outage Pangkal Summary Table */}
             <div className="bg-[#022e2a]/80 p-5 rounded-2xl border border-teal-500/30 backdrop-blur-md shadow-lg">
               <h3 className="text-sm font-black text-white mb-4 tracking-wider uppercase drop-shadow-xs">Daftar Frekuensi Trip &amp; Durasi Pemulihan Feeder</h3>
-              
-              {/* Chart Visualization */}
-              <div className="h-72 mb-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={gangguanPangkalStats} 
-                    margin={{ top: 20, right: 15, left: -15, bottom: 25 }}
-                    onClick={(data: any) => {
-                      if (data && data.activePayload && data.activePayload[0]) {
-                          const name = data.activePayload[0].payload.name;
-                          setSelectedFeeder(selectedFeeder === name ? null : name);
-                      }
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.2)" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#ffffff" 
-                      tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 700 }} 
-                      tickLine={{ stroke: '#ffffff' }}
-                      interval={0}
-                      angle={-25}
-                      textAnchor="end"
-                      height={50}
-                    />
-                    <YAxis 
-                      stroke="#ffffff" 
-                      tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 700 }} 
-                      tickLine={{ stroke: '#ffffff' }}
-                      allowDecimals={false}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#022e2a', 
-                        borderColor: '#2dd4bf', 
-                        color: '#ffffff', 
-                        borderRadius: '10px', 
-                        fontWeight: 'bold',
-                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)'
-                      }} 
-                      itemStyle={{ color: '#ffffff', fontWeight: 'bold' }}
-                      labelStyle={{ color: '#5eead4', fontWeight: 'bold' }}
-                    />
-                    <Bar dataKey="jumlahGangguan" radius={[4, 4, 0, 0]} cursor="pointer">
-                       <LabelList dataKey="jumlahGangguan" position="top" fill="#ffffff" fontSize={11} fontWeight={800} offset={6} />
-                       {gangguanPangkalStats.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={selectedFeeder === entry.name ? '#f59e0b' : '#14b8a6'} />
-                       ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">

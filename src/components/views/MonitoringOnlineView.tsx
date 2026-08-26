@@ -72,7 +72,7 @@ export const MonitoringOnlineView: React.FC<MonitoringOnlineViewProps> = ({
           Akses Terbatas: Khusus Status Sistem
         </h2>
         <p className="text-sm text-slate-500 mt-2 max-w-md leading-relaxed">
-          Halaman Monitoring User Online ini dirancang eksklusif dan hanya dapat diakses oleh akun dengan status / kewenangan <strong>Sistem</strong> PLN ULP Baguala.
+          Halaman Monitoring User Online ini dirancang eksklusif dan hanya dapat diakses oleh akun dengan status / kewenangan <strong>Sistem</strong> PLN.
         </p>
       </div>
     );
@@ -226,9 +226,9 @@ export const MonitoringOnlineView: React.FC<MonitoringOnlineViewProps> = ({
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Header Banner - Owner VIP Theme */}
-      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-6 rounded-3xl border border-emerald-500/30 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#022623] via-[#044c45] to-[#022e2a] p-6 rounded-3xl border border-teal-500/50 text-white shadow-2xl relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute left-1/3 bottom-0 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1.5">
@@ -237,9 +237,6 @@ export const MonitoringOnlineView: React.FC<MonitoringOnlineViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span className="w-2 h-2 rounded-full bg-emerald-400 -ml-3.5" />
                 Live Monitoring Sistem
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase">
-                PLN ULP Baguala
               </span>
             </div>
             <h1 className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
@@ -343,7 +340,7 @@ export const MonitoringOnlineView: React.FC<MonitoringOnlineViewProps> = ({
               {registeredUsersList.length || processedPresences.length}
             </div>
             <p className="text-[11px] text-slate-500 font-bold mt-1">
-              Akun resmi sistem PLN Baguala
+              Akun resmi sistem PLN
             </p>
           </div>
         </div>
