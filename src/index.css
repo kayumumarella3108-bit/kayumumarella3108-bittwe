@@ -64,7 +64,8 @@
   transform: scale(1.4);
 }
 
-.custom-feeder-div-icon {
+.custom-feeder-div-icon,
+.gardu-label-marker {
   background: transparent !important;
   border: none !important;
 }

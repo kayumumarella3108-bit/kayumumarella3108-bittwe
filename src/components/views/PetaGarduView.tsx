@@ -271,18 +271,18 @@ export const PetaGarduView: React.FC<PetaGarduViewProps> = ({
       const status = getGarduStatus(gardu);
       const kodeTrafo = gardu.noGarduBaru || gardu.noBaru || gardu.noGarduLama || '';
 
-      // Lightweight marker with transformer code label badge
+      // Lightweight marker with transformer code label badge positioned BELOW the circle icon
       const customIcon = L.divIcon({
         className: 'gardu-label-marker',
         html: `
-          <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap; transform: translate(-10px, -10px); pointer-events: auto;">
-            <div style="width: 14px; height: 14px; border-radius: 50%; background: ${status.color}; border: 2px solid #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.6); flex-shrink: 0;"></div>
-            ${kodeTrafo ? `<span style="background: rgba(15, 23, 42, 0.9); color: white; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 2px 4px rgba(0,0,0,0.5);">${kodeTrafo}</span>` : ''}
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; transform: translate(-50%, -8px); pointer-events: auto; user-select: none;">
+            <div style="width: 16px; height: 16px; border-radius: 50%; background: ${status.color}; border: 2.5px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.7); flex-shrink: 0; position: relative; z-index: 2;"></div>
+            ${kodeTrafo ? `<span style="margin-top: 2px; background: rgba(15, 23, 42, 0.92); color: #ffffff; padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 800; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 4px rgba(0,0,0,0.6); white-space: nowrap; text-align: center; line-height: 1.2; letter-spacing: 0.2px; z-index: 1;">${kodeTrafo}</span>` : ''}
           </div>
         `,
-        iconSize: [120, 20],
-        iconAnchor: [10, 10],
-        popupAnchor: [0, -10]
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+        popupAnchor: [0, -12]
       });
 
       const marker = L.marker([lat, lng], { icon: customIcon });
