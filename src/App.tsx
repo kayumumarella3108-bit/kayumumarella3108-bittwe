@@ -83,6 +83,7 @@ import { SearchProvider } from './context/SearchContext';
 
 // Views
 import { DashboardView } from './components/views/DashboardView';
+import { DccView } from './components/views/DccView';
 import { MonitoringOnlineView } from './components/views/MonitoringOnlineView';
 import { PetaPenyulangView } from './components/views/PetaPenyulangView';
 import { InputPetaPenyulangView } from './components/views/InputPetaPenyulangView';
@@ -2615,6 +2616,10 @@ export default function App() {
               onSelectView={setActiveView}
               allPenyulangList={syncedPenyulangList}
             />
+          )}
+
+          {activeView === 'dcc' && (
+            <DccView currentUser={user} />
           )}
 
           {(activeView === 'peta_penyulang' || activeView === 'peta') && (

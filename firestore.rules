@@ -198,5 +198,10 @@ service cloud.firestore {
       allow get, write: if isValidId(id);
       allow list: if true;
     }
+
+    match /dcc_configs/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
   }
 }

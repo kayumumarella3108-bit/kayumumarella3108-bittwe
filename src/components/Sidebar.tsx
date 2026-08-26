@@ -378,6 +378,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           )}
 
+          {/* Interactive DCC Single Line Diagram Menu */}
+          {canAccessMenu(currentUser, 'dcc') && (
+            <button
+              onClick={() => onSelectView('dcc')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                activeView === 'dcc'
+                  ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                  : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                activeView === 'dcc'
+                  ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                  : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs animate-pulse'
+              }`}>
+                <Radio className="w-4 h-4 text-emerald-300" />
+              </div>
+              <span className="font-bold">Mini DCC</span>
+            </button>
+          )}
+
           {/* 1. MENU MASTER DATA (ACCORDION) */}
           {(canAccessMenu(currentUser, 'master_data') || isOwnerUser(currentUser)) && (
             <div>

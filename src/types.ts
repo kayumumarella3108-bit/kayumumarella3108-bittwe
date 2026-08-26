@@ -1,5 +1,6 @@
 export type ViewType = 
   | 'dashboard'
+  | 'dcc'
   | 'monitoring_online'
   | 'live_chat'
   | 'spklu'

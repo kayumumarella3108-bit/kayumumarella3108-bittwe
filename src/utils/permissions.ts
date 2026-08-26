@@ -168,7 +168,7 @@ export const canAccessMenu = (user: User | null | undefined, menuKey: string): b
   }
 
   // Live Chat, AI Bot, Help Desk & Kalkulator Listrik is accessible to all logged-in users
-  if (menuKey === 'live_chat' || menuKey === 'chat' || menuKey === 'kalkulator_listrik' || menuKey === 'kalkulator' || menuKey === 'helpdesk' || menuKey === 'help_desk' || menuKey === 'inbox') {
+  if (menuKey === 'live_chat' || menuKey === 'chat' || menuKey === 'kalkulator_listrik' || menuKey === 'kalkulator' || menuKey === 'helpdesk' || menuKey === 'help_desk' || menuKey === 'inbox' || menuKey === 'dcc') {
     return true;
   }
 

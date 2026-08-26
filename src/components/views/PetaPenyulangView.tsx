@@ -28,7 +28,9 @@ import {
   Cpu,
   ToggleRight,
   Power,
-  RotateCcw
+  RotateCcw,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { MapLayerItem, MasterUnitPLN, Penyulang } from '../../types';
 import {
@@ -90,6 +92,7 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'Semua' | 'SUTM' | 'Gardu' | 'Percabangan' | 'ROW' | 'Inspeksi' | 'Maintenance'>('Semua');
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [fileImporting, setFileImporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importUlp, setImportUlp] = useState('');
@@ -145,6 +148,23 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
     densityModeRef.current = densityMode;
     showPolylineRef.current = showPolyline;
   }, [layers, onUpdateLayer, manualStatuses, nodeIcons, densityMode, showPolyline]);
+
+  // Invalidate map size on fullscreen toggle for seamless canvas/layer adjustment
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize({ animate: true });
+      }, 150);
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   // Sync layer customIcons & customStatuses to local state
   useEffect(() => {
@@ -962,7 +982,11 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-3.5rem)] flex overflow-hidden bg-slate-50 font-sans">
+    <div className={`w-full overflow-hidden bg-slate-50 font-sans transition-all duration-300 ${
+      isFullscreen 
+        ? 'fixed inset-0 z-[9999] h-screen w-screen flex' 
+        : 'relative h-[calc(100vh-3.5rem)] flex'
+    }`}>
       
       {/* Hidden File Input for KML / KMZ */}
       <input
@@ -1243,7 +1267,7 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
           )}
         </div>
 
-        {/* Top Right Controls: Map Base Style Only */}
+        {/* Top Right Controls: Map Base Style & Fullscreen */}
         <div className="absolute top-4 right-4 z-10 flex flex-wrap items-center gap-2">
           {/* Map Base Style Selector */}
           <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-md">
@@ -1278,6 +1302,25 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
               <MapPin className="w-3.5 h-3.5" /> Street Map
             </button>
           </div>
+
+          {/* Fullscreen Button */}
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white/95 hover:bg-slate-50 border border-slate-200 rounded-xl shadow-md text-xs font-bold text-slate-700 transition-all cursor-pointer hover:scale-[1.03] active:scale-95"
+            title={isFullscreen ? 'Keluar Layar Penuh (ESC)' : 'Tampilkan Layar Penuh'}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>Kecilkan</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Fullscreen</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
