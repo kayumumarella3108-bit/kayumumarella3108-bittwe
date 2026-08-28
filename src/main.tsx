@@ -3,6 +3,27 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
+// Intercept and filter out cosmetic Firestore future update time warnings caused by client-server clock drift
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+const shouldSuppress = (args: any[]) => {
+  return args.some(arg => 
+    typeof arg === 'string' && 
+    (arg.includes('Detected an update time that is in the future') || arg.includes('@firebase/firestore: Firestore'))
+  );
+};
+
+console.error = (...args: any[]) => {
+  if (shouldSuppress(args)) return;
+  originalConsoleError(...args);
+};
+
+console.warn = (...args: any[]) => {
+  if (shouldSuppress(args)) return;
+  originalConsoleWarn(...args);
+};
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
