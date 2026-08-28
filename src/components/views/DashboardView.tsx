@@ -727,7 +727,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Grid of Total Unit Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4" id="main_summary_counter_grid">
+      <motion.div 
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4" 
+        id="main_summary_counter_grid"
+      >
         {[
           { label: 'Total Pelanggan', value: totalPelanggan.toLocaleString(), desc: 'Pelanggan Tersambung', icon: UserCheck, color: 'text-teal-600 bg-teal-50 border-teal-200' },
           { label: 'Total Gardu', value: (sectionList.length || (ownerSelectedUnitFilter === 'SEMUA' ? 150 : 0)).toLocaleString(), desc: 'Gardu Distribusi Aktif', icon: Layers, color: 'text-blue-600 bg-blue-50 border-blue-200' },
@@ -737,6 +744,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         ].map((item, idx) => (
           <motion.div
             key={idx}
+            layout
             whileHover={{ y: -5, scale: 1.02 }}
             className="bg-[#022e2a]/80 p-4 rounded-xl border border-teal-500/30 backdrop-blur-md shadow-lg flex flex-col justify-between hover:shadow-xl transition-all"
           >
@@ -750,7 +758,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Dashboard Sub-Tabs Navigator */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200 scrollbar-none" id="sub_dashboards_navigation_bar">

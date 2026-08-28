@@ -205,10 +205,16 @@ export const PeremajaanMeterView: React.FC<PeremajaanMeterViewProps> = ({
       return;
     }
 
+    // Force unit and kodeUnit for restricted users
+    const finalUnit = canEdit ? formData.unit || currentUser?.unit || 'ULP Baguala' : currentUser?.unit || 'ULP Baguala';
+    const finalKodeUnit = getKodeUnitByUnitName(finalUnit);
+
     if (editingItem) {
       const updated: PeremajaanMeterItem = {
         ...editingItem,
-        ...(formData as PeremajaanMeterItem)
+        ...(formData as PeremajaanMeterItem),
+        unit: finalUnit,
+        kodeUnit: finalKodeUnit
       };
       const newItems = items.map((i) => (i.id === editingItem.id ? updated : i));
       setItems(newItems);
@@ -232,7 +238,8 @@ export const PeremajaanMeterView: React.FC<PeremajaanMeterViewProps> = ({
         tglPelaksanaan: formData.tglPelaksanaan || new Date().toISOString().split('T')[0],
         status: (formData.status as any) || 'SELESAI',
         catatan: formData.catatan || '',
-        unit: formData.unit || currentUser?.unit || 'ULP Baguala'
+        unit: finalUnit,
+        kodeUnit: finalKodeUnit
       };
       setItems([newItem, ...items]);
       if (onAdd) onAdd(newItem);

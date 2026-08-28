@@ -67,50 +67,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
       {/* Right Section: Header Navigation Menu */}
       <div className="flex items-center gap-2 sm:gap-3 bg-teal-950/70 border border-teal-500/40 p-1.5 rounded-2xl shadow-inner backdrop-blur-md">
-        {/* Menu Cloud Backup */}
-        {onOpenBackupModal && (
-          <button
-            onClick={onOpenBackupModal}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 hover:border-amber-400 shadow-xs"
-            title="Picu Cadangan Data (Cloud & Google Sheets)"
-          >
-            <CloudUpload className="w-4 h-4 text-amber-400" />
-            <span className="hidden sm:inline">Backup Cloud</span>
-          </button>
-        )}
-
-        {/* Menu Live Chat */}
-        <button
-          onClick={() => onSelectView('live_chat')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-xs ${
-            activeView === 'live_chat'
-              ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-slate-950 border-teal-200 font-black shadow-teal-500/30 scale-[1.02]'
-              : 'bg-teal-900/60 text-white hover:bg-teal-800/80 border-teal-600/50 hover:border-teal-300'
-          }`}
-          title="Buka Live Chat"
-        >
-          <MessageSquare className={`w-4 h-4 ${activeView === 'live_chat' ? 'text-slate-950' : 'text-teal-300'}`} />
-          <span>Live Chat</span>
-        </button>
-
-        {/* Menu Monitoring Online */}
-        {isOwner && (
-          <button
-            onClick={() => onSelectView('monitoring_online')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer border shadow-xs ${
-              activeView === 'monitoring_online'
-                ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 border-emerald-300 font-black shadow-emerald-400/30 scale-[1.02]'
-                : 'bg-[#02312b]/90 text-white hover:bg-teal-800/80 border-teal-600/50 hover:border-emerald-300'
-            }`}
-            title="Buka Monitoring User Online (Live)"
-          >
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
-            </span>
-            <span className="font-bold">{onlineCount !== undefined ? `${onlineCount} Online` : 'Live Online'}</span>
-          </button>
-        )}
       </div>
 
     </header>

@@ -956,6 +956,17 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
 
             <div className="flex items-center gap-2">
               <select
+                value={filterUnit}
+                onChange={(e) => setFilterUnit(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800"
+              >
+                <option value="ALL">Semua Unit PLN</option>
+                {DAFTAR_UNIT_PLN.map((u) => (
+                    <option key={u.namaUnit} value={u.namaUnit}>{u.namaUnit}</option>
+                ))}
+              </select>
+
+              <select
                 value={filterKeseimbangan}
                 onChange={(e) => setFilterKeseimbangan(e.target.value)}
                 className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
@@ -1118,6 +1129,17 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <select
+                value={filterUnit}
+                onChange={(e) => setFilterUnit(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800"
+              >
+                <option value="ALL">Semua Unit PLN</option>
+                {DAFTAR_UNIT_PLN.map((u) => (
+                    <option key={u.namaUnit} value={u.namaUnit}>{u.namaUnit}</option>
+                ))}
+              </select>
+
               <span className="text-xs font-semibold text-slate-600">Filter Penyulang:</span>
               <select
                 value={filterPenyulang}

@@ -185,10 +185,16 @@ export const MeterSLView: React.FC<MeterSLViewProps> = ({
       return;
     }
 
+    // Force unit and kodeUnit for restricted users
+    const finalUnit = canEdit ? formData.unit || currentUser?.unit || 'ULP Baguala' : currentUser?.unit || 'ULP Baguala';
+    const finalKodeUnit = getKodeUnitByUnitName(finalUnit);
+
     if (editingItem) {
       const updated: MeterSLItem = {
         ...editingItem,
-        ...(formData as MeterSLItem)
+        ...(formData as MeterSLItem),
+        unit: finalUnit,
+        kodeUnit: finalKodeUnit
       };
       const newItems = items.map((i) => (i.id === editingItem.id ? updated : i));
       setItems(newItems);
@@ -209,7 +215,8 @@ export const MeterSLView: React.FC<MeterSLViewProps> = ({
         statusKelayakan: formData.statusKelayakan || 'SESUAI_STANDAR',
         tindakanRekomendasi: formData.tindakanRekomendasi || '',
         petugasPemeriksa: formData.petugasPemeriksa || 'Petugas TE',
-        unit: formData.unit || currentUser?.unit || 'ULP Baguala'
+        unit: finalUnit,
+        kodeUnit: finalKodeUnit
       };
       setItems([newItem, ...items]);
       if (onAdd) onAdd(newItem);
