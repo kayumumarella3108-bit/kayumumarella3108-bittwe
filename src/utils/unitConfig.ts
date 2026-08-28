@@ -1,4 +1,5 @@
 import { User, MasterUnitPLN } from '../types';
+import { getDeletedIds } from '../lib/firebase';
 
 export interface UnitInfo {
   namaUnit: string;
@@ -9,18 +10,18 @@ export interface UnitInfo {
   kabupaten?: string;
 }
 
-export const DAFTAR_UNIT_PLN: UnitInfo[] = [
+export const STATIC_DAFTAR_UNIT_PLN: UnitInfo[] = [
   {
     namaUnit: 'ULP Baguala',
-    kodeUnit: '54110',
+    kodeUnit: '41130',
     singkatan: 'BGL',
     tipe: 'ULP',
-    alamat: 'Jl. Wolter Monginsidi, Passo, Ambon',
+    alamat: 'Jl. Raya Waitatiri Desa Suli, Maluku Tengah',
     kabupaten: 'Kota Ambon'
   },
   {
     namaUnit: 'ULP Namlea',
-    kodeUnit: '54120',
+    kodeUnit: '41180',
     singkatan: 'NML',
     tipe: 'ULP',
     alamat: 'Jl. Danau Rana No. 12, Namlea',
@@ -28,11 +29,19 @@ export const DAFTAR_UNIT_PLN: UnitInfo[] = [
   },
   {
     namaUnit: 'ULP Ambon Kota',
-    kodeUnit: '54130',
+    kodeUnit: '41111',
     singkatan: 'ABK',
     tipe: 'ULP',
     alamat: 'Jl. Sultan Hairun No. 1, Ambon',
     kabupaten: 'Kota Ambon'
+  },
+  {
+    namaUnit: 'ULP Haruku',
+    kodeUnit: '41150',
+    singkatan: 'HRK',
+    tipe: 'ULP',
+    alamat: 'Haruku, Maluku Tengah',
+    kabupaten: 'Kabupaten Maluku Tengah'
   },
   {
     namaUnit: 'ULP Piru',
@@ -125,7 +134,7 @@ export const DAFTAR_UNIT_PLN: UnitInfo[] = [
 ];
 
 export const DEFAULT_UNIT = 'ULP Baguala';
-export const DEFAULT_KODE_UNIT = '54110';
+export const DEFAULT_KODE_UNIT = '41130';
 
 export interface FullUnitDetails {
   namaUnit: string;
@@ -185,6 +194,7 @@ export const getUnitDetails = (
     if (cleanName.includes('BAGUALA')) singkatan = 'BGL';
     else if (cleanName.includes('NAMLEA')) singkatan = 'NML';
     else if (cleanName.includes('AMBON')) singkatan = 'ABK';
+    else if (cleanName.includes('HARUKU')) singkatan = 'HRK';
     else if (cleanName.includes('PIRU')) singkatan = 'PIR';
     else if (cleanName.includes('MASOHI')) singkatan = 'MSH';
     else if (cleanName.includes('SAPARUA')) singkatan = 'SPR';
@@ -219,14 +229,32 @@ export const getUnitDetails = (
   };
 };
 
+let globalMasterUnitList: MasterUnitPLN[] | null = null;
+
+export const setGlobalMasterUnitList = (list: MasterUnitPLN[]) => {
+  globalMasterUnitList = list;
+};
+
+export const getGlobalMasterUnitList = (): MasterUnitPLN[] | null => {
+  return globalMasterUnitList;
+};
+
 /**
  * Dynamically constructs the Unit list synchronized with Master Unit PLN data.
  * When items are added, edited, or deleted in Master Unit PLN, this reflects live updates.
  */
 export const getDynamicUnitList = (masterUnitList?: MasterUnitPLN[]): UnitInfo[] => {
+  const activeMasterList =
+    masterUnitList && masterUnitList.length > 0
+      ? masterUnitList
+      : globalMasterUnitList && globalMasterUnitList.length > 0
+      ? globalMasterUnitList
+      : null;
+
   let rawList: UnitInfo[] = [];
-  if (masterUnitList && masterUnitList.length > 0) {
-    const masterMapped: UnitInfo[] = masterUnitList.map((m) => ({
+
+  if (activeMasterList && activeMasterList.length > 0) {
+    const masterMapped: UnitInfo[] = activeMasterList.map((m) => ({
       namaUnit: m.ulp?.trim() || m.id,
       kodeUnit: m.kodeUlp?.trim() || '54110',
       singkatan: m.kodeUlp?.trim() || '',
@@ -248,22 +276,35 @@ export const getDynamicUnitList = (masterUnitList?: MasterUnitPLN[]): UnitInfo[]
 
     const existingCodes = new Set(masterUnique.map((u) => u.kodeUnit));
 
-    // Keep default administrative/regional units (UP3, UIW, Pusat, Nusadaya) if not already in master
-    const additional = DAFTAR_UNIT_PLN.filter(
-      (d) => !existingCodes.has(d.kodeUnit) && !existingNames.has(d.namaUnit.toLowerCase().trim())
+    // Keep default administrative/regional units (UP3, UIW, Pusat, Nusadaya) ONLY if NOT ULP type
+    const additional = STATIC_DAFTAR_UNIT_PLN.filter(
+      (d) => d.tipe !== 'ULP' && !existingCodes.has(d.kodeUnit) && !existingNames.has(d.namaUnit.toLowerCase().trim())
     );
 
     rawList = [...masterUnique, ...additional];
   } else {
-    rawList = DAFTAR_UNIT_PLN;
+    rawList = STATIC_DAFTAR_UNIT_PLN;
   }
 
-  // Ensure ultimate uniqueness
+  // Ensure ultimate uniqueness and filter deleted units
+  const deletedIds = getDeletedIds() || [];
   const seenKey = new Set<string>();
   const finalUniqueList: UnitInfo[] = [];
+
   for (const item of rawList) {
     const k = `${item.kodeUnit.trim()}_${item.namaUnit.toLowerCase().trim()}`;
-    if (!seenKey.has(k)) {
+    const cleanName = item.namaUnit.toLowerCase().trim();
+    
+    // Check if deleted
+    const isDeleted = deletedIds.some(
+      (d) =>
+        d === item.kodeUnit ||
+        d === item.namaUnit ||
+        d.toLowerCase().trim() === cleanName ||
+        d.toLowerCase().trim() === item.kodeUnit.toLowerCase().trim()
+    );
+
+    if (!isDeleted && !seenKey.has(k)) {
       seenKey.add(k);
       finalUniqueList.push(item);
     }
@@ -271,6 +312,18 @@ export const getDynamicUnitList = (masterUnitList?: MasterUnitPLN[]): UnitInfo[]
 
   return finalUniqueList;
 };
+
+/**
+ * Proxy object for DAFTAR_UNIT_PLN so that any component accessing DAFTAR_UNIT_PLN
+ * automatically gets the live dynamic list synchronized with Master Data Unit PLN.
+ */
+export const DAFTAR_UNIT_PLN = new Proxy(STATIC_DAFTAR_UNIT_PLN, {
+  get(target, prop, receiver) {
+    const currentList = getDynamicUnitList();
+    const val = Reflect.get(currentList, prop, receiver);
+    return typeof val === 'function' ? val.bind(currentList) : val;
+  }
+});
 
 /**
  * Gets the standard unit code for a given unit name.

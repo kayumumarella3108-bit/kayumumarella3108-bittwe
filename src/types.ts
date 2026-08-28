@@ -1358,10 +1358,32 @@ export interface MeterSLItem {
   createdAt?: string;
 }
 
+export interface PembacaanMeterGarduItem {
+  id: string;
+  kodeGardu: string;           // e.g. "GD.PS01", "METER_GI_PASSO"
+  namaGarduOrMeter: string;     // e.g. "Gardu Distribusi Passo 01" / "Outing Feeder Passo"
+  standAwalKwh: number;         // Stand Meter Awal (kWh)
+  standAkhirKwh: number;        // Stand Meter Akhir (kWh)
+  faktorKaliMeter: number;      // CT/PT Ratio multiplier (e.g. 1, 20, 40)
+  totalKwhKirimGardu: number;   // (standAkhirKwh - standAwalKwh) * faktorKaliMeter
+  tglPembacaanAwal?: string;
+  tglPembacaanAkhir?: string;
+  keteranganMeter?: string;
+}
+
+export interface PembacaanPelangganDetail {
+  id: string;
+  kategoriTarifOrBlok: string;  // e.g. "R1/Subsidized (450-900VA)", "B2/Bisnis", "Pascabayar", "Prabayar Token"
+  jumlahPelanggan?: number;     // Total Pelanggan
+  totalKwhTerjual: number;      // Total kWh Pelanggan
+  noLppOrRef?: string;          // Referensi LPP / Laporan Rekapitulasi Meter
+}
+
 export interface MonitoringSusutItem {
   id: string;
   bulanTahun: string;
   namaPenyulangOrUnit: string;
+  penyulangId?: string;
   kwhKirim: number;
   kwhTerimaOrTerjual: number;
   kwhSusut: number;
@@ -1373,7 +1395,14 @@ export interface MonitoringSusutItem {
   tindakanUpaya: string;
   unit: string;
   kodeUnit?: string;
+  
+  // Fitur Kalkulasi Rincian Pembacaan Meter Gardu vs Total kWh Pelanggan
+  pembacaanMeterGarduList?: PembacaanMeterGarduItem[];
+  rincianPelangganList?: PembacaanPelangganDetail[];
+  bppPerKwhRp?: number;           // Biaya Pokok Penyediaan / Tarif (default Rp 1.444,70 / kWh)
+  estimasiRugiRp?: number;        // Total Kerugian Finansial (Rp) = kwhSusut * bppPerKwhRp
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface K3LItem {

@@ -37,7 +37,8 @@ import {
   MasterUnitPLN,
   HelpDeskMessage,
   CashFlowBopItem,
-  MonitoringLemburItem
+  MonitoringLemburItem,
+  MonitoringSusutItem
 } from './types';
 import {
   INITIAL_PENYULANG,
@@ -73,7 +74,7 @@ import { sanitizeForFirestore } from './utils/firestoreHelper';
 import { isPemasaranUser, isInspeksiUser, canAccessMenu, isOwnerUser } from './utils/permissions';
 import { sendWaNotification } from './utils/whatsappNotifier';
 import { updatePresenceInFirestore, markPresenceOfflineInFirestore, calculatePresenceStatus } from './utils/presenceTracker';
-import { isDataAccessibleByUser, DEFAULT_UNIT, DEFAULT_KODE_UNIT, getKodeUnitByUnitName } from './utils/unitConfig';
+import { isDataAccessibleByUser, DEFAULT_UNIT, DEFAULT_KODE_UNIT, getKodeUnitByUnitName, setGlobalMasterUnitList } from './utils/unitConfig';
 import { Lock, Bell, AlertTriangle, X, CheckCircle2, Radio } from 'lucide-react';
 import { AnimatePresence, motion } from "motion/react";
 import { LoginScreen } from './components/LoginScreen';
@@ -127,6 +128,7 @@ import { PetaGarduView } from './components/views/PetaGarduView';
 import { ManbillView } from './components/views/ManbillView';
 import { K3LView } from './components/views/K3LView';
 import { MonitoringLemburView } from './components/views/MonitoringLemburView';
+import { CloudBackupModal } from './components/modals/CloudBackupModal';
 
 export default function App() {
   // Authentication state
@@ -328,6 +330,7 @@ export default function App() {
   const [activeBroadcast, setActiveBroadcast] = useState<SystemBroadcastMessage | null>(null);
   const [dismissedBroadcastIds, setDismissedBroadcastIds] = useState<string[]>([]);
   const [isForceLogoutModalOpen, setIsForceLogoutModalOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
 
   // Master Unit PLN State (UIW, UP3, ULP, KODE ULP)
   const [masterUnitList, setMasterUnitList] = useState<MasterUnitPLN[]>([]);
@@ -340,6 +343,40 @@ export default function App() {
 
   // Monitoring Lembur State
   const [lemburList, setLemburList] = useState<MonitoringLemburItem[]>([]);
+
+  // Susut Energi State
+  const [susutList, setSusutList] = useState<MonitoringSusutItem[]>([]);
+
+  const handleAddSusut = async (item: MonitoringSusutItem) => {
+    setSusutList((prev) => [item, ...prev.filter((s) => s.id !== item.id)]);
+    try {
+      await setDoc(doc(db, 'susut_energi_list', item.id), sanitizeForFirestore(item));
+      logActivity(`Tambah neraca susut energi: ${item.namaPenyulangOrUnit} (${item.bulanTahun})`, 'Monitoring Susut');
+    } catch (err) {
+      console.error('Error saving susut energi to Firestore:', err);
+    }
+  };
+
+  const handleUpdateSusut = async (item: MonitoringSusutItem) => {
+    setSusutList((prev) => prev.map((s) => (s.id === item.id ? item : s)));
+    try {
+      await setDoc(doc(db, 'susut_energi_list', item.id), sanitizeForFirestore(item));
+      logActivity(`Update neraca susut energi: ${item.namaPenyulangOrUnit}`, 'Monitoring Susut');
+    } catch (err) {
+      console.error('Error updating susut energi in Firestore:', err);
+    }
+  };
+
+  const handleDeleteSusut = async (id: string) => {
+    registerDeletedId(id);
+    setSusutList((prev) => prev.filter((s) => s.id !== id));
+    try {
+      await deleteDoc(doc(db, 'susut_energi_list', id));
+      logActivity(`Hapus neraca susut energi ID: ${id}`, 'Monitoring Susut');
+    } catch (err) {
+      console.error('Error deleting susut energi from Firestore:', err);
+    }
+  };
 
   const handleAddCashFlow = (item: CashFlowBopItem) => {
     setCashFlowList(prev => [item, ...prev]);
@@ -611,23 +648,29 @@ export default function App() {
       const items: MasterUnitPLN[] = [];
       snapshot.forEach((docSnap) => items.push({ id: docSnap.id, ...docSnap.data() } as MasterUnitPLN));
       const filtered = filterDeleted(items);
-      if (filtered.length > 0) {
+      const isSeeded = localStorage.getItem('perangpadam_master_unit_seeded') === 'true';
+
+      if (filtered.length > 0 || isSeeded) {
         setMasterUnitList(filtered);
+        setGlobalMasterUnitList(filtered);
       } else {
-        // Default seed units for Maluku & Maluku Utara
+        // Initial seed only on empty database
         const defaultUnits: MasterUnitPLN[] = [
-          { id: 'unit_1', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Baguala', kodeUlp: '54110', alamat: 'Jl. Wolter Monginsidi, Passo, Ambon', status: 'AKTIF' },
-          { id: 'unit_2', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Namlea', kodeUlp: '54120', alamat: 'Jl. Danau Rana No. 12, Namlea', status: 'AKTIF' },
-          { id: 'unit_3', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Ambon Kota', kodeUlp: '54130', alamat: 'Jl. Sultan Hairun No. 1, Ambon', status: 'AKTIF' },
-          { id: 'unit_4', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Piru', kodeUlp: '54140', alamat: 'Jl. Trans Seram, Piru', status: 'AKTIF' },
-          { id: 'unit_5', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Masohi', kodeUlp: '54150', alamat: 'Jl. Abdullah Soulisa, Masohi', status: 'AKTIF' },
-          { id: 'unit_6', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Saparua', kodeUlp: '54160', alamat: 'Jl. Benteng Duurstede, Saparua', status: 'AKTIF' },
-          { id: 'unit_7', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Kairatu', kodeUlp: '54170', alamat: 'Jl. Dermaga Kairatu', status: 'AKTIF' },
-          { id: 'unit_8', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Tual', ulp: 'ULP Tual', kodeUlp: '54210', alamat: 'Jl. Jenderal Sudirman, Tual', status: 'AKTIF' },
-          { id: 'unit_9', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Saumlaki', ulp: 'ULP Saumlaki', kodeUlp: '54220', alamat: 'Jl. Mathilda Batlayeri, Saumlaki', status: 'AKTIF' },
-          { id: 'unit_10', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Saumlaki', ulp: 'ULP Dobo', kodeUlp: '54230', alamat: 'Jl. Cenderawasih, Dobo', status: 'AKTIF' }
+          { id: 'unit_1', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Baguala', kodeUlp: '41130', alamat: 'Jl. Raya Waitatiri Desa Suli, Maluku Tengah', status: 'AKTIF' },
+          { id: 'unit_2', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Namlea', kodeUlp: '41180', alamat: 'Jl. Danau Rana No. 12, Namlea', status: 'AKTIF' },
+          { id: 'unit_3', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Ambon Kota', kodeUlp: '41111', alamat: 'Jl. Sultan Hairun No. 1, Ambon', status: 'AKTIF' },
+          { id: 'unit_4', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Haruku', kodeUlp: '41150', alamat: 'Haruku, Maluku Tengah', status: 'AKTIF' },
+          { id: 'unit_5', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Piru', kodeUlp: '54140', alamat: 'Jl. Trans Seram, Piru', status: 'AKTIF' },
+          { id: 'unit_6', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Masohi', kodeUlp: '54150', alamat: 'Jl. Abdullah Soulisa, Masohi', status: 'AKTIF' },
+          { id: 'unit_7', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Saparua', kodeUlp: '54160', alamat: 'Jl. Benteng Duurstede, Saparua', status: 'AKTIF' },
+          { id: 'unit_8', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Ambon', ulp: 'ULP Kairatu', kodeUlp: '54170', alamat: 'Jl. Dermaga Kairatu', status: 'AKTIF' },
+          { id: 'unit_9', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Tual', ulp: 'ULP Tual', kodeUlp: '54210', alamat: 'Jl. Jenderal Sudirman, Tual', status: 'AKTIF' },
+          { id: 'unit_10', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Saumlaki', ulp: 'ULP Saumlaki', kodeUlp: '54220', alamat: 'Jl. Mathilda Batlayeri, Saumlaki', status: 'AKTIF' },
+          { id: 'unit_11', uiw: 'UIW MMU (Maluku & Maluku Utara)', up3: 'UP3 Saumlaki', ulp: 'ULP Dobo', kodeUlp: '54230', alamat: 'Jl. Cenderawasih, Dobo', status: 'AKTIF' }
         ];
+        localStorage.setItem('perangpadam_master_unit_seeded', 'true');
         setMasterUnitList(defaultUnits);
+        setGlobalMasterUnitList(defaultUnits);
         defaultUnits.forEach((u) => setDoc(doc(db, 'master_unit_pln', u.id), sanitizeForFirestore(u)).catch(() => {}));
       }
     }, (error) => {
@@ -981,6 +1024,15 @@ export default function App() {
       handleFirestoreError(error, OperationType.LIST, 'monitoring_lembur');
     });
 
+    // 37. Sync Monitoring Susut Energi
+    const unsubSusut = onSnapshot(collection(db, 'susut_energi_list'), (snapshot) => {
+      const items: MonitoringSusutItem[] = [];
+      snapshot.forEach((docSnap) => items.push({ id: docSnap.id, ...docSnap.data() } as MonitoringSusutItem));
+      setSusutList(filterDeleted(items));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'susut_energi_list');
+    });
+
     const loadingTimer = setTimeout(() => {
       setIsDataLoading(false);
     }, 600);
@@ -1021,6 +1073,7 @@ export default function App() {
       unsubOnlineUsers();
       unsubBroadcasts();
       unsubLembur();
+      unsubSusut();
     };
   }, []);
 
@@ -1805,7 +1858,13 @@ export default function App() {
       console.warn('Operasi ditolak: Akun Owner dilindungi dan hanya dapat diedit oleh Owner.');
       return;
     }
-    setUsersList((prev) => prev.map((u) => (u.username === updatedUser.username ? updatedUser : u)));
+    setUsersList((prev) => prev.map((u) => (u.username === updatedUser.username || (u.id && u.id === updatedUser.id) ? updatedUser : u)));
+    
+    // If the currently logged in user is being updated, update the user state immediately so avatars & names reflect live
+    if (user && (user.username === updatedUser.username || (user.id && user.id === updatedUser.id))) {
+      setUser(updatedUser);
+    }
+
     try {
       const docId = updatedUser.id || updatedUser.username;
       await setDoc(doc(db, 'app_users', docId), sanitizeForFirestore(updatedUser));
@@ -2401,7 +2460,11 @@ export default function App() {
 
   // Master Data Unit PLN Handlers (Owner Only)
   const handleAddMasterUnit = async (newUnit: MasterUnitPLN) => {
-    setMasterUnitList((prev) => [newUnit, ...prev.filter((u) => u.id !== newUnit.id)]);
+    setMasterUnitList((prev) => {
+      const next = [newUnit, ...prev.filter((u) => u.id !== newUnit.id)];
+      setGlobalMasterUnitList(next);
+      return next;
+    });
     try {
       await setDoc(doc(db, 'master_unit_pln', newUnit.id), sanitizeForFirestore(newUnit));
       logActivity(`Menambah Master Unit PLN: ${newUnit.ulp} (${newUnit.kodeUlp})`, 'Master Unit');
@@ -2412,7 +2475,11 @@ export default function App() {
   };
 
   const handleUpdateMasterUnit = async (updatedUnit: MasterUnitPLN) => {
-    setMasterUnitList((prev) => prev.map((u) => (u.id === updatedUnit.id ? updatedUnit : u)));
+    setMasterUnitList((prev) => {
+      const next = prev.map((u) => (u.id === updatedUnit.id ? updatedUnit : u));
+      setGlobalMasterUnitList(next);
+      return next;
+    });
     try {
       await setDoc(doc(db, 'master_unit_pln', updatedUnit.id), sanitizeForFirestore(updatedUnit));
       logActivity(`Memperbarui Master Unit PLN: ${updatedUnit.ulp}`, 'Master Unit');
@@ -2422,13 +2489,71 @@ export default function App() {
     }
   };
 
-  const handleDeleteMasterUnit = async (id: string) => {
-    if (!id) return;
-    registerDeletedId(id);
-    setMasterUnitList((prev) => prev.filter((u) => u.id !== id));
+  const handleDeleteMasterUnit = async (id: string, unitObj?: MasterUnitPLN) => {
+    if (!id && !unitObj) return;
+
+    // 1. Immediately register all identifier keys as deleted
+    const keysToRegister = [
+      id,
+      unitObj?.id,
+      unitObj?.kodeUlp,
+      unitObj?.ulp
+    ].filter(Boolean);
+
+    keysToRegister.forEach((key) => {
+      if (key) registerDeletedId(String(key));
+    });
+
+    // 2. Optimistically filter state & update global cache
+    setMasterUnitList((prev) => {
+      const next = prev.filter((u) => {
+        const uId = String(u.id || '').trim().toLowerCase();
+        const uKode = String(u.kodeUlp || '').trim().toLowerCase();
+        const uUlp = String(u.ulp || '').trim().toLowerCase();
+
+        for (const k of keysToRegister) {
+          const target = String(k).trim().toLowerCase();
+          if (target && (uId === target || uKode === target || uUlp === target)) {
+            return false;
+          }
+        }
+        return true;
+      });
+      setGlobalMasterUnitList(next);
+      return next;
+    });
+
+    // 3. Delete from Firestore completely
     try {
-      await deleteDoc(doc(db, 'master_unit_pln', id));
-      logActivity(`Menghapus Master Unit PLN ID ${id}`, 'Master Unit');
+      if (id) {
+        await deleteDoc(doc(db, 'master_unit_pln', id)).catch(() => {});
+      }
+
+      const snap = await getDocs(collection(db, 'master_unit_pln'));
+      const deletePromises: Promise<void>[] = [];
+
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const docId = docSnap.id.trim().toLowerCase();
+        const docKode = String(data.kodeUlp || '').trim().toLowerCase();
+        const docUlp = String(data.ulp || '').trim().toLowerCase();
+
+        let isMatch = false;
+        for (const k of keysToRegister) {
+          const target = String(k).trim().toLowerCase();
+          if (target && (docId === target || docKode === target || docUlp === target)) {
+            isMatch = true;
+            break;
+          }
+        }
+
+        if (isMatch) {
+          deletePromises.push(deleteDoc(doc(db, 'master_unit_pln', docSnap.id)).catch(() => {}));
+        }
+      });
+
+      await Promise.all(deletePromises);
+      logActivity(`Menghapus Master Unit PLN: ${unitObj?.ulp || id}`, 'Master Unit');
     } catch (err) {
       console.error('Error deleting Master Unit PLN from Firestore:', err);
       handleFirestoreError(err, OperationType.DELETE, `master_unit_pln/${id}`);
@@ -2523,7 +2648,13 @@ export default function App() {
 
   // If not logged in, display Login Screen
   if (!user) {
-    return <LoginScreen onLogin={handleLogin} usersList={usersList} />;
+    return (
+      <LoginScreen
+        onLogin={handleLogin}
+        usersList={usersList}
+        onSendHelpDesk={handleSendHelpDeskMessage}
+      />
+    );
   }
 
   return (
@@ -2540,6 +2671,7 @@ export default function App() {
           onlineCount={onlineUsersList.filter((p) => calculatePresenceStatus(p).status === 'online').length}
           ownerSelectedUnitFilter={ownerSelectedUnitFilter}
           onSelectUnitFilter={setOwnerSelectedUnitFilter}
+          onOpenBackupModal={() => setIsBackupModalOpen(true)}
         />
 
       {/* Broadcast Message Banner (Top System Notification) */}
@@ -2695,6 +2827,7 @@ export default function App() {
               <PetaGarduView
                 masterGarduList={filteredMasterGarduList}
                 pengukuranList={filteredPengukuranList}
+                masterUnits={masterUnitList}
                 onUpdateGardu={handleAddMasterGardu}
               />
             </motion.div>
@@ -2713,6 +2846,7 @@ export default function App() {
                 pohonList={filteredPohonGisList}
                 penyulangList={filteredPenyulangList}
                 layers={mapLayers}
+                masterUnits={masterUnitList}
                 onAddPohon={handleAddPohonGis}
                 onImportBatch={handleBatchAddPohonGis}
                 onUpdatePohon={handleUpdatePohonGis}
@@ -2853,6 +2987,7 @@ export default function App() {
                 onDeleteMapLayer={handleDeleteMapLayer}
                 onSelectView={setActiveView}
                 isLoading={isDataLoading}
+                onOpenBackupModal={() => setIsBackupModalOpen(true)}
               />
             </motion.div>
           )}
@@ -2871,6 +3006,7 @@ export default function App() {
                 onAddUnit={handleAddMasterUnit}
                 onUpdateUnit={handleUpdateMasterUnit}
                 onDeleteUnit={handleDeleteMasterUnit}
+                onOpenBackupModal={() => setIsBackupModalOpen(true)}
               />
             </motion.div>
           )}
@@ -3073,6 +3209,7 @@ export default function App() {
               tier1JtmList={filteredTier1JtmList}
               penyulangList={filteredPenyulangList}
               sectionList={filteredSectionList}
+              masterUnitList={masterUnitList}
               isLoading={isDataLoading}
             />
           )}
@@ -3084,6 +3221,7 @@ export default function App() {
               penyulangList={filteredPenyulangList}
               sectionList={filteredSectionList}
               masterGarduList={filteredMasterGarduList}
+              masterUnitList={masterUnitList}
               isLoading={isDataLoading}
             />
           )}
@@ -3094,6 +3232,7 @@ export default function App() {
               tier1SwitchingList={filteredTier1SwitchingList}
               penyulangList={filteredPenyulangList}
               sectionList={filteredSectionList}
+              masterUnitList={masterUnitList}
             />
           )}
 
@@ -3103,6 +3242,7 @@ export default function App() {
               thermovisionList={filteredThermovisionList}
               penyulangList={filteredPenyulangList}
               sectionList={filteredSectionList}
+              masterUnitList={masterUnitList}
             />
           )}
 
@@ -3112,6 +3252,7 @@ export default function App() {
               ultrasoundList={filteredUltrasoundList}
               penyulangList={filteredPenyulangList}
               sectionList={filteredSectionList}
+              masterUnitList={masterUnitList}
             />
           )}
 
@@ -3174,6 +3315,10 @@ export default function App() {
             <MonitoringSusutView
               currentUser={user}
               penyulangList={filteredPenyulangList}
+              susutList={susutList}
+              onAdd={handleAddSusut}
+              onUpdate={handleUpdateSusut}
+              onDelete={handleDeleteSusut}
             />
           )}
 
@@ -3258,6 +3403,16 @@ export default function App() {
             )
           )}
         </main>
+
+        {/* Modal Pusat Cadangan Cloud & Google Sheets */}
+        <CloudBackupModal
+          isOpen={isBackupModalOpen}
+          onClose={() => setIsBackupModalOpen(false)}
+          currentUser={user}
+          masterUnitList={masterUnitList}
+          penyulangList={penyulangList}
+          sectionList={sectionList}
+        />
       </div>
     </SearchProvider>
     </div>

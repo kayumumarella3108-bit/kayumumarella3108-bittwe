@@ -33,6 +33,7 @@ import {
   Minimize2
 } from 'lucide-react';
 import { MapLayerItem, MasterUnitPLN, Penyulang } from '../../types';
+import { getDynamicUnitList } from '../../utils/unitConfig';
 import {
   IconGarduTrafo,
   IconTiangSingleCrossarm,
@@ -90,7 +91,19 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
   };
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUlp, setSelectedUlp] = useState('SEMUA');
   const [selectedCategory, setSelectedCategory] = useState<'Semua' | 'SUTM' | 'Gardu' | 'Percabangan' | 'ROW' | 'Inspeksi' | 'Maintenance'>('Semua');
+
+  const ulpOptions = React.useMemo(() => {
+    const list = getDynamicUnitList(masterUnits);
+    const optionsMap = new Map<string, { namaUnit: string; kodeUnit: string }>();
+    list.forEach((u) => {
+      if (u.namaUnit && u.kodeUnit) {
+        optionsMap.set(u.kodeUnit, { namaUnit: u.namaUnit, kodeUnit: u.kodeUnit });
+      }
+    });
+    return Array.from(optionsMap.values());
+  }, [masterUnits]);
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fileImporting, setFileImporting] = useState(false);
@@ -909,7 +922,49 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
   const filteredLayers = layers.filter((layer) => {
     const matchesSearch = (layer.nama || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCat = selectedCategory === 'Semua' || layer.kategori === selectedCategory;
-    return matchesSearch && matchesCat;
+
+    let matchesUlp = true;
+    if (selectedUlp !== 'SEMUA') {
+      const targetUlpClean = selectedUlp.toLowerCase().replace(/^ulp\s+/i, '').trim();
+      const targetUlpFull = selectedUlp.toLowerCase().trim();
+      const layerUlp = (layer.ulp || layer.unit || '').toLowerCase().trim();
+      const layerKode = (layer.kodeUnit || '').toLowerCase().trim();
+      const layerNama = (layer.nama || '').toLowerCase().trim();
+      const layerPenyulang = (layer.namaPenyulang || '').toLowerCase().trim();
+
+      const matchedUnitObj = masterUnits.find(
+        (u) =>
+          (u.ulp && u.ulp.toLowerCase().trim() === targetUlpFull) ||
+          u.kodeUlp === selectedUlp ||
+          (u.ulp && u.ulp.toLowerCase().includes(targetUlpClean))
+      );
+      const targetKode = matchedUnitObj?.kodeUlp?.toLowerCase().trim();
+
+      if (
+        (layerUlp && (layerUlp.includes(targetUlpClean) || targetUlpFull.includes(layerUlp))) ||
+        (targetKode && layerKode === targetKode) ||
+        layerNama.includes(targetUlpClean) ||
+        layerPenyulang.includes(targetUlpClean)
+      ) {
+        matchesUlp = true;
+      } else if (masterPenyulangs.length > 0) {
+        const pMatch = masterPenyulangs.find(
+          (p) =>
+            (p.namaPenyulang || '').toLowerCase().trim() === layerNama ||
+            (p.namaPenyulang || '').toLowerCase().trim() === layerPenyulang
+        );
+        if (pMatch) {
+          const pUnit = (pMatch.unit || pMatch.kodeUnit || '').toLowerCase();
+          matchesUlp = pUnit.includes(targetUlpClean) || targetUlpFull.includes(pUnit);
+        } else {
+          matchesUlp = false;
+        }
+      } else {
+        matchesUlp = false;
+      }
+    }
+
+    return matchesSearch && matchesCat && matchesUlp;
   });
 
   const handleSaveMarkerModal = (modalData: {
@@ -1044,6 +1099,24 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
 
           {/* Search & Category Filter Box */}
           <div className="space-y-2">
+            {/* Filter ULP Select Dropdown */}
+            <div className="relative">
+              <Building2 className="w-3.5 h-3.5 text-amber-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={selectedUlp}
+                onChange={(e) => setSelectedUlp(e.target.value)}
+                className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 transition-all cursor-pointer appearance-none shadow-xs"
+              >
+                <option value="SEMUA">🌐 Filter ULP: Semua Unit</option>
+                {ulpOptions.map((u) => (
+                  <option key={u.kodeUnit} value={u.namaUnit}>
+                    ⚡ {u.namaUnit} (Kode: {u.kodeUnit})
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+            </div>
+
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input

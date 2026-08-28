@@ -31,9 +31,11 @@ import {
   FileCode,
   Pencil,
   FolderOpen,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Building2
 } from 'lucide-react';
-import { PohonGisItem, User, Penyulang, MapLayerItem } from '../../types';
+import { PohonGisItem, User, Penyulang, MapLayerItem, MasterUnitPLN } from '../../types';
+import { getDynamicUnitList } from '../../utils/unitConfig';
 import { ImportPohonModal } from '../modals/ImportPohonModal';
 import { readGisFileWithValidation, convertToPohonItems } from '../../utils/gisFileParser';
 
@@ -81,6 +83,7 @@ interface PetaPohonViewProps {
   pohonList: PohonGisItem[];
   penyulangList?: Penyulang[];
   layers?: MapLayerItem[];
+  masterUnits?: MasterUnitPLN[];
   onAddPohon: (item: PohonGisItem) => void;
   onImportBatch?: (items: PohonGisItem[]) => void;
   onUpdatePohon: (item: PohonGisItem) => void;
@@ -92,15 +95,28 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
   pohonList,
   penyulangList = [],
   layers = [],
+  masterUnits = [],
   onAddPohon,
   onImportBatch,
   onUpdatePohon,
   onDeletePohon
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUlp, setSelectedUlp] = useState<string>('Semua');
   const [selectedPenyulang, setSelectedPenyulang] = useState<string>('Semua');
   const [selectedBahaya, setSelectedBahaya] = useState<string>('Semua');
   const [selectedStatus, setSelectedStatus] = useState<string>('Semua');
+
+  const ulpOptions = useMemo(() => {
+    const list = getDynamicUnitList(masterUnits);
+    const optionsMap = new Map<string, { namaUnit: string; kodeUnit: string }>();
+    list.forEach((u) => {
+      if (u.namaUnit && u.kodeUnit) {
+        optionsMap.set(u.kodeUnit, { namaUnit: u.namaUnit, kodeUnit: u.kodeUnit });
+      }
+    });
+    return Array.from(optionsMap.values());
+  }, [masterUnits]);
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
   const [showFeederLayer, setShowFeederLayer] = useState<boolean>(false);
   const [globalIconStyle, setGlobalIconStyle] = useState<string>('default');
@@ -307,7 +323,22 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
   const filteredFeederGroups = feederGroups.filter((group) => {
     const matchSearch = group.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchPenyulang = selectedPenyulang === 'Semua' || group.name === selectedPenyulang;
-    return matchSearch && matchPenyulang;
+    
+    let matchUlp = true;
+    if (selectedUlp !== 'Semua' && selectedUlp !== 'SEMUA' && selectedUlp !== 'ALL') {
+      const targetUlpClean = selectedUlp.toLowerCase().replace(/^ulp\s+/i, '').trim();
+      const targetUlpFull = selectedUlp.toLowerCase().trim();
+      
+      const hasMatchingItem = group.items.some((item) => {
+        const pUlp = (item.unit || item.kodeUnit || item.ulp || '').toLowerCase().trim();
+        const pPenyulang = (item.penyulang || group.name).toLowerCase().trim();
+        return (pUlp && (pUlp.includes(targetUlpClean) || targetUlpFull.includes(pUlp))) || pPenyulang.includes(targetUlpClean);
+      });
+
+      matchUlp = hasMatchingItem || group.name.toLowerCase().includes(targetUlpClean);
+    }
+
+    return matchSearch && matchPenyulang && matchUlp;
   });
 
   // Toggle Feeder visibility on map
@@ -522,11 +553,50 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
       (item.jenisPohon || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.keterangan || '').toLowerCase().includes(searchQuery.toLowerCase());
 
+    let matchUlp = true;
+    if (selectedUlp !== 'Semua' && selectedUlp !== 'SEMUA' && selectedUlp !== 'ALL') {
+      const targetUlpClean = selectedUlp.toLowerCase().replace(/^ulp\s+/i, '').trim();
+      const targetUlpFull = selectedUlp.toLowerCase().trim();
+      const pUlp = (item.unit || item.kodeUnit || item.ulp || '').toLowerCase().trim();
+      const pPenyulang = (item.penyulang || '').toLowerCase().trim();
+      const pLokasi = (item.lokasi || '').toLowerCase().trim();
+
+      const matchedUnitObj = masterUnits.find(
+        (u) =>
+          (u.ulp && u.ulp.toLowerCase().trim() === targetUlpFull) ||
+          u.kodeUlp === selectedUlp ||
+          (u.ulp && u.ulp.toLowerCase().includes(targetUlpClean))
+      );
+      const targetKode = matchedUnitObj?.kodeUlp?.toLowerCase().trim();
+
+      if (
+        (pUlp && (pUlp.includes(targetUlpClean) || targetUlpFull.includes(pUlp))) ||
+        (targetKode && (item.kodeUnit || '').toLowerCase().trim() === targetKode) ||
+        pPenyulang.includes(targetUlpClean) ||
+        pLokasi.includes(targetUlpClean)
+      ) {
+        matchUlp = true;
+      } else if (penyulangList.length > 0) {
+        const pMatch = penyulangList.find(
+          (p) =>
+            (p.namaPenyulang || '').toLowerCase().trim() === pPenyulang
+        );
+        if (pMatch) {
+          const pUnit = (pMatch.unit || pMatch.kodeUnit || '').toLowerCase();
+          matchUlp = pUnit.includes(targetUlpClean) || targetUlpFull.includes(pUnit);
+        } else {
+          matchUlp = false;
+        }
+      } else {
+        matchUlp = false;
+      }
+    }
+
     const matchPenyulang = selectedPenyulang === 'Semua' || item.penyulang === selectedPenyulang;
     const matchBahaya = selectedBahaya === 'Semua' || item.tingkatBahaya === selectedBahaya;
     const matchStatus = selectedStatus === 'Semua' || item.statusEksekusi === selectedStatus;
 
-    return matchSearch && matchPenyulang && matchBahaya && matchStatus;
+    return matchSearch && matchUlp && matchPenyulang && matchBahaya && matchStatus;
   });
 
   // Calculate statistics
@@ -981,6 +1051,24 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
               <div className="text-[10px] text-emerald-600 font-semibold">Selesai</div>
               <div className="text-xs font-black text-emerald-700">{totalSelesai}</div>
             </div>
+          </div>
+
+          {/* Filter ULP Select Dropdown */}
+          <div className="relative">
+            <Building2 className="w-3.5 h-3.5 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <select
+              value={selectedUlp}
+              onChange={(e) => setSelectedUlp(e.target.value)}
+              className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 focus:outline-none focus:bg-white focus:border-emerald-500 transition-all cursor-pointer appearance-none shadow-xs"
+            >
+              <option value="Semua">🌐 Filter ULP: Semua Unit</option>
+              {ulpOptions.map((u) => (
+                <option key={u.kodeUnit} value={u.namaUnit}>
+                  ⚡ {u.namaUnit} (Kode: {u.kodeUnit})
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
           </div>
 
           {/* Search Box */}

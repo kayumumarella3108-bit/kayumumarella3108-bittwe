@@ -203,5 +203,15 @@ service cloud.firestore {
       allow get, write: if isValidId(id);
       allow list: if true;
     }
+
+    match /susut_energi_list/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /app_settings/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
   }
 }

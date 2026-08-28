@@ -57,7 +57,7 @@ export const LoginBackgroundModal: React.FC<LoginBackgroundModalProps> = ({
 
   if (!isOpen) return null;
 
-  const categories = ['Semua', 'EBT', 'Jaringan 20kV', 'Gardu & Trafo', 'Cyber Modern', 'Alam & Lanskap'];
+  const categories = ['Semua', 'Mobil Listrik (EV)', 'EBT', 'Jaringan 20kV', 'Gardu & Trafo', 'Cyber Modern', 'Alam & Lanskap'];
 
   const filteredPresets = PRESET_LOGIN_BACKGROUNDS.filter((p) => {
     if (selectedCategory === 'Semua') return true;
@@ -155,12 +155,12 @@ export const LoginBackgroundModal: React.FC<LoginBackgroundModalProps> = ({
             <div>
               <h2 className="text-base md:text-lg font-black text-white flex items-center gap-2">
                 Ganti Latar Belakang Menu Login
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-extrabold uppercase">
-                  Tema Visual
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold uppercase flex items-center gap-1">
+                  👑 Khusus Owner
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                Pilih foto tema kelistrikan PLN, upload gambar sendiri, atau atur animasi kincir angin & pencahayaan
+                Pengaturan latar belakang login utama (Global Default). Hanya dapat dikelola oleh Owner Sistem.
               </p>
             </div>
           </div>

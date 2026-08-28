@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, MessageSquare } from 'lucide-react';
+import { Menu, MessageSquare, CloudUpload } from 'lucide-react';
 import { User as UserType, ViewType } from '../types';
 import { isOwnerUser } from '../utils/permissions';
 import { useSearch } from '../context/SearchContext';
@@ -14,6 +14,7 @@ interface TopHeaderProps {
   onlineCount?: number;
   ownerSelectedUnitFilter?: string;
   onSelectUnitFilter?: (unit: string) => void;
+  onOpenBackupModal?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -22,7 +23,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onSelectView,
   sidebarOpen,
   onToggleSidebar,
-  onlineCount
+  onlineCount,
+  onOpenBackupModal
 }) => {
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
   const { searchTerm, setSearchTerm } = useSearch();
@@ -65,6 +67,18 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
       {/* Right Section: Header Navigation Menu */}
       <div className="flex items-center gap-2 sm:gap-3 bg-teal-950/70 border border-teal-500/40 p-1.5 rounded-2xl shadow-inner backdrop-blur-md">
+        {/* Menu Cloud Backup */}
+        {onOpenBackupModal && (
+          <button
+            onClick={onOpenBackupModal}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs md:text-sm font-bold transition-all cursor-pointer bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 hover:border-amber-400 shadow-xs"
+            title="Picu Cadangan Data (Cloud & Google Sheets)"
+          >
+            <CloudUpload className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline">Backup Cloud</span>
+          </button>
+        )}
+
         {/* Menu Live Chat */}
         <button
           onClick={() => onSelectView('live_chat')}

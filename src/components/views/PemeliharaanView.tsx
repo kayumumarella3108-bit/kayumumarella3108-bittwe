@@ -26,12 +26,14 @@ import {
   Eye,
   Activity,
   ArrowRight,
-  FileText
+  FileText,
+  Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { ROWItem, InspeksiItem, ViewType, Tier1Item, Tier2Item, MonitoringPemeliharaanItem, User } from '../../types';
+import { ROWItem, InspeksiItem, ViewType, Tier1Item, Tier2Item, MonitoringPemeliharaanItem, User, Penyulang, MasterUnitPLN } from '../../types';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import { exportToCSV } from '../../utils/exportCsv';
 import { db, doc, setDoc, deleteDoc, handleFirestoreError, OperationType, registerDeletedId } from '../../lib/firebase';
 import { sanitizeForFirestore } from '../../utils/firestoreHelper';
@@ -46,6 +48,8 @@ interface PemeliharaanViewProps {
   currentUser?: User;
   onSelectSubView?: (view: ViewType) => void;
   isLoading?: boolean;
+  penyulangList?: Penyulang[];
+  masterUnitList?: MasterUnitPLN[];
 }
 
 const INITIAL_ROW_DATA: ROWItem[] = [
@@ -156,9 +160,12 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
   monitoringList,
   currentUser,
   onSelectSubView,
-  isLoading = false
+  isLoading = false,
+  penyulangList = [],
+  masterUnitList = []
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUlp, setSelectedUlp] = useState('SEMUA');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -185,10 +192,60 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
   const tier2Data = tier2List;
   const monitoringData = monitoringList;
 
-  // Filtered lists based on searchQuery
+  // Combine dynamic master units with defaults for ULP options
+  const ulpOptions = React.useMemo(() => {
+    const unitsMap = new Map<string, string>();
+    DAFTAR_UNIT_PLN.forEach((u) => {
+      if (u.tipe === 'ULP' || !u.tipe) {
+        unitsMap.set(u.namaUnit, u.kodeUnit);
+      }
+    });
+    if (masterUnitList) {
+      masterUnitList.forEach((m) => {
+        if (m.ulp) unitsMap.set(m.ulp, m.kodeUlp || '');
+      });
+    }
+    return Array.from(unitsMap.keys());
+  }, [masterUnitList]);
+
+  // Helper to match item with selected ULP
+  const isMatchingUlp = (penyulangName?: string, itemUlp?: string, itemUnit?: string, itemKode?: string) => {
+    if (!selectedUlp || selectedUlp === 'SEMUA' || selectedUlp === 'all' || selectedUlp === 'Semua') return true;
+    const target = selectedUlp.toLowerCase().replace(/^ulp\s+/i, '').trim();
+    const rawTarget = selectedUlp.toLowerCase().trim();
+
+    // 1. Direct match on item
+    const u = (itemUlp || itemUnit || '').toLowerCase().trim();
+    const uClean = u.replace(/^ulp\s+/i, '').trim();
+    if (u && (u === rawTarget || uClean === target || u.includes(target) || target.includes(uClean))) return true;
+
+    // 2. Direct match by kode
+    if (itemKode && (itemKode === selectedUlp || itemKode === target)) return true;
+
+    // 3. Lookup in penyulangList
+    if (penyulangName && penyulangList && penyulangList.length > 0) {
+      const p = penyulangList.find(
+        pl => pl.nama.toLowerCase().trim() === penyulangName.toLowerCase().trim()
+      );
+      if (p) {
+        const pUlp = (p.ulp || p.unit || '').toLowerCase().trim();
+        const pClean = pUlp.replace(/^ulp\s+/i, '').trim();
+        if (pUlp && (pUlp === rawTarget || pClean === target || pUlp.includes(target) || target.includes(pClean))) {
+          return true;
+        }
+        if (p.kodeUlp && (p.kodeUlp === selectedUlp || p.kodeUlp === target)) return true;
+      }
+    }
+
+    return false;
+  };
+
+  // Filtered lists based on searchQuery and selectedUlp
   const filteredRowData = rowData.filter((r) => {
-    const q = searchQuery.toLowerCase();
     const penyulangStr = r.penyulang || r.namaPenyulang || '';
+    if (!isMatchingUlp(penyulangStr, (r as any).ulp, (r as any).unit, (r as any).kodeUnit)) return false;
+
+    const q = searchQuery.toLowerCase();
     const sectionStr = r.section || r.lokasi || '';
     const luarStr = r.luarTemuan || r.jenisPohon || '';
     return (
@@ -199,9 +256,12 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
   });
 
   const filteredTier1Data = tier1Data.filter((t) => {
+    const penyulangStr = t.penyulang || '';
+    if (!isMatchingUlp(penyulangStr, (t as any).ulp, (t as any).unit, (t as any).kodeUnit)) return false;
+
     const q = searchQuery.toLowerCase();
     return (
-      (t.penyulang || '').toLowerCase().includes(q) ||
+      penyulangStr.toLowerCase().includes(q) ||
       (t.section || '').toLowerCase().includes(q) ||
       (t.temuanRow && t.temuanRow.toLowerCase().includes(q)) ||
       (t.konstruksi && t.konstruksi.toLowerCase().includes(q))
@@ -209,9 +269,12 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
   });
 
   const filteredTier2Data = tier2Data.filter((t) => {
+    const penyulangStr = t.penyulang || '';
+    if (!isMatchingUlp(penyulangStr, (t as any).ulp, (t as any).unit, (t as any).kodeUnit)) return false;
+
     const q = searchQuery.toLowerCase();
     return (
-      (t.penyulang || '').toLowerCase().includes(q) ||
+      penyulangStr.toLowerCase().includes(q) ||
       (t.section || '').toLowerCase().includes(q) ||
       (t.jenisTier2 && t.jenisTier2.toLowerCase().includes(q)) ||
       (t.temuanThermoUltrasound && t.temuanThermoUltrasound.toLowerCase().includes(q))
@@ -219,9 +282,12 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
   });
 
   const filteredMonitoringData = monitoringData.filter((m) => {
+    const penyulangStr = m.penyulang || '';
+    if (!isMatchingUlp(penyulangStr, (m as any).ulp, (m as any).unit, (m as any).kodeUnit)) return false;
+
     const q = searchQuery.toLowerCase();
     return (
-      (m.penyulang || '').toLowerCase().includes(q) ||
+      penyulangStr.toLowerCase().includes(q) ||
       (m.section || '').toLowerCase().includes(q) ||
       (m.keterangan && m.keterangan.toLowerCase().includes(q)) ||
       (Array.isArray(m.jenisPemeliharaan) && m.jenisPemeliharaan.some((j) => (j || '').toLowerCase().includes(q)))
@@ -931,16 +997,33 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
           </div>
 
           <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="relative max-w-sm w-full">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari penyulang, section, temuan..."
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-                />
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari penyulang, section, temuan..."
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold shrink-0">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="text-slate-500 font-bold">ULP:</span>
+                  <select
+                    value={selectedUlp}
+                    onChange={(e) => setSelectedUlp(e.target.value)}
+                    className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer"
+                  >
+                    <option value="SEMUA">Semua ULP</option>
+                    {ulpOptions.map((u) => (
+                      <option key={u} value={u}>{u}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -1358,16 +1441,33 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
       {/* INSPEKSI TIER 1 VIEW */}
       {currentSubView === 'inspeksi_tier1' && (
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative max-w-sm w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari penyulang, section, temuan..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-              />
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari penyulang, section, temuan..."
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="text-slate-500 font-bold">ULP:</span>
+                <select
+                  value={selectedUlp}
+                  onChange={(e) => setSelectedUlp(e.target.value)}
+                  className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="SEMUA">Semua ULP</option>
+                  {ulpOptions.map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -1664,16 +1764,33 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
       {/* INSPEKSI TIER 2 VIEW */}
       {currentSubView === 'inspeksi_tier2' && (
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative max-w-sm w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari penyulang, section, temuan..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-              />
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari penyulang, section, temuan..."
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span className="text-slate-500 font-bold">ULP:</span>
+                <select
+                  value={selectedUlp}
+                  onChange={(e) => setSelectedUlp(e.target.value)}
+                  className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="SEMUA">Semua ULP</option>
+                  {ulpOptions.map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -1926,16 +2043,33 @@ export const PemeliharaanView: React.FC<PemeliharaanViewProps> = ({
       {/* MONITORING PEMELIHARAAN VIEW */}
       {currentSubView === 'pemeliharaan_20kv' && (
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative max-w-sm w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari penyulang, section, jenis pemeliharaan..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-              />
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-2xl">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari penyulang, section, jenis pemeliharaan..."
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-medium"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                <span className="text-slate-500 font-bold">ULP:</span>
+                <select
+                  value={selectedUlp}
+                  onChange={(e) => setSelectedUlp(e.target.value)}
+                  className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="SEMUA">Semua ULP</option>
+                  {ulpOptions.map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">

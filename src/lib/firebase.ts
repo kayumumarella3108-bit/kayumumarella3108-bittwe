@@ -109,11 +109,16 @@ export const getDeletedIds = (): string[] => {
   }
 };
 
-export const registerDeletedId = (id: string) => {
+export const registerDeletedId = (id: string | number) => {
+  if (id === null || id === undefined) return;
+  const strId = String(id).trim();
+  if (!strId) return;
   try {
     const ids = getDeletedIds();
-    if (!ids.includes(id)) {
-      ids.push(id);
+    const normalized = strId.toLowerCase();
+    const hasMatch = ids.some(i => String(i).trim().toLowerCase() === normalized);
+    if (!hasMatch) {
+      ids.push(strId);
       localStorage.setItem('perangpadam_deleted_ids', JSON.stringify(ids));
     }
   } catch (err) {
@@ -121,11 +126,39 @@ export const registerDeletedId = (id: string) => {
   }
 };
 
-export const filterDeleted = <T extends { id?: string; username?: string }>(items: T[]): T[] => {
+export const filterDeleted = <T extends Record<string, any>>(items: T[]): T[] => {
   const deletedIds = getDeletedIds();
-  return items.filter(item => {
-    if (item.id && deletedIds.includes(item.id)) return false;
-    if (item.username && deletedIds.includes(item.username)) return false;
+  if (!deletedIds || deletedIds.length === 0) return items;
+  
+  const deletedSet = new Set(
+    deletedIds.map((d) => String(d).trim().toLowerCase())
+  );
+
+  return items.filter((item) => {
+    if (!item) return false;
+
+    const keysToCheck = [
+      item.id,
+      item.username,
+      item.kodeUlp,
+      item.ulp,
+      item.namaUnit,
+      item.kodeUnit,
+      item.namaPenyulang,
+      item.kodePenyulang,
+      item.sectionName,
+      item.sectionId
+    ];
+
+    for (const val of keysToCheck) {
+      if (val !== undefined && val !== null) {
+        const strVal = String(val).trim().toLowerCase();
+        if (strVal && deletedSet.has(strVal)) {
+          return false;
+        }
+      }
+    }
+
     return true;
   });
 };

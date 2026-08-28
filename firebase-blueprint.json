@@ -527,6 +527,28 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "namaPetugas", "regu", "unit", "tanggalLembur", "jamMulai", "jamSelesai", "totalJam", "alasanLembur", "jenisPekerjaan", "status"]
+    },
+    "MonitoringSusutItem": {
+      "title": "MonitoringSusutItem",
+      "description": "Energy loss monitoring and feeder meter balance calculations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bulanTahun": { "type": "string" },
+        "namaPenyulangOrUnit": { "type": "string" },
+        "kwhKirim": { "type": "number" },
+        "kwhTerimaOrTerjual": { "type": "number" },
+        "kwhSusut": { "type": "number" },
+        "persentaseSusut": { "type": "number" },
+        "targetSusutPersen": { "type": "number" },
+        "kategoriSusut": { "type": "string" },
+        "statusTarget": { "type": "string" },
+        "akarMasalah": { "type": "string" },
+        "tindakanUpaya": { "type": "string" },
+        "unit": { "type": "string" },
+        "kodeUnit": { "type": "string" }
+      },
+      "required": ["id", "bulanTahun", "namaPenyulangOrUnit", "kwhKirim", "kwhTerimaOrTerjual", "kwhSusut", "persentaseSusut", "unit"]
     }
   },
   "firestore": {
@@ -645,6 +667,10 @@
     "monitoring_lembur": {
       "schema": "MonitoringLemburItem",
       "description": "Staff overtime submission and tracking logs"
+    },
+    "susut_energi_list": {
+      "schema": "MonitoringSusutItem",
+      "description": "Feeder energy loss and meter calculation records"
     }
   }
 }

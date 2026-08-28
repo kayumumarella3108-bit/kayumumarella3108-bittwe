@@ -1,7 +1,10 @@
+import evLoginBgAsset from '../assets/images/ev_login_bg_1787911883438.jpg';
+import { db, doc, setDoc, onSnapshot } from '../lib/firebase';
+
 export interface LoginBgPreset {
   id: string;
   name: string;
-  category: 'EBT' | 'Jaringan 20kV' | 'Gardu & Trafo' | 'Alam & Lanskap' | 'Cyber Modern';
+  category: 'EBT' | 'Mobil Listrik (EV)' | 'Jaringan 20kV' | 'Gardu & Trafo' | 'Alam & Lanskap' | 'Cyber Modern';
   url: string;
   description: string;
   defaultTurbines?: boolean;
@@ -21,8 +24,16 @@ export interface LoginBgConfig {
 
 export const PRESET_LOGIN_BACKGROUNDS: LoginBgPreset[] = [
   {
+    id: 'ev-mobil-listrik-4k',
+    name: 'SPKLU Mobil Listrik EV Futuristic 4K (Default)',
+    category: 'Mobil Listrik (EV)',
+    url: evLoginBgAsset,
+    description: 'Wallpaper cinematic 4K pengisian daya Mobil Listrik di stasiun SPKLU PLN malam hari dengan lintasan energi neon cyan-emerald',
+    defaultTurbines: false
+  },
+  {
     id: 'ebt-wind-turbine',
-    name: 'EBT Kincir Angin & Hijau (Default)',
+    name: 'EBT Kincir Angin & Hijau',
     category: 'EBT',
     url: 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?q=80&w=2000&auto=format&fit=crop',
     description: 'Pemandangan ladang kincir angin EBT berlatar belakang alam hijau asri',
@@ -88,10 +99,10 @@ export const PRESET_LOGIN_BACKGROUNDS: LoginBgPreset[] = [
 
 export const DEFAULT_LOGIN_BG_CONFIG: LoginBgConfig = {
   type: 'preset',
-  presetId: 'ebt-wind-turbine',
-  overlayOpacity: 30,
+  presetId: 'ev-mobil-listrik-4k',
+  overlayOpacity: 25,
   blurLevel: 0,
-  showTurbines: true,
+  showTurbines: false,
   showStreamLines: true,
   contrastLevel: 125
 };
@@ -118,6 +129,12 @@ export const saveLoginBgConfig = (config: LoginBgConfig): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     window.dispatchEvent(new CustomEvent('pln_login_bg_updated', { detail: config }));
+    
+    // Also sync to Firestore asynchronously so all clients inherit Owner's choice
+    setDoc(doc(db, 'app_settings', 'login_bg'), {
+      ...config,
+      updatedAt: new Date().toISOString()
+    }).catch((err) => console.error('Error saving background to Firestore:', err));
   } catch (err) {
     console.error('Failed to save login background config:', err);
   }
@@ -128,6 +145,10 @@ export const resetLoginBgConfig = (): LoginBgConfig => {
     try {
       localStorage.removeItem(STORAGE_KEY);
       window.dispatchEvent(new CustomEvent('pln_login_bg_updated', { detail: DEFAULT_LOGIN_BG_CONFIG }));
+      setDoc(doc(db, 'app_settings', 'login_bg'), {
+        ...DEFAULT_LOGIN_BG_CONFIG,
+        updatedAt: new Date().toISOString()
+      }).catch((err) => console.error('Error resetting background in Firestore:', err));
     } catch (err) {
       console.error('Failed to reset login background config:', err);
     }
@@ -143,5 +164,28 @@ export const getActiveBgImageUrl = (config: LoginBgConfig): string => {
     return config.customUrl;
   }
   const preset = PRESET_LOGIN_BACKGROUNDS.find((p) => p.id === config.presetId);
-  return preset ? preset.url : DEFAULT_LOGIN_BG_CONFIG.presetId;
+  return preset ? preset.url : PRESET_LOGIN_BACKGROUNDS[0].url;
 };
+
+// Auto-subscribe to Firestore background settings
+if (typeof window !== 'undefined') {
+  try {
+    onSnapshot(doc(db, 'app_settings', 'login_bg'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as LoginBgConfig;
+        if (data && data.presetId) {
+          const newConfig: LoginBgConfig = {
+            ...DEFAULT_LOGIN_BG_CONFIG,
+            ...data
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
+          window.dispatchEvent(new CustomEvent('pln_login_bg_updated', { detail: newConfig }));
+        }
+      }
+    }, (err) => {
+      console.warn('Firestore bg listener error:', err);
+    });
+  } catch (e) {
+    console.warn('Failed to register bg listener:', e);
+  }
+}

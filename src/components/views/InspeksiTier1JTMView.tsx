@@ -16,10 +16,12 @@ import {
   ShieldCheck,
   Trees,
   Wrench,
-  Printer
+  Printer,
+  Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, InspeksiTier1JTM, Penyulang, SectionJaringan, ROWItem } from '../../types';
+import { User, InspeksiTier1JTM, Penyulang, SectionJaringan, ROWItem, MasterUnitPLN } from '../../types';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import { db, doc, setDoc, deleteDoc, handleFirestoreError, OperationType, registerDeletedId } from '../../lib/firebase';
 import { sanitizeForFirestore } from '../../utils/firestoreHelper';
 import jsPDF from 'jspdf';
@@ -32,6 +34,7 @@ interface InspeksiTier1JTMViewProps {
   tier1JtmList: InspeksiTier1JTM[];
   penyulangList: Penyulang[];
   sectionList: SectionJaringan[];
+  masterUnitList?: MasterUnitPLN[];
   isLoading?: boolean;
 }
 
@@ -114,16 +117,33 @@ export const InspeksiTier1JTMView: React.FC<InspeksiTier1JTMViewProps> = ({
   tier1JtmList,
   penyulangList,
   sectionList,
+  masterUnitList = [],
   isLoading = false
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Omit<InspeksiTier1JTM, 'id'>>(INITIAL_FORM_STATE);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUlpFilter, setSelectedUlpFilter] = useState('all');
   const [selectedYear, setSelectedYear] = useState('2026');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedPenyulangFilter, setSelectedPenyulangFilter] = useState('all');
   const [activeSection, setActiveSection] = useState<string | null>('header');
+
+  const ulpOptions = React.useMemo(() => {
+    const unitsMap = new Map<string, string>();
+    DAFTAR_UNIT_PLN.forEach((u) => {
+      if (u.tipe === 'ULP' || !u.tipe) {
+        unitsMap.set(u.namaUnit, u.kodeUnit);
+      }
+    });
+    if (masterUnitList) {
+      masterUnitList.forEach((m) => {
+        if (m.ulp) unitsMap.set(m.ulp, m.kodeUlp || '');
+      });
+    }
+    return Array.from(unitsMap.keys());
+  }, [masterUnitList]);
 
   const filteredList = tier1JtmList.filter(item => {
     const matchesSearch = item.penyulang.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -136,7 +156,25 @@ export const InspeksiTier1JTMView: React.FC<InspeksiTier1JTMViewProps> = ({
     const matchesPenyulang = selectedPenyulangFilter === 'all' || 
       item.penyulang.toLowerCase() === selectedPenyulangFilter.toLowerCase();
 
-    return matchesSearch && matchesYear && matchesMonth && matchesPenyulang;
+    const matchesUlp = selectedUlpFilter === 'all' || (() => {
+      const target = selectedUlpFilter.toLowerCase().replace(/^ulp\s+/i, '').trim();
+      const rawTarget = selectedUlpFilter.toLowerCase().trim();
+
+      const itemUlp = (item.ulp || (item as any).unit || '').toLowerCase().trim();
+      const itemUlpClean = itemUlp.replace(/^ulp\s+/i, '').trim();
+      if (itemUlp && (itemUlp === rawTarget || itemUlpClean === target || itemUlp.includes(target) || target.includes(itemUlpClean))) return true;
+
+      const pMatch = penyulangList.find(p => p.nama.toLowerCase().trim() === item.penyulang.toLowerCase().trim());
+      if (pMatch) {
+        const pUlp = (pMatch.ulp || pMatch.unit || '').toLowerCase().trim();
+        const pClean = pUlp.replace(/^ulp\s+/i, '').trim();
+        if (pUlp && (pUlp === rawTarget || pClean === target || pUlp.includes(target) || target.includes(pClean))) return true;
+        if (pMatch.kodeUlp && (pMatch.kodeUlp === selectedUlpFilter || pMatch.kodeUlp === target)) return true;
+      }
+      return false;
+    })();
+
+    return matchesSearch && matchesYear && matchesMonth && matchesPenyulang && matchesUlp;
   });
 
   const handleInputChange = (field: keyof Omit<InspeksiTier1JTM, 'id'>, value: any) => {
@@ -404,6 +442,23 @@ export const InspeksiTier1JTMView: React.FC<InspeksiTier1JTMViewProps> = ({
 
           <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="text-slate-500 font-bold">ULP:</span>
+              <select
+                value={selectedUlpFilter}
+                onChange={(e) => setSelectedUlpFilter(e.target.value)}
+                className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer max-w-[160px] truncate"
+              >
+                <option value="all">Semua ULP</option>
+                {ulpOptions.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
               <span className="text-slate-500">Penyulang:</span>
               <select
                 value={selectedPenyulangFilter}
@@ -643,6 +698,19 @@ export const InspeksiTier1JTMView: React.FC<InspeksiTier1JTMViewProps> = ({
                         />
                       </div>
                       <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ULP</label>
+                        <select 
+                          value={formData.ulp}
+                          onChange={(e) => handleInputChange('ulp', e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all appearance-none"
+                        >
+                          <option value="">Pilih ULP</option>
+                          {ulpOptions.map(u => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Penyulang</label>
                         <select 
                           required
@@ -652,7 +720,7 @@ export const InspeksiTier1JTMView: React.FC<InspeksiTier1JTMViewProps> = ({
                         >
                           <option value="">Pilih Penyulang</option>
                           {penyulangList.map(p => (
-                            <option key={p.id} value={p.namaPenyulang}>{p.namaPenyulang}</option>
+                            <option key={p.id} value={p.nama || p.namaPenyulang}>{p.nama || p.namaPenyulang}</option>
                           ))}
                         </select>
                       </div>

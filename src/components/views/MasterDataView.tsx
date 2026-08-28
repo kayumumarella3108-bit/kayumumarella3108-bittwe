@@ -16,7 +16,8 @@ import {
   MapPin,
   Eye,
   FileCode,
-  X
+  X,
+  CloudUpload
 } from 'lucide-react';
 import JSZip from 'jszip';
 import jsPDF from 'jspdf';
@@ -29,6 +30,7 @@ import { ElectricIconsShowcase } from '../common/ElectricIconsShowcase';
 import { GarduHubungMasterSection } from '../master/GarduHubungMasterSection';
 import { DistributionEquipmentMasterSection } from '../master/DistributionEquipmentMasterSection';
 import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
+import { UnitFilterBar, filterByUnitOrKode } from '../common/UnitFilterBar';
 
 interface MasterDataViewProps {
   penyulangList: Penyulang[];
@@ -44,6 +46,7 @@ interface MasterDataViewProps {
   onDeleteMapLayer?: (id: string) => void;
   onSelectView?: (view: string) => void;
   isLoading?: boolean;
+  onOpenBackupModal?: () => void;
 }
 
 export const MasterDataView: React.FC<MasterDataViewProps> = ({
@@ -59,7 +62,8 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   onAddMapLayer,
   onDeleteMapLayer,
   onSelectView,
-  isLoading = false
+  isLoading = false,
+  onOpenBackupModal
 }) => {
   const [activeTab, setActiveTab] = useState<MasterTab>('penyulang');
   const [searchQuery, setSearchQuery] = useState('');
@@ -232,21 +236,12 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filtered Data based on ULP
-  const filteredPenyulang = penyulangList.filter((p) => 
-    (selectedUlp === 'SEMUA' || p.unit === selectedUlp) &&
-    ((p.namaPenyulang || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.namaGi || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.kodeId || '').toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filtered Data based on ULP & Kode Unit
+  const filteredPenyulang = filterByUnitOrKode<Penyulang>(penyulangList, selectedUlp, searchQuery);
 
   const totalKmsJtm = filteredPenyulang.reduce((acc, p) => acc + (p.panjangJaringanKms || 0), 0);
 
-  const filteredSections = sectionList.filter((s) =>
-    (selectedUlp === 'SEMUA' || s.unit === selectedUlp) &&
-    ((s.namaSection || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.namaPenyulang || '').toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredSections = filterByUnitOrKode<SectionJaringan>(sectionList, selectedUlp, searchQuery);
 
   const filteredActivities = activities.filter((act) =>
     (act.user || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -674,6 +669,15 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
               />
               
               <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                {onOpenBackupModal && (
+                  <button
+                    onClick={onOpenBackupModal}
+                    title="Picu Cadangan Data (Cloud & Google Sheets)"
+                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                  >
+                    <CloudUpload className="w-3.5 h-3.5 text-amber-600" /> Backup Cloud
+                  </button>
+                )}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   title="Impor data"
@@ -707,16 +711,15 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             </div>
           </div>
 
-          <div className="relative max-w-sm">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari berdasarkan nama atau kode..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-            />
-          </div>
+          <UnitFilterBar
+            selectedUnit={selectedUlp}
+            onSelectUnit={setSelectedUlp}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            masterUnitList={masterUnitList}
+            placeholder="Filter Kode Unit (54110), ULP, atau nama penyulang..."
+            className="w-full sm:max-w-2xl"
+          />
 
           {isLoading ? (
             <TableSkeletonLoader columns={10} rows={6} headerTitle="Master Penyulang" />
@@ -875,16 +878,15 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             </div>
           </div>
 
-          <div className="relative max-w-sm">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari berdasarkan section, penyulang..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-            />
-          </div>
+          <UnitFilterBar
+            selectedUnit={selectedUlp}
+            onSelectUnit={setSelectedUlp}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            masterUnitList={masterUnitList}
+            placeholder="Filter Kode Unit (54110), ULP, atau section..."
+            className="w-full sm:max-w-2xl"
+          />
 
           {isLoading ? (
             <TableSkeletonLoader columns={5} rows={6} headerTitle="Master Section" />

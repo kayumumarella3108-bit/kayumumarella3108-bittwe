@@ -14,10 +14,12 @@ import {
   Wrench,
   ZapOff,
   Settings,
-  Printer
+  Printer,
+  Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, InspeksiTier1Switching, Penyulang, SectionJaringan } from '../../types';
+import { User, InspeksiTier1Switching, Penyulang, SectionJaringan, MasterUnitPLN } from '../../types';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import { db, doc, setDoc, deleteDoc, handleFirestoreError, OperationType, registerDeletedId } from '../../lib/firebase';
 import { sanitizeForFirestore } from '../../utils/firestoreHelper';
 import jsPDF from 'jspdf';
@@ -28,6 +30,7 @@ interface InspeksiTier1SwitchingViewProps {
   tier1SwitchingList: InspeksiTier1Switching[];
   penyulangList: Penyulang[];
   sectionList: SectionJaringan[];
+  masterUnitList?: MasterUnitPLN[];
 }
 
 const INITIAL_FORM_STATE: Omit<InspeksiTier1Switching, 'id'> = {
@@ -110,15 +113,33 @@ export const InspeksiTier1SwitchingView: React.FC<InspeksiTier1SwitchingViewProp
   currentUser,
   tier1SwitchingList,
   penyulangList,
-  sectionList
+  sectionList,
+  masterUnitList = []
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Omit<InspeksiTier1Switching, 'id'>>(INITIAL_FORM_STATE);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUlpFilter, setSelectedUlpFilter] = useState('all');
+  const [selectedPenyulangFilter, setSelectedPenyulangFilter] = useState('all');
   const [selectedYear, setSelectedYear] = useState('2026');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [activeSection, setActiveSection] = useState<string | null>('header');
+
+  const ulpOptions = React.useMemo(() => {
+    const unitsMap = new Map<string, string>();
+    DAFTAR_UNIT_PLN.forEach((u) => {
+      if (u.tipe === 'ULP' || !u.tipe) {
+        unitsMap.set(u.namaUnit, u.kodeUnit);
+      }
+    });
+    if (masterUnitList) {
+      masterUnitList.forEach((m) => {
+        if (m.ulp) unitsMap.set(m.ulp, m.kodeUlp || '');
+      });
+    }
+    return Array.from(unitsMap.keys());
+  }, [masterUnitList]);
 
   const filteredList = tier1SwitchingList.filter(item => {
     const matchesSearch = item.penyulang.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -128,8 +149,28 @@ export const InspeksiTier1SwitchingView: React.FC<InspeksiTier1SwitchingViewProp
     const parts = (item.tglPelaksanaan || '').split('-');
     const matchesYear = parts[0] === selectedYear;
     const matchesMonth = selectedMonth === 'all' || parts[1] === selectedMonth;
+    const matchesPenyulang = selectedPenyulangFilter === 'all' || 
+      item.penyulang.toLowerCase() === selectedPenyulangFilter.toLowerCase();
 
-    return matchesSearch && matchesYear && matchesMonth;
+    const matchesUlp = selectedUlpFilter === 'all' || (() => {
+      const target = selectedUlpFilter.toLowerCase().replace(/^ulp\s+/i, '').trim();
+      const rawTarget = selectedUlpFilter.toLowerCase().trim();
+
+      const itemUlp = (item.ulp || (item as any).unit || '').toLowerCase().trim();
+      const itemUlpClean = itemUlp.replace(/^ulp\s+/i, '').trim();
+      if (itemUlp && (itemUlp === rawTarget || itemUlpClean === target || itemUlp.includes(target) || target.includes(itemUlpClean))) return true;
+
+      const pMatch = penyulangList.find(p => p.nama.toLowerCase().trim() === item.penyulang.toLowerCase().trim());
+      if (pMatch) {
+        const pUlp = (pMatch.ulp || pMatch.unit || '').toLowerCase().trim();
+        const pClean = pUlp.replace(/^ulp\s+/i, '').trim();
+        if (pUlp && (pUlp === rawTarget || pClean === target || pUlp.includes(target) || target.includes(pClean))) return true;
+        if (pMatch.kodeUlp && (pMatch.kodeUlp === selectedUlpFilter || pMatch.kodeUlp === target)) return true;
+      }
+      return false;
+    })();
+
+    return matchesSearch && matchesYear && matchesMonth && matchesPenyulang && matchesUlp;
   });
 
   const handleInputChange = (field: keyof Omit<InspeksiTier1Switching, 'id'>, value: any) => {
@@ -318,9 +359,42 @@ export const InspeksiTier1SwitchingView: React.FC<InspeksiTier1SwitchingViewProp
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-              <span className="text-slate-500">Bulan:</span>
+              <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="text-slate-500 font-bold">ULP:</span>
+              <select
+                value={selectedUlpFilter}
+                onChange={(e) => setSelectedUlpFilter(e.target.value)}
+                className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer max-w-[160px] truncate"
+              >
+                <option value="all">Semua ULP</option>
+                {ulpOptions.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <span className="text-slate-500 font-bold">Penyulang:</span>
+              <select
+                value={selectedPenyulangFilter}
+                onChange={(e) => setSelectedPenyulangFilter(e.target.value)}
+                className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer max-w-[150px] truncate"
+              >
+                <option value="all">Semua Penyulang</option>
+                {penyulangList.map((p) => (
+                  <option key={p.id} value={p.nama || p.namaPenyulang}>
+                    {p.nama || p.namaPenyulang}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <span className="text-slate-500 font-bold">Bulan:</span>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}

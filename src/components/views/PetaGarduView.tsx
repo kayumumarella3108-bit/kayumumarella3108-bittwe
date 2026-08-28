@@ -23,22 +23,37 @@ import {
   SlidersHorizontal,
   Flame
 } from 'lucide-react';
-import { MasterGardu, PengukuranGardu } from '../../types';
+import { MasterGardu, PengukuranGardu, MasterUnitPLN } from '../../types';
+import { getDynamicUnitList } from '../../utils/unitConfig';
 
 interface PetaGarduViewProps {
   masterGarduList: MasterGardu[];
   pengukuranList: PengukuranGardu[];
+  masterUnits?: MasterUnitPLN[];
   onUpdateGardu?: (gardu: MasterGardu) => void;
 }
 
 export const PetaGarduView: React.FC<PetaGarduViewProps> = ({
   masterGarduList,
   pengukuranList,
+  masterUnits = [],
   onUpdateGardu
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUlp, setSelectedUlp] = useState('ALL');
   const [selectedPenyulang, setSelectedPenyulang] = useState('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
+
+  const ulpOptions = useMemo(() => {
+    const list = getDynamicUnitList(masterUnits);
+    const optionsMap = new Map<string, { namaUnit: string; kodeUnit: string }>();
+    list.forEach((u) => {
+      if (u.namaUnit && u.kodeUnit) {
+        optionsMap.set(u.kodeUnit, { namaUnit: u.namaUnit, kodeUnit: u.kodeUnit });
+      }
+    });
+    return Array.from(optionsMap.values());
+  }, [masterUnits]);
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
   const [activeGardu, setActiveGardu] = useState<MasterGardu | null>(null);
 
@@ -137,15 +152,29 @@ export const PetaGarduView: React.FC<PetaGarduViewProps> = ({
         (g.penyulang || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchPenyulang = selectedPenyulang === 'ALL' || g.penyulang === selectedPenyulang;
       
+      let matchUlp = true;
+      if (selectedUlp !== 'ALL' && selectedUlp !== 'SEMUA') {
+        const targetUlpClean = selectedUlp.toLowerCase().replace(/^ulp\s+/i, '').trim();
+        const targetUlpFull = selectedUlp.toLowerCase().trim();
+        const gUnit = (g.unit || g.kodeUnit || '').toLowerCase().trim();
+        const gPenyulang = (g.penyulang || '').toLowerCase().trim();
+        const gAlamat = (g.alamatGardu || g.alamat || '').toLowerCase().trim();
+
+        matchUlp =
+          (gUnit && (gUnit.includes(targetUlpClean) || targetUlpFull.includes(gUnit))) ||
+          gPenyulang.includes(targetUlpClean) ||
+          gAlamat.includes(targetUlpClean);
+      }
+
       const status = getGarduStatus(g);
       let matchStatus = true;
       if (selectedStatusFilter !== 'ALL') {
         matchStatus = status.label === selectedStatusFilter;
       }
 
-      return matchSearch && matchPenyulang && matchStatus;
+      return matchSearch && matchPenyulang && matchUlp && matchStatus;
     });
-  }, [masterGarduList, searchQuery, selectedPenyulang, selectedStatusFilter, pengukuranList]);
+  }, [masterGarduList, searchQuery, selectedPenyulang, selectedUlp, selectedStatusFilter, pengukuranList]);
 
   // Status statistics for summary
   const stats = useMemo(() => {
@@ -574,6 +603,24 @@ export const PetaGarduView: React.FC<PetaGarduViewProps> = ({
 
             {/* Search & Penyulang Filter */}
             <div className="space-y-2">
+              {/* Filter ULP Select */}
+              <div className="relative">
+                <Building2 className="w-3.5 h-3.5 text-amber-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={selectedUlp}
+                  onChange={(e) => setSelectedUlp(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 transition-all cursor-pointer appearance-none shadow-xs"
+                >
+                  <option value="ALL">🌐 Filter ULP: Semua Unit</option>
+                  {ulpOptions.map((u) => (
+                    <option key={u.kodeUnit} value={u.namaUnit}>
+                      ⚡ {u.namaUnit} (Kode: {u.kodeUnit})
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
+              </div>
+
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                 <input
