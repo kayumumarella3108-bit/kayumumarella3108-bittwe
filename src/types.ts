@@ -530,16 +530,26 @@ export interface MaterialPemakaianItem {
 
 export interface KitBbmItem {
   id: string;
+  type: 'MASUK' | 'KELUAR';
   tanggal: string;
   jam: string;
-  mesinId: string;
-  namaMesin: string;
+  mesinId?: string; // Untuk KELUAR
+  namaMesin?: string; // Untuk KELUAR
+  sumber?: string; // Untuk MASUK (Contoh: Vendor/Tangki)
   liter: number;
   petugas: string;
   unit?: string;
   kodeUnit?: string;
   keterangan?: string;
   createdAt?: string;
+}
+
+export interface KitBbmStockItem {
+  id: string;
+  unit: string;
+  kodeUnit: string;
+  stokAkhir: number;
+  lastUpdated: string;
 }
 
 export interface KitLaporanBebanItem {

@@ -552,14 +552,16 @@
     },
     "KitBbmItem": {
       "title": "KitBbmItem",
-      "description": "Fuel (BBM) usage record for KIT machines",
+      "description": "Fuel (BBM) transaction record for KIT machines (In/Out)",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["MASUK", "KELUAR"] },
         "tanggal": { "type": "string" },
         "jam": { "type": "string" },
         "mesinId": { "type": "string" },
         "namaMesin": { "type": "string" },
+        "sumber": { "type": "string" },
         "liter": { "type": "number" },
         "petugas": { "type": "string" },
         "unit": { "type": "string" },
@@ -567,7 +569,20 @@
         "keterangan": { "type": "string" },
         "createdAt": { "type": "string" }
       },
-      "required": ["id", "tanggal", "mesinId", "liter", "petugas"]
+      "required": ["id", "type", "tanggal", "liter", "petugas"]
+    },
+    "KitBbmStockItem": {
+      "title": "KitBbmStockItem",
+      "description": "Fuel (BBM) current stock per unit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "unit": { "type": "string" },
+        "kodeUnit": { "type": "string" },
+        "stokAkhir": { "type": "number" },
+        "lastUpdated": { "type": "string" }
+      },
+      "required": ["id", "unit", "stokAkhir"]
     },
     "KitLaporanBebanItem": {
       "title": "KitLaporanBebanItem",

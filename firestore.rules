@@ -229,6 +229,11 @@ service cloud.firestore {
       allow list: if true;
     }
 
+    match /master_stok_bbm_kit/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
     match /app_settings/{id} {
       allow get, write: if isValidId(id);
       allow list: if true;
