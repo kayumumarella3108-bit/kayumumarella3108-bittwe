@@ -41,6 +41,7 @@ import {
   ReferenceLine
 } from 'recharts';
 import { PengukuranGardu, MasterGardu, Penyulang, User } from '../../types';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import { canEditData } from '../../utils/permissions';
 import { MasterGarduModal } from '../modals/MasterGarduModal';
 import { PengukuranGarduModal } from '../modals/PengukuranGarduModal';
@@ -1268,6 +1269,16 @@ export const PengukuranGarduView: React.FC<PengukuranGarduViewProps> = ({
               <Building2 className="w-4 h-4 text-blue-600" />
               <span>Master Data Gardu Distribusi ({filteredGardu.length})</span>
             </h3>
+            <select
+                value={filterUnit}
+                onChange={(e) => setFilterUnit(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800"
+              >
+                <option value="ALL">Semua Unit PLN</option>
+                {DAFTAR_UNIT_PLN.map((u) => (
+                    <option key={u.namaUnit} value={u.namaUnit}>{u.namaUnit}</option>
+                ))}
+              </select>
             {canEdit && masterGarduList.length > 0 && (
               <button
                 onClick={() => setIsConfirmDeleteAllOpen(true)}

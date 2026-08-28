@@ -23,6 +23,7 @@ import {
   Cell
 } from 'recharts';
 import { Penyulang, GangguanLog, SectionJaringan } from '../../types';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import { HealthIndexBanner } from '../HealthIndexBanner';
 import { InputGangguanModal } from '../modals/InputGangguanModal';
 
@@ -57,6 +58,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
   const [selectedYear, setSelectedYear] = useState('2026');
   const [selectedMonth, setSelectedMonth] = useState('Semua Bulan');
   const [selectedStatus, setSelectedStatus] = useState('Semua Status');
+  const [filterUnit, setFilterUnit] = useState<string>('SEMUA');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modal State
@@ -65,7 +67,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
 
   // Dynamically compute synced penyulang list based on gangguanList and active filters
   const syncedPenyulangList = useMemo(() => {
-    return penyulangList.map((p) => {
+    return penyulangList.filter(p => filterUnit === 'SEMUA' || p.unit === filterUnit).map((p) => {
       // Find logs belonging to this feeder
       const feederLogs = gangguanList.filter((g) => {
         const matchesPenyulang =
@@ -132,7 +134,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
         gangguanTerakhir
       };
     });
-  }, [penyulangList, gangguanList, selectedYear, selectedMonth]);
+  }, [penyulangList, gangguanList, selectedYear, selectedMonth, filterUnit]);
 
   const sempurnaCount = syncedPenyulangList.filter((p) => p.healthIndexStatus === 'Sempurna').length;
   const sehatCount = syncedPenyulangList.filter((p) => p.healthIndexStatus === 'Sehat').length;
@@ -176,6 +178,20 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
       {/* Filter Toolbar */}
       <div className="p-4 bg-slate-900 border border-slate-800 shadow-sm rounded-2xl flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold">
+            <span className="text-slate-400">ULP:</span>
+            <select
+              value={filterUnit}
+              onChange={(e) => setFilterUnit(e.target.value)}
+              className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer"
+            >
+              <option value="SEMUA">Semua Unit</option>
+              {DAFTAR_UNIT_PLN.map((u) => (
+                <option key={u.namaUnit} value={u.namaUnit}>{u.namaUnit}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold">
             <span className="text-slate-400">Tahun:</span>
             <select
