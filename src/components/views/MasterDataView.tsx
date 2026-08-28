@@ -257,13 +257,14 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   // Handle Export Excel / CSV
   const handleExportExcel = () => {
     if (activeTab === 'penyulang') {
-      const headers = ['Nama GI', 'Penyulang Utama', 'Nama Penyulang', 'Status', 'Kode ID', 'Jml Pelanggan', 'Panjang Jaringan (KMS)'];
+      const headers = ['Nama GI', 'Penyulang Utama', 'Nama Penyulang', 'Status', 'Kode ID', 'Topologi', 'Jml Pelanggan', 'Panjang Jaringan (KMS)'];
       const rows = filteredPenyulang.map(p => [
         p.namaGi || '',
         p.penyulangUtama || '',
         p.namaPenyulang || '',
         p.status || '',
         p.kodeId || '',
+        p.sistemOperasi || 'Radial',
         p.jumlahPelanggan || 0,
         p.panjangJaringanKms || 0
       ]);
@@ -307,13 +308,14 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     if (activeTab === 'penyulang') {
       autoTable(doc, {
         startY: 28,
-        head: [['Nama GI', 'Penyulang Utama', 'Nama Penyulang', 'Status', 'Kode ID', 'Jml Pelanggan', 'Panjang (KMS)']],
+        head: [['Nama GI', 'Penyulang Utama', 'Nama Penyulang', 'Status', 'Kode ID', 'Topologi', 'Jml Pelanggan', 'Panjang (KMS)']],
         body: filteredPenyulang.map(p => [
           p.namaGi || '-',
           p.penyulangUtama || '-',
           p.namaPenyulang || '-',
           p.status || '-',
           p.kodeId || '-',
+          p.sistemOperasi || 'Radial',
           (p.jumlahPelanggan || 0).toLocaleString('id-ID'),
           `${p.panjangJaringanKms || 0} KMS`
         ]),
@@ -729,6 +731,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     <th className="px-3 py-3.5 whitespace-nowrap">Penyulang Utama</th>
                     <th className="px-3 py-3.5 whitespace-nowrap">Penyulang Percabangan</th>
                     <th className="px-3 py-3.5 whitespace-nowrap">Kode / ID</th>
+                    <th className="px-3 py-3.5 whitespace-nowrap">Topologi Jaringan</th>
                     <th className="px-3 py-3.5 text-right whitespace-nowrap">Jml Pelanggan</th>
                     <th className="px-3 py-3.5 text-right whitespace-nowrap">Panjang Jaringan</th>
                     <th className="px-3 py-3.5 text-right whitespace-nowrap">Jml Tiang</th>
@@ -770,6 +773,15 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                           )}
                         </td>
                         <td className="px-3 py-3 font-mono font-bold text-slate-600 whitespace-nowrap">{p.kodeId}</td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            p.sistemOperasi === 'Looping' 
+                              ? 'bg-teal-100 text-teal-800 border border-teal-200' 
+                              : 'bg-amber-100 text-amber-800 border border-amber-200'
+                          }`}>
+                            {p.sistemOperasi === 'Looping' ? '⚡ LOOPING / RING' : '🔌 RADIAL'}
+                          </span>
+                        </td>
                         <td className="px-3 py-3 text-right font-mono font-bold text-blue-700 whitespace-nowrap">
                           {totalPlg.toLocaleString('id-ID')} <span className="text-[9px] text-slate-400 font-normal">Plg</span>
                         </td>

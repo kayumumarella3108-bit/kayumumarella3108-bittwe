@@ -38,6 +38,7 @@ export const TambahPenyulangModal: React.FC<TambahPenyulangModalProps> = ({
   const [jumlahRecloser, setJumlahRecloser] = useState<number | ''>('');
   const [jumlahFco, setJumlahFco] = useState<number | ''>('');
   const [jumlahGardu, setJumlahGardu] = useState<number | ''>('');
+  const [sistemOperasi, setSistemOperasi] = useState<'Radial' | 'Looping'>('Radial');
 
   const unitList = getDynamicUnitList(masterUnitList);
 
@@ -64,6 +65,7 @@ export const TambahPenyulangModal: React.FC<TambahPenyulangModalProps> = ({
         setJumlahRecloser(initialData.jumlahRecloser || '');
         setJumlahFco(initialData.jumlahFco || '');
         setJumlahGardu(initialData.jumlahGardu || '');
+        setSistemOperasi(initialData.sistemOperasi || 'Radial');
       } else {
         setNamaGi('PASSO');
         setPenyulangUtama('BAGUALA UTAMA');
@@ -82,6 +84,7 @@ export const TambahPenyulangModal: React.FC<TambahPenyulangModalProps> = ({
         setJumlahRecloser('');
         setJumlahFco('');
         setJumlahGardu('');
+        setSistemOperasi('Radial');
       }
     }
   }, [isOpen, initialData]);
@@ -124,6 +127,7 @@ export const TambahPenyulangModal: React.FC<TambahPenyulangModalProps> = ({
       jumlahRecloser: Number(jumlahRecloser) || 0,
       jumlahFco: Number(jumlahFco) || 0,
       jumlahGardu: Number(jumlahGardu) || 0,
+      sistemOperasi,
     };
 
     onSave(savedPenyulang);
@@ -285,6 +289,20 @@ export const TambahPenyulangModal: React.FC<TambahPenyulangModalProps> = ({
             >
               <option value="Utama" className="bg-white">Utama</option>
               <option value="Percabangan" className="bg-white">Percabangan</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">
+              SISTEM OPERASI / TOPOLOGI
+            </label>
+            <select
+              value={sistemOperasi}
+              onChange={(e) => setSistemOperasi(e.target.value as 'Radial' | 'Looping')}
+              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium cursor-pointer"
+            >
+              <option value="Radial" className="bg-white">Radial (Satu Arah)</option>
+              <option value="Looping" className="bg-white">Looping / Ring (Maneuver Cadangan)</option>
             </select>
           </div>
 

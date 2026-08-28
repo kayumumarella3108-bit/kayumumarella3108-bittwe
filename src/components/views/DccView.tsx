@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db, doc, onSnapshot, setDoc, OperationType, handleFirestoreError, collection } from '../../lib/firebase';
+import { DccTopologyView } from './DccTopologyView';
 import { 
   Zap, 
   Activity, 
@@ -349,6 +350,7 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
   const [showLegenda, setShowLegenda] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [viewTab, setViewTab] = useState<'sld' | 'schematic'>('sld');
 
   // Downstream node creation state
   const [addingNodeForFeeder, setAddingNodeForFeeder] = useState<string | null>(null);
@@ -1336,6 +1338,162 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
     );
   };
 
+  // Dynamic topology calculator for interactive visual map
+  const computeSchematicTopology = () => {
+    if (!activeStation) {
+      return { nodes: [], lines: [], canvasWidth: 1000, canvasHeight: 600 };
+    }
+
+    const nodes: Array<{
+      id: string;
+      type: 'BUS' | 'FEEDER' | 'JTM';
+      name: string;
+      code?: string;
+      x: number;
+      y: number;
+      active: boolean;
+      data?: any;
+    }> = [];
+
+    const lines: Array<{
+      id: string;
+      fromX: number;
+      fromY: number;
+      toX: number;
+      toY: number;
+      active: boolean;
+    }> = [];
+
+    const yLevelBus = 80;
+    const yLevelFeeder = 220;
+    const ySpacingJtm = 140;
+
+    let currentXStart = 100;
+    const busWidth = 260;
+    const feederSpacing = 240;
+
+    activeStation.buses.forEach((bus, bIdx) => {
+      const isBusEnergized = busEnergizedMap[bus.id];
+      const busX = currentXStart + (bIdx * (busWidth + 140));
+      const busMidX = busX + busWidth / 2;
+
+      // Add BUS node representation
+      nodes.push({
+        id: bus.id,
+        type: 'BUS',
+        name: bus.name,
+        x: busMidX,
+        y: yLevelBus,
+        active: isBusEnergized,
+        data: bus
+      });
+
+      const busFeeders = activeStation.feeders.filter(f => f.busId === bus.id);
+
+      busFeeders.forEach((feeder, fIdx) => {
+        const isFeederActive = isBusEnergized && feeder.status === 'CLOSED';
+        const feederX = busX + 40 + (fIdx * feederSpacing);
+        const feederY = yLevelFeeder;
+
+        // Add FEEDER node
+        nodes.push({
+          id: feeder.id,
+          type: 'FEEDER',
+          name: feeder.name,
+          code: feeder.code,
+          x: feederX,
+          y: feederY,
+          active: isFeederActive,
+          data: feeder
+        });
+
+        // Line 1: From Busbar horizontal coordinate down to Feeder Breaker
+        lines.push({
+          id: `line-bus-breaker-${feeder.id}`,
+          fromX: feederX,
+          fromY: yLevelBus + 10,
+          toX: feederX,
+          toY: feederY - 70,
+          active: isBusEnergized
+        });
+
+        // Line 2: Through the Breaker down to Feeder Card
+        lines.push({
+          id: `line-breaker-feeder-${feeder.id}`,
+          fromX: feederX,
+          fromY: feederY - 70,
+          toX: feederX,
+          toY: feederY - 20,
+          active: isFeederActive
+        });
+
+        const jtmNodes = activeStation.downstreamNodes[feeder.id] || [];
+
+        // Recursive position assignment for tree JTM nodes
+        const layoutJtmNodes = (
+          nodeList: DownstreamNode[],
+          parentX: number,
+          parentY: number,
+          parentActive: boolean,
+          depth = 1
+        ) => {
+          if (!nodeList || nodeList.length === 0) return;
+
+          const levelY = yLevelFeeder + (depth * ySpacingJtm);
+          const siblingSpacing = 160;
+          const startX = parentX - ((nodeList.length - 1) * siblingSpacing) / 2;
+
+          nodeList.forEach((node, nIdx) => {
+            const nodeX = startX + (nIdx * siblingSpacing);
+            const nodeY = levelY;
+            const nodeState = nodeEnergizedStates[node.id] || { incomingActive: false, nodeActive: false };
+
+            // Add JTM node
+            nodes.push({
+              id: node.id,
+              type: 'JTM',
+              name: node.name,
+              code: node.type,
+              x: nodeX,
+              y: nodeY,
+              active: nodeState.nodeActive,
+              data: { ...node, feederId: feeder.id }
+            });
+
+            // Connect from parent bottom to this node top
+            lines.push({
+              id: `line-jtm-connect-${node.id}`,
+              fromX: parentX,
+              fromY: parentY + 30, // Bottom of parent card
+              toX: nodeX,
+              toY: nodeY - 30, // Top of child card
+              active: nodeState.incomingActive
+            });
+
+            // Layout children
+            if (node.children && node.children.length > 0) {
+              layoutJtmNodes(node.children, nodeX, nodeY, nodeState.nodeActive, depth + 1);
+            }
+          });
+        };
+
+        if (jtmNodes.length > 0) {
+          layoutJtmNodes(jtmNodes, feederX, feederY, isFeederActive, 1);
+        }
+      });
+    });
+
+    // Compute max dimensions to ensure no clipping
+    let maxX = 1200;
+    let maxY = 700;
+    nodes.forEach(n => {
+      if (n.x + 200 > maxX) maxX = n.x + 200;
+      if (n.y + 180 > maxY) maxY = n.y + 180;
+    });
+
+    return { nodes, lines, canvasWidth: maxX, canvasHeight: maxY };
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-[#010e0c] text-teal-400 p-8 h-screen font-sans">
@@ -1562,6 +1720,34 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
                 </div>
               </div>
 
+              {/* View Tab Selector */}
+              <div className="flex bg-[#011412] p-1 border border-teal-900 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setViewTab('sld')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    viewTab === 'sld'
+                      ? 'bg-teal-500 text-slate-950 shadow-md'
+                      : 'text-teal-400 hover:text-white'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Single Line Diagram (SLD)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewTab('schematic')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    viewTab === 'schematic'
+                      ? 'bg-teal-500 text-slate-950 shadow-md'
+                      : 'text-teal-400 hover:text-white'
+                  }`}
+                >
+                  <Network className="w-3.5 h-3.5" />
+                  <span>Peta Topologi SVG</span>
+                </button>
+              </div>
+
               <div className="flex gap-4 text-xs font-bold text-slate-300">
                 {/* Mode Operasi Jaringan */}
                 <button 
@@ -1607,11 +1793,12 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
               </div>
             </div>
 
-            {/* Layout Canvas inside standard container */}
-            <div 
-              className="relative bg-[#02110f]/90 border border-teal-950/80 shadow-2xl rounded-3xl p-6 md:p-10 transition-transform duration-200 origin-top w-full max-w-7xl"
-              style={{ transform: `scale(${zoomLevel / 100})` }}
-            >
+            {viewTab === 'sld' ? (
+              /* Layout Canvas inside standard container */
+              <div 
+                className="relative bg-[#02110f]/90 border border-teal-950/80 shadow-2xl rounded-3xl p-6 md:p-10 transition-transform duration-200 origin-top w-full max-w-7xl"
+                style={{ transform: `scale(${zoomLevel / 100})` }}
+              >
               
               {/* Dynamic Grid of Busbars arranged side-by-side as distinct vertical columns! */}
               <div className={`grid grid-cols-1 gap-12 relative ${
@@ -1966,7 +2153,23 @@ export const DccView: React.FC<{ currentUser: any }> = ({ currentUser }) => {
               )}
 
             </div>
-          </div>
+          ) : (
+            /* INTERACTIVE SCHEMATIC DIAGRAM CONTAINER */
+            <div 
+              className="relative bg-[#02110f]/90 border border-teal-950/80 shadow-2xl rounded-3xl p-6 transition-all duration-200 origin-top w-full max-w-7xl overflow-hidden min-h-[600px] max-h-[850px] flex flex-col"
+              style={{ transform: `scale(${zoomLevel / 100})` }}
+            >
+              <DccTopologyView
+                activeStation={activeStation}
+                busEnergizedMap={busEnergizedMap}
+                nodeEnergizedStates={nodeEnergizedStates}
+                handleToggleFeederBreaker={handleToggleFeederBreaker}
+                handleToggleDownstreamNode={handleToggleDownstreamNode}
+                setEditingJtmNode={setEditingJtmNode}
+              />
+            </div>
+          )}
+        </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-teal-400 p-8 h-screen font-sans">
             <Sliders className="w-10 h-10 animate-bounce mb-4 text-teal-500" />

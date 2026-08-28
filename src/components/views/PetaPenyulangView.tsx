@@ -1707,7 +1707,14 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
                 </label>
                 <select 
                   value={importUlp}
-                  onChange={(e) => setImportUlp(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setImportUlp(val);
+                    const matchedUnit = masterUnits.find(u => u.ulp === val);
+                    if (matchedUnit) {
+                      setImportKodeUnit(matchedUnit.kodeUlp);
+                    }
+                  }}
                   className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                 >
                   <option value="">-- Pilih ULP --</option>
@@ -1723,7 +1730,14 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
                 </label>
                 <select 
                   value={importKodeUnit}
-                  onChange={(e) => setImportKodeUnit(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setImportKodeUnit(val);
+                    const matchedUnit = masterUnits.find(u => u.kodeUlp === val);
+                    if (matchedUnit) {
+                      setImportUlp(matchedUnit.ulp);
+                    }
+                  }}
                   className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                 >
                   <option value="">-- Pilih Kode Unit --</option>
@@ -1743,9 +1757,12 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
                   className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                 >
                   <option value="">-- Pilih Nama Penyulang --</option>
-                  {masterPenyulangs.map(p => (
-                    <option key={p.id} value={p.namaPenyulang}>{p.namaPenyulang}</option>
-                  ))}
+                  {masterPenyulangs
+                    .filter(p => !importUlp || (p.unit || '').trim().toLowerCase() === importUlp.trim().toLowerCase())
+                    .map(p => (
+                      <option key={p.id} value={p.namaPenyulang}>{p.namaPenyulang}</option>
+                    ))
+                  }
                 </select>
               </div>
             </div>

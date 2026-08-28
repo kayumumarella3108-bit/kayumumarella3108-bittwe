@@ -233,6 +233,7 @@ export interface Penyulang {
   jumlahRecloser?: number;
   jumlahFco?: number;
   jumlahGardu?: number;
+  sistemOperasi?: 'Radial' | 'Looping';
 }
 
 export interface SectionJaringan {

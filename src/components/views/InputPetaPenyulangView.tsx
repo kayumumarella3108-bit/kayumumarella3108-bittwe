@@ -287,11 +287,14 @@ export const InputPetaPenyulangView: React.FC<InputPetaPenyulangViewProps> = ({
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all cursor-pointer"
               >
                 <option value="">-- Pilih Nama Penyulang --</option>
-                {masterPenyulangs.map(p => (
-                  <option key={p.id} value={p.namaPenyulang}>
-                    {p.namaPenyulang} {p.namaGi ? `(GI: ${p.namaGi})` : ''}
-                  </option>
-                ))}
+                {masterPenyulangs
+                  .filter(p => !ulp || (p.unit || '').trim().toLowerCase() === ulp.trim().toLowerCase())
+                  .map(p => (
+                    <option key={p.id} value={p.namaPenyulang}>
+                      {p.namaPenyulang} {p.namaGi ? `(GI: ${p.namaGi})` : ''}
+                    </option>
+                  ))
+                }
               </select>
               <p className="text-[11px] text-slate-400 mt-1.5">Tersinkron dari Master Data Penyulang 20kV</p>
             </div>
