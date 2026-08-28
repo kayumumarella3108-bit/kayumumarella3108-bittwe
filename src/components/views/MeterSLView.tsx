@@ -18,6 +18,7 @@ import {
   Scale
 } from 'lucide-react';
 import { MeterSLItem, User } from '../../types';
+import { getKodeUnitByUnitName } from '../../utils/unitConfig';
 import { canEditData } from '../../utils/permissions';
 import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 

@@ -782,6 +782,10 @@
     "master_mesin_kit": {
       "schema": "KitMasterMesinItem",
       "description": "KIT machine master data"
+    },
+    "master_stok_bbm_kit": {
+      "schema": "KitBbmStockItem",
+      "description": "KIT fuel stock monitoring"
     }
   }
 }

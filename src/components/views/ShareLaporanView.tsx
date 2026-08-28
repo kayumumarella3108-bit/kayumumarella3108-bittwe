@@ -18,7 +18,7 @@ import {
   Presentation,
   FileSpreadsheet
 } from 'lucide-react';
-import { User, GangguanLog, Penyulang, SaidiSaifiData, JadwalPiket, PerintahKerja } from '../../types';
+import { User, GangguanLog, Penyulang, SaidiSaifiData, JadwalPiket, PerintahKerja, MaterialStokItem, InspeksiItem } from '../../types';
 import { PptExportModal } from '../ppt/PptExportModal';
 import { PptExportData } from '../ppt/pptTemplate';
 

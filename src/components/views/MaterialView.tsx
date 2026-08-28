@@ -122,20 +122,28 @@ export const MaterialView: React.FC<MaterialViewProps> = ({
   const summaryList = Array.from(summaryMaterialMap.values());
 
   // Filtered lists based on unit and searchQuery
-  const applyFilter = <T extends { namaMaterial: string; unit?: string }>(list: T[]) => {
-    return list.filter((item) => {
-      const matchUnit = filterUnit === 'SEMUA' || item.unit === filterUnit;
-      const matchSearch = (item.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase());
-      return matchUnit && matchSearch;
-    });
-  };
+  const filteredSummary = summaryList.filter((item) => {
+    const matchSearch = (item.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchSearch; // Summary doesn't have unit filter in its map values
+  });
 
-  const filteredSummary = applyFilter(summaryList);
-  const filteredStokList = applyFilter(stokList);
-  const filteredPemakaianList = applyFilter(pemakaianList);
+  const filteredStokList = stokList.filter((item) => {
+    const matchUnit = filterUnit === 'SEMUA' || item.unit === filterUnit;
+    const matchSearch = (item.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchUnit && matchSearch;
+  });
+
+  const filteredPemakaianList = pemakaianList.filter((item) => {
+    const matchUnit = filterUnit === 'SEMUA' || item.unit === filterUnit;
+    const matchSearch = (item.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchUnit && matchSearch;
+  });
 
   // Quick stats
-  const summaryListFiltered = applyFilter(summaryList);
+  const summaryListFiltered = summaryList.filter((item) => {
+    const matchSearch = (item.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchSearch;
+  });
   const totalJenisMaterial = summaryListFiltered.length;
   const totalKritis = summaryListFiltered.filter((m) => m.stokAkhir <= 5).length;
   const grandTotalMasuk = summaryListFiltered.reduce((acc, curr) => acc + curr.totalStokMasuk, 0);
