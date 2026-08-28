@@ -18,6 +18,7 @@ import {
   FileText
 } from 'lucide-react';
 import { MaterialStokItem, MaterialPemakaianItem, User } from '../../types';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import { canEditData } from '../../utils/permissions';
 import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 
@@ -347,16 +348,28 @@ export const MaterialView: React.FC<MaterialViewProps> = ({
           </button>
         </div>
 
-        {/* Search input */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Cari nama material / lokasi..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-          />
+        {/* Search input and Filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari nama material / lokasi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+          <select
+            value={filterUnit}
+            onChange={(e) => setFilterUnit(e.target.value)}
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500"
+          >
+            <option value="SEMUA">Semua ULP</option>
+            {DAFTAR_UNIT_PLN.map((u) => (
+              <option key={u.namaUnit} value={u.namaUnit}>{u.namaUnit}</option>
+            ))}
+          </select>
         </div>
       </div>
 

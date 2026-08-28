@@ -209,6 +209,26 @@ service cloud.firestore {
       allow list: if true;
     }
 
+    match /data_bbm_kit/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /data_beban_kit/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /data_pemeliharaan_kit/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
+    match /master_mesin_kit/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
+
     match /app_settings/{id} {
       allow get, write: if isValidId(id);
       allow list: if true;

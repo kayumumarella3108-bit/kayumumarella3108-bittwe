@@ -29,6 +29,8 @@ interface ShareLaporanViewProps {
   saidiData: SaidiSaifiData[];
   jadwalPiket: JadwalPiket[];
   perintahKerja: PerintahKerja[];
+  stokList: MaterialStokItem[];
+  inspeksiList: InspeksiItem[];
 }
 
 export const ShareLaporanView: React.FC<ShareLaporanViewProps> = ({
@@ -37,10 +39,12 @@ export const ShareLaporanView: React.FC<ShareLaporanViewProps> = ({
   penyulangList,
   saidiData,
   jadwalPiket,
-  perintahKerja
+  perintahKerja,
+  stokList,
+  inspeksiList
 }) => {
   const [selectedReportType, setSelectedReportType] = useState<
-    'gangguan' | 'saidi' | 'piket' | 'spk' | 'sistem'
+    'gangguan' | 'saidi' | 'piket' | 'spk' | 'sistem' | 'material' | 'inspeksi'
   >('gangguan');
 
   const [copied, setCopied] = useState(false);
@@ -100,6 +104,25 @@ export const ShareLaporanView: React.FC<ShareLaporanViewProps> = ({
           p.noHp || '-'
         ];
       });
+    } else if (selectedReportType === 'material') {
+      tableHeaders = ['No', 'Nama Material', 'Satuan', 'Stok Total', 'Unit'];
+      tableData = stokList.slice(0, 8).map((s, idx) => [
+        (idx + 1).toString(),
+        s.namaMaterial || '-',
+        s.satuan || '-',
+        s.stokTotal?.toString() || '0',
+        s.unit || '-'
+      ]);
+    } else if (selectedReportType === 'inspeksi') {
+      tableHeaders = ['No', 'Tiang/Gardu', 'Tipe', 'Penyulang', 'Temuan', 'Kondisi'];
+      tableData = inspeksiList.slice(0, 8).map((i, idx) => [
+        (idx + 1).toString(),
+        i.tiangOrGarduId || '-',
+        i.tipe || '-',
+        i.namaPenyulang || '-',
+        i.temuan || '-',
+        i.kondisi || '-'
+      ]);
     } else {
       tableHeaders = ['No', 'Bulan/Tahun', 'Target SAIDI', 'Realisasi SAIDI', 'Target SAIFI', 'Realisasi SAIFI'];
       tableData = saidiData.slice(-6).map((s, idx) => [
@@ -132,7 +155,7 @@ export const ShareLaporanView: React.FC<ShareLaporanViewProps> = ({
       tableData,
       notesText: customNotes.trim() || '1. Pemantauan berkala penyulang 20kV Baguala & Passo.\n2. Laporan siap diserahkan kepada Manajemen PLN UP3 Ambon.'
     };
-  }, [selectedReportType, gangguanList, perintahKerja, jadwalPiket, saidiData, totalKaliTripHariIni, penyulangList, user, customNotes]);
+  }, [selectedReportType, gangguanList, perintahKerja, jadwalPiket, saidiData, totalKaliTripHariIni, penyulangList, user, customNotes, stokList, inspeksiList]);
 
   // Telegram WebApp detection
   const isTelegramWebApp = typeof window !== 'undefined' && Boolean((window as any).Telegram?.WebApp?.initData);
@@ -209,6 +232,29 @@ export const ShareLaporanView: React.FC<ShareLaporanViewProps> = ({
         });
       } else {
         body += `Tidak ada pekerjaan SPK aktif saat ini.\n`;
+      }
+    } else if (selectedReportType === 'material') {
+      body += `📦 *LAPORAN STOK MATERIAL GUDANG*\n\n`;
+      const stokData = stokList.slice(0, 5);
+      if (stokData.length > 0) {
+        stokData.forEach((s, idx) => {
+          body += `${idx + 1}. *${s.namaMaterial}*\n`;
+          body += `   • Stok: ${s.stokTotal} ${s.satuan} | Unit: ${s.unit}\n`;
+        });
+      } else {
+        body += `Tidak ada data stok material.\n`;
+      }
+    } else if (selectedReportType === 'inspeksi') {
+      body += `🔍 *LAPORAN TEMUAN INSPEKSI JARINGAN*\n\n`;
+      const inspeksiData = inspeksiList.slice(0, 5);
+      if (inspeksiData.length > 0) {
+        inspeksiData.forEach((i, idx) => {
+          body += `${idx + 1}. *${i.tiangOrGarduId}* (${i.tipe})\n`;
+          body += `   • Penyulang: ${i.namaPenyulang}\n`;
+          body += `   • Temuan: ${i.temuan}\n`;
+        });
+      } else {
+        body += `Tidak ada temuan inspeksi.\n`;
       }
     } else {
       body += `🌐 *AKSES APLIKASI KEANDALAN 20KV*\n\n`;
@@ -405,6 +451,46 @@ export const ShareLaporanView: React.FC<ShareLaporanViewProps> = ({
                   </div>
                 </div>
                 {selectedReportType === 'sistem' && <Check className="w-4 h-4 text-sky-600 shrink-0" />}
+              </button>
+
+              <button
+                onClick={() => setSelectedReportType('material')}
+                className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                  selectedReportType === 'material'
+                    ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-xs'
+                    : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${selectedReportType === 'material' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    <FileSpreadsheet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold">Stok Material Gudang</div>
+                    <div className="text-[10px] text-slate-500">Rekap stok material unit</div>
+                  </div>
+                </div>
+                {selectedReportType === 'material' && <Check className="w-4 h-4 text-amber-600 shrink-0" />}
+              </button>
+
+              <button
+                onClick={() => setSelectedReportType('inspeksi')}
+                className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                  selectedReportType === 'inspeksi'
+                    ? 'bg-purple-50 border-purple-300 text-purple-900 shadow-xs'
+                    : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${selectedReportType === 'inspeksi' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold">Temuan Inspeksi Jaringan</div>
+                    <div className="text-[10px] text-slate-500">Data inspeksi GTT, JTM, dll</div>
+                  </div>
+                </div>
+                {selectedReportType === 'inspeksi' && <Check className="w-4 h-4 text-purple-600 shrink-0" />}
               </button>
             </div>
           </div>

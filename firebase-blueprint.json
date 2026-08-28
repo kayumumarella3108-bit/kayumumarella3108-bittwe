@@ -549,6 +549,86 @@
         "kodeUnit": { "type": "string" }
       },
       "required": ["id", "bulanTahun", "namaPenyulangOrUnit", "kwhKirim", "kwhTerimaOrTerjual", "kwhSusut", "persentaseSusut", "unit"]
+    },
+    "KitBbmItem": {
+      "title": "KitBbmItem",
+      "description": "Fuel (BBM) usage record for KIT machines",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "jam": { "type": "string" },
+        "mesinId": { "type": "string" },
+        "namaMesin": { "type": "string" },
+        "liter": { "type": "number" },
+        "petugas": { "type": "string" },
+        "unit": { "type": "string" },
+        "kodeUnit": { "type": "string" },
+        "keterangan": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "mesinId", "liter", "petugas"]
+    },
+    "KitLaporanBebanItem": {
+      "title": "KitLaporanBebanItem",
+      "description": "KIT load measurement record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "jam": { "type": "string" },
+        "mesinId": { "type": "string" },
+        "namaMesin": { "type": "string" },
+        "bebanKw": { "type": "number" },
+        "teganganV": { "type": "number" },
+        "frekuensiHz": { "type": "number" },
+        "petugas": { "type": "string" },
+        "unit": { "type": "string" },
+        "kodeUnit": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "mesinId", "bebanKw", "petugas"]
+    },
+    "KitPemeliharaanItem": {
+      "title": "KitPemeliharaanItem",
+      "description": "KIT machine maintenance record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "mesinId": { "type": "string" },
+        "namaMesin": { "type": "string" },
+        "jenisPemeliharaan": { "type": "string" },
+        "tanggalMulai": { "type": "string" },
+        "tanggalSelesai": { "type": "string" },
+        "status": { "type": "string" },
+        "teknisi": { "type": "string" },
+        "unit": { "type": "string" },
+        "kodeUnit": { "type": "string" },
+        "keterangan": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "mesinId", "jenisPemeliharaan", "tanggalMulai", "status"]
+    },
+    "KitMasterMesinItem": {
+      "title": "KitMasterMesinItem",
+      "description": "KIT machine master data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "mesinId": { "type": "string" },
+        "namaMesin": { "type": "string" },
+        "merk": { "type": "string" },
+        "tipe": { "type": "string" },
+        "kapasitasKw": { "type": "number" },
+        "tahunOperasi": { "type": "string" },
+        "status": { "type": "string" },
+        "totalRunningHours": { "type": "number" },
+        "maintenanceInterval": { "type": "number" },
+        "unit": { "type": "string" },
+        "kodeUnit": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "mesinId", "namaMesin", "totalRunningHours", "maintenanceInterval"]
     }
   },
   "firestore": {
@@ -671,6 +751,22 @@
     "susut_energi_list": {
       "schema": "MonitoringSusutItem",
       "description": "Feeder energy loss and meter calculation records"
+    },
+    "data_bbm_kit": {
+      "schema": "KitBbmItem",
+      "description": "KIT fuel (BBM) usage records"
+    },
+    "data_beban_kit": {
+      "schema": "KitLaporanBebanItem",
+      "description": "KIT load measurement records"
+    },
+    "data_pemeliharaan_kit": {
+      "schema": "KitPemeliharaanItem",
+      "description": "KIT machine maintenance records"
+    },
+    "master_mesin_kit": {
+      "schema": "KitMasterMesinItem",
+      "description": "KIT machine master data"
     }
   }
 }

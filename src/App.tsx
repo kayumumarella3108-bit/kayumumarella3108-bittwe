@@ -128,6 +128,11 @@ import { PetaGarduView } from './components/views/PetaGarduView';
 import { ManbillView } from './components/views/ManbillView';
 import { K3LView } from './components/views/K3LView';
 import { MonitoringLemburView } from './components/views/MonitoringLemburView';
+import { DashboardAnalisisKIT } from './components/views/DashboardAnalisisKIT';
+import { KitBbmView } from './components/views/KitBbmView';
+import { KitLaporanBebanView } from './components/views/KitLaporanBebanView';
+import { KitPemeliharaanView } from './components/views/KitPemeliharaanView';
+import { KitMasterMesinView } from './components/views/KitMasterMesinView';
 import { CloudBackupModal } from './components/modals/CloudBackupModal';
 
 export default function App() {
@@ -3264,6 +3269,8 @@ export default function App() {
               saidiData={filteredSaidiList}
               jadwalPiket={filteredJadwalPiketList}
               perintahKerja={filteredSpkList}
+              stokList={filteredStokList}
+              inspeksiList={filteredInspeksiList}
             />
           )}
 
@@ -3294,6 +3301,42 @@ export default function App() {
               kendaraanList={kendaraanList}
               onUpdateKendaraan={handleUpdateKendaraan}
               onSelectView={setActiveView}
+            />
+          )}
+
+          {activeView === 'kit_laporan_beban' && (
+            <KitLaporanBebanView 
+              currentUser={user}
+              selectedUnit={ownerSelectedUnitFilter}
+              onSelectUnit={setOwnerSelectedUnitFilter}
+              masterUnitList={masterUnitList}
+            />
+          )}
+
+          {activeView === 'kit_pemeliharaan_mesin' && (
+            <KitPemeliharaanView 
+              currentUser={user}
+              selectedUnit={ownerSelectedUnitFilter}
+              onSelectUnit={setOwnerSelectedUnitFilter}
+              masterUnitList={masterUnitList}
+            />
+          )}
+
+          {activeView === 'kit_master_data_mesin' && (
+            <KitMasterMesinView 
+              currentUser={user}
+              selectedUnit={ownerSelectedUnitFilter}
+              onSelectUnit={setOwnerSelectedUnitFilter}
+              masterUnitList={masterUnitList}
+            />
+          )}
+
+          {activeView === 'kit_bbm' && (
+            <KitBbmView 
+              currentUser={user} 
+              selectedUnit={ownerSelectedUnitFilter}
+              onSelectUnit={setOwnerSelectedUnitFilter}
+              masterUnitList={masterUnitList}
             />
           )}
 

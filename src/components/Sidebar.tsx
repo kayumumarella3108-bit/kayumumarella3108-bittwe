@@ -141,6 +141,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ['manbill', 'pembagian_invoice', 'realisasi_tusbung', 'foto_meter'].includes(activeView)
   );
 
+  const [kitOpen, setKitOpen] = useState(
+    ['kit_bbm', 'kit_laporan_beban', 'kit_pemeliharaan_mesin', 'kit_master_data_mesin'].includes(activeView)
+  );
+
   const [k3lOpen, setK3lOpen] = useState(
     ['k3l', 'jadwal_security', 'alker_apd', 'patroli_kelistrikan'].includes(activeView)
   );
@@ -232,6 +236,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (['manbill', 'pembagian_invoice', 'realisasi_tusbung', 'foto_meter'].includes(activeView)) {
       setManbillOpen(true);
     }
+    if (['kit_bbm', 'kit_laporan_beban', 'kit_pemeliharaan_mesin', 'kit_master_data_mesin'].includes(activeView)) {
+      setKitOpen(true);
+    }
     if (['k3l', 'jadwal_security', 'alker_apd', 'patroli_kelistrikan'].includes(activeView)) {
       setK3lOpen(true);
     }
@@ -248,6 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isSaidiSaifiActive = ['saidi_saifi', 'estimasi_saidi_saifi'].includes(activeView);
   const isYantekActive = ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket', 'monitoring_lembur'].includes(activeView);
   const isManbillActive = ['manbill', 'pembagian_invoice', 'realisasi_tusbung', 'foto_meter'].includes(activeView);
+  const isKitActive = ['kit_bbm', 'kit_laporan_beban', 'kit_pemeliharaan_mesin', 'kit_master_data_mesin'].includes(activeView);
   const isK3LActive = ['k3l', 'jadwal_security', 'alker_apd', 'patroli_kelistrikan'].includes(activeView);
 
   const isPemasaran = isPemasaranUser(currentUser);
@@ -1237,6 +1245,90 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <Camera className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
                     <span>Foto Meter</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* MENU KIT (ACCORDION) */}
+          {(canAccessMenu(currentUser, 'kit') || isOwnerUser(currentUser)) && (
+            <div>
+              <button
+                onClick={() => setKitOpen(!kitOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+                  isKitActive && !kitOpen
+                    ? 'bg-gradient-to-r from-teal-500/35 via-teal-500/20 to-teal-900/10 text-white border-l-4 border-l-teal-300 border-y border-r border-teal-500/50 shadow-md shadow-teal-950/60'
+                    : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-transparent hover:border-teal-600/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isKitActive
+                      ? 'bg-gradient-to-tr from-teal-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-teal-400/40 border border-white/80 scale-105'
+                      : 'bg-teal-900/70 text-teal-200 border border-teal-600/40 group-hover:bg-teal-700/80 group-hover:text-white group-hover:border-teal-400 group-hover:scale-105 shadow-xs'
+                  }`}>
+                    <BatteryCharging className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold">KIT</span>
+                </div>
+                <div>
+                  {kitOpen ? (
+                    <ChevronDown className="w-4 h-4 text-teal-300" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-teal-400/70 group-hover:text-white" />
+                  )}
+                </div>
+              </button>
+
+              {kitOpen && (
+                <div className="pl-4 mt-1.5 space-y-1 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('kit_bbm')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'kit_bbm'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Activity className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>BBM</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('kit_laporan_beban')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'kit_laporan_beban'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                    <span>Laporan Beban</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('kit_pemeliharaan_mesin')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'kit_pemeliharaan_mesin'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Wrench className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>Pemeliharaan Mesin</span>
+                  </button>
+
+                  <button
+                    onClick={() => onSelectView('kit_master_data_mesin')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'kit_master_data_mesin'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Database className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Master Data Mesin</span>
                   </button>
                 </div>
               )}

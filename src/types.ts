@@ -54,7 +54,11 @@ export type ViewType =
   | 'realisasi_tusbung'
   | 'foto_meter'
   | 'jadwal_security'
-  | 'patroli_kelistrikan';
+  | 'patroli_kelistrikan'
+  | 'kit_bbm'
+  | 'kit_laporan_beban'
+  | 'kit_pemeliharaan_mesin'
+  | 'kit_master_data_mesin';
 
 export interface HelpDeskMessage {
   id: string;
@@ -522,6 +526,66 @@ export interface MaterialPemakaianItem {
   petugas?: string;
   unit?: string;
   kodeUnit?: string;
+}
+
+export interface KitBbmItem {
+  id: string;
+  tanggal: string;
+  jam: string;
+  mesinId: string;
+  namaMesin: string;
+  liter: number;
+  petugas: string;
+  unit?: string;
+  kodeUnit?: string;
+  keterangan?: string;
+  createdAt?: string;
+}
+
+export interface KitLaporanBebanItem {
+  id: string;
+  tanggal: string;
+  jam: string;
+  mesinId: string;
+  namaMesin: string;
+  bebanKw: number;
+  teganganV: number;
+  frekuensiHz: number;
+  petugas: string;
+  unit: string;
+  kodeUnit: string;
+  createdAt?: string;
+}
+
+export interface KitPemeliharaanItem {
+  id: string;
+  mesinId: string;
+  namaMesin: string;
+  jenisPemeliharaan: string;
+  tanggalMulai: string;
+  tanggalSelesai?: string;
+  status: 'SELESAI' | 'PROSES' | 'PENDING';
+  teknisi: string;
+  unit: string;
+  kodeUnit: string;
+  keterangan?: string;
+  createdAt?: string;
+}
+
+export interface KitMasterMesinItem {
+  id: string;
+  mesinId: string;
+  namaMesin: string;
+  merk: string;
+  tipe: string;
+  kapasitasKw: number;
+  tahunOperasi: string;
+  status: 'AKTIF' | 'STANDBY' | 'RUSAK';
+  totalRunningHours: number;
+  maintenanceInterval: number;
+  unit: string;
+  kodeUnit: string;
+  createdAt?: string;
 }
 
 export interface AlkerApdItem {
