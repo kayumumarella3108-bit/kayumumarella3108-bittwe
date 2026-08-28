@@ -21,6 +21,7 @@ import { exportToCSV } from '../../utils/exportCsv';
 import { MasterUnitPLN, User } from '../../types';
 import { isOwnerUser, canEditData } from '../../utils/permissions';
 import { UnitFilterBar, filterByUnitOrKode } from '../common/UnitFilterBar';
+import { CustomDropdown } from '../common/CustomDropdown';
 
 interface MasterUnitViewProps {
   currentUser?: User | null;
@@ -276,20 +277,21 @@ export const MasterUnitView: React.FC<MasterUnitViewProps> = ({
             className="flex-1"
           />
 
-          {/* UIW Filter */}
+          {/* UIW Filter Custom Dropdown (Opens downwards) */}
           {uiwOptions.length > 0 && (
-            <select
-              value={filterUiw}
-              onChange={(e) => setFilterUiw(e.target.value)}
-              className="w-full sm:w-auto bg-[#011a18] border border-teal-600/60 rounded-xl px-3 py-2 text-xs font-extrabold text-teal-200 focus:outline-none focus:border-amber-400 cursor-pointer shadow-md"
-            >
-              <option value="ALL">Semua UIW</option>
-              {uiwOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+            <div className="relative z-[60]">
+              <CustomDropdown
+                options={[
+                  { value: 'ALL', label: 'Semua UIW', subLabel: 'Seluruh Wilayah' },
+                  ...uiwOptions.map((opt) => ({ value: opt, label: opt }))
+                ]}
+                value={filterUiw}
+                onChange={setFilterUiw}
+                placeholder="Pilih UIW"
+                variant="teal"
+                className="w-full sm:w-auto"
+              />
+            </div>
           )}
         </div>
 

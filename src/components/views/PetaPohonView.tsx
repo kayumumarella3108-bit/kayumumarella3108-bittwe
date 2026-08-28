@@ -38,6 +38,7 @@ import { PohonGisItem, User, Penyulang, MapLayerItem, MasterUnitPLN } from '../.
 import { getDynamicUnitList } from '../../utils/unitConfig';
 import { ImportPohonModal } from '../modals/ImportPohonModal';
 import { readGisFileWithValidation, convertToPohonItems } from '../../utils/gisFileParser';
+import { CustomDropdown } from '../common/CustomDropdown';
 
 export const FEEDER_PALETTE = [
   '#f97316', // Orange (Hutumuri / Lateri 1 / ACC)
@@ -1053,23 +1054,27 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
             </div>
           </div>
 
-          {/* Filter ULP Select Dropdown */}
-          <div className="relative">
-            <Building2 className="w-3.5 h-3.5 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <select
-              value={selectedUlp}
-              onChange={(e) => setSelectedUlp(e.target.value)}
-              className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 focus:outline-none focus:bg-white focus:border-emerald-500 transition-all cursor-pointer appearance-none shadow-xs"
-            >
-              <option value="Semua">🌐 Filter ULP: Semua Unit</option>
-              {ulpOptions.map((u) => (
-                <option key={u.kodeUnit} value={u.namaUnit}>
-                  ⚡ {u.namaUnit} (Kode: {u.kodeUnit})
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-          </div>
+          {/* Filter ULP Select Dropdown - Opens Downwards */}
+          <CustomDropdown
+            options={[
+              { value: 'Semua', label: '🌐 Filter ULP: Semua Unit' },
+              ...ulpOptions.map((u) => ({
+                value: u.namaUnit,
+                label: u.namaUnit,
+                subLabel: `Kode: ${u.kodeUnit}`,
+                badge: u.kodeUnit
+              }))
+            ]}
+            value={selectedUlp}
+            onChange={setSelectedUlp}
+            icon={<Building2 className="w-3.5 h-3.5 text-emerald-600" />}
+            searchable={true}
+            searchPlaceholder="Cari ULP..."
+            placeholder="Filter ULP: Semua Unit"
+            variant="light"
+            className="w-full"
+            buttonClassName="w-full bg-slate-50 border-slate-200 text-slate-800 py-1.5"
+          />
 
           {/* Search Box */}
           <div className="relative">

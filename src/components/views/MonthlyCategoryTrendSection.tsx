@@ -25,6 +25,7 @@ import {
   CheckSquare
 } from 'lucide-react';
 import { GangguanLog, Penyulang } from '../../types';
+import { CustomDropdown } from '../common/CustomDropdown';
 
 export interface GangguanCategoryMeta {
   key: 'pohon' | 'hewan' | 'petir' | 'material' | 'layangan' | 'lainnya';
@@ -469,37 +470,36 @@ export const MonthlyCategoryTrendSection: React.FC<MonthlyCategoryTrendSectionPr
             </button>
           </div>
 
-          {/* Year / Period Selector */}
-          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-            <Calendar className="w-3.5 h-3.5 text-slate-500" />
-            <select
-              value={selectedTrendYear}
-              onChange={(e) => setSelectedTrendYear(e.target.value)}
-              aria-label="Pilih Periode Tren Gangguan"
-              className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
-            >
-              <option value="2026">Tahun 2026</option>
-              <option value="2025">Tahun 2025</option>
-              <option value="trailing12">12 Bulan Terakhir</option>
-            </select>
-          </div>
+          {/* Year / Period Selector - Opens Downwards */}
+          <CustomDropdown
+            options={[
+              { value: '2026', label: 'Tahun 2026' },
+              { value: '2025', label: 'Tahun 2025' },
+              { value: 'trailing12', label: '12 Bulan Terakhir' }
+            ]}
+            value={selectedTrendYear}
+            onChange={setSelectedTrendYear}
+            icon={<Calendar className="w-3.5 h-3.5 text-slate-500" />}
+            variant="light"
+            buttonClassName="py-1 px-2.5 bg-slate-50 border-slate-200 text-xs font-bold text-slate-800"
+          />
 
-          {/* Feeder Filter */}
+          {/* Feeder Filter - Opens Downwards */}
           {uniqueFeeders.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-              <Zap className="w-3.5 h-3.5 text-amber-500" />
-              <select
-                value={selectedPenyulangTrend}
-                onChange={(e) => setSelectedPenyulangTrend(e.target.value)}
-                aria-label="Filter Penyulang untuk Tren Gangguan"
-                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer max-w-[140px] truncate"
-              >
-                <option value="all">Semua Penyulang</option>
-                {uniqueFeeders.map(f => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </div>
+            <CustomDropdown
+              options={[
+                { value: 'all', label: 'Semua Penyulang' },
+                ...uniqueFeeders.map(f => ({ value: f, label: f }))
+              ]}
+              value={selectedPenyulangTrend}
+              onChange={setSelectedPenyulangTrend}
+              icon={<Zap className="w-3.5 h-3.5 text-amber-500" />}
+              searchable={uniqueFeeders.length > 6}
+              searchPlaceholder="Cari penyulang..."
+              placeholder="Semua Penyulang"
+              variant="light"
+              buttonClassName="py-1 px-2.5 bg-slate-50 border-slate-200 text-xs font-bold text-slate-800 max-w-[170px]"
+            />
           )}
         </div>
       </div>

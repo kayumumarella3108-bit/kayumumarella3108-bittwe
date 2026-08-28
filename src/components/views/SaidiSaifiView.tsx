@@ -37,6 +37,7 @@ import { canEditModule, isOwnerUser } from '../../utils/permissions';
 import { DAFTAR_UNIT_PLN, getUnitDetails } from '../../utils/unitConfig';
 import { PptExportModal } from '../ppt/PptExportModal';
 import { PptExportData } from '../ppt/pptTemplate';
+import { CustomDropdown } from '../common/CustomDropdown';
 
 interface SaidiSaifiViewProps {
   currentUser?: User;
@@ -383,20 +384,26 @@ export const SaidiSaifiView: React.FC<SaidiSaifiViewProps> = ({
           {/* Left Side: Filter Unit */}
           <div className="flex flex-wrap items-center gap-3">
             {isOwnerUser(currentUser) && onSelectUnitFilter && (
-              <div className="flex items-center gap-2 bg-[#012521] border border-teal-700/80 px-3.5 py-1.5 rounded-xl shadow-inner">
+              <div className="flex items-center gap-2 bg-[#012521] border border-teal-700/80 px-2.5 py-1 rounded-xl shadow-inner">
                 <span className="text-[10px] font-black text-teal-300 whitespace-nowrap uppercase tracking-wider">FILTER UNIT:</span>
-                <select
+                <CustomDropdown
+                  options={[
+                    { value: 'SEMUA', label: '🌐 Semua Unit (Global)' },
+                    ...DAFTAR_UNIT_PLN.map((u) => ({
+                      value: u.namaUnit,
+                      label: u.namaUnit,
+                      subLabel: `Kode: ${u.kodeUnit}`,
+                      badge: u.kodeUnit
+                    }))
+                  ]}
                   value={ownerSelectedUnitFilter}
-                  onChange={(e) => onSelectUnitFilter(e.target.value)}
-                  className="bg-[#02312b] border border-teal-600 text-white text-xs font-extrabold px-3 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 cursor-pointer shadow-xs min-w-[170px]"
-                >
-                  <option value="SEMUA">🌐 Semua Unit (Global)</option>
-                  {DAFTAR_UNIT_PLN.map((u, idx) => (
-                    <option key={`saidi_unit_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-[#02312b] text-white">
-                      {u.namaUnit} ({u.kodeUnit})
-                    </option>
-                  ))}
-                </select>
+                  onChange={onSelectUnitFilter}
+                  searchable={true}
+                  searchPlaceholder="Cari unit..."
+                  placeholder="Semua Unit (Global)"
+                  variant="teal"
+                  buttonClassName="py-1 px-3 bg-[#02312b] border-teal-600 text-white text-xs font-extrabold min-w-[170px]"
+                />
               </div>
             )}
           </div>

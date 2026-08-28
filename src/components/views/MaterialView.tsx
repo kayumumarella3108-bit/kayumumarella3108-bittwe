@@ -49,6 +49,7 @@ export const MaterialView: React.FC<MaterialViewProps> = ({
   const canEdit = currentUser ? canEditData(currentUser) : true;
   const [activeTab, setActiveTab] = useState<'monitoring' | 'stok_masuk' | 'pemakaian'>('monitoring');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterUnit, setFilterUnit] = useState<string>('SEMUA');
 
   // Modals state
   const [showStokModal, setShowStokModal] = useState(false);
@@ -119,26 +120,25 @@ export const MaterialView: React.FC<MaterialViewProps> = ({
 
   const summaryList = Array.from(summaryMaterialMap.values());
 
-  const filteredSummary = summaryList.filter((m) =>
-    (m.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtered lists based on unit and searchQuery
+  const applyFilter = <T extends { namaMaterial: string; unit?: string }>(list: T[]) => {
+    return list.filter((item) => {
+      const matchUnit = filterUnit === 'SEMUA' || item.unit === filterUnit;
+      const matchSearch = (item.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase());
+      return matchUnit && matchSearch;
+    });
+  };
 
-  const filteredStokList = stokList.filter((s) =>
-    (s.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.keterangan && s.keterangan.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const filteredPemakaianList = pemakaianList.filter((p) =>
-    (p.namaMaterial || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.lokasi || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.jenisPekerjaan || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredSummary = applyFilter(summaryList);
+  const filteredStokList = applyFilter(stokList);
+  const filteredPemakaianList = applyFilter(pemakaianList);
 
   // Quick stats
-  const totalJenisMaterial = summaryList.length;
-  const totalKritis = summaryList.filter((m) => m.stokAkhir <= 5).length;
-  const grandTotalMasuk = summaryList.reduce((acc, curr) => acc + curr.totalStokMasuk, 0);
-  const grandTotalPemakaian = summaryList.reduce((acc, curr) => acc + curr.totalPemakaian, 0);
+  const summaryListFiltered = applyFilter(summaryList);
+  const totalJenisMaterial = summaryListFiltered.length;
+  const totalKritis = summaryListFiltered.filter((m) => m.stokAkhir <= 5).length;
+  const grandTotalMasuk = summaryListFiltered.reduce((acc, curr) => acc + curr.totalStokMasuk, 0);
+  const grandTotalPemakaian = summaryListFiltered.reduce((acc, curr) => acc + curr.totalPemakaian, 0);
 
   // Submit Stok Form
   const handleStokSubmit = (e: React.FormEvent) => {

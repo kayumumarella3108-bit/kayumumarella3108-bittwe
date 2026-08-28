@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { MapLayerItem, MasterUnitPLN, Penyulang } from '../../types';
 import { getDynamicUnitList } from '../../utils/unitConfig';
+import { CustomDropdown } from '../common/CustomDropdown';
 import {
   IconGarduTrafo,
   IconTiangSingleCrossarm,
@@ -1099,23 +1100,27 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
 
           {/* Search & Category Filter Box */}
           <div className="space-y-2">
-            {/* Filter ULP Select Dropdown */}
-            <div className="relative">
-              <Building2 className="w-3.5 h-3.5 text-amber-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <select
-                value={selectedUlp}
-                onChange={(e) => setSelectedUlp(e.target.value)}
-                className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 transition-all cursor-pointer appearance-none shadow-xs"
-              >
-                <option value="SEMUA">🌐 Filter ULP: Semua Unit</option>
-                {ulpOptions.map((u) => (
-                  <option key={u.kodeUnit} value={u.namaUnit}>
-                    ⚡ {u.namaUnit} (Kode: {u.kodeUnit})
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-            </div>
+            {/* Filter ULP Select Custom Dropdown - Opens Downwards */}
+            <CustomDropdown
+              options={[
+                { value: 'SEMUA', label: '🌐 Filter ULP: Semua Unit' },
+                ...ulpOptions.map((u) => ({
+                  value: u.namaUnit,
+                  label: u.namaUnit,
+                  subLabel: `Kode: ${u.kodeUnit}`,
+                  badge: u.kodeUnit
+                }))
+              ]}
+              value={selectedUlp}
+              onChange={setSelectedUlp}
+              icon={<Building2 className="w-3.5 h-3.5 text-amber-500" />}
+              searchable={true}
+              searchPlaceholder="Cari ULP..."
+              placeholder="Filter ULP: Semua Unit"
+              variant="light"
+              className="w-full"
+              buttonClassName="w-full bg-slate-50 border-slate-200 text-slate-800 py-1.5"
+            />
 
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

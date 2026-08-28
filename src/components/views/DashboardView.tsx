@@ -76,6 +76,8 @@ import {
   classifyGangguanCategory,
   GangguanCategoryMeta
 } from './MonthlyCategoryTrendSection';
+import { MonitoringFrekuensiPenyulangView } from './MonitoringFrekuensiPenyulangView';
+import { CustomDropdown } from '../common/CustomDropdown';
 
 interface DashboardViewProps {
   currentUser?: User | null;
@@ -120,6 +122,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [selectedFeeder, setSelectedFeeder] = useState<string | null>(null);
   const [selectedFeederForSections, setSelectedFeederForSections] = useState<string | null>(null);
   const [selectedDashboardUlp, setSelectedDashboardUlp] = useState<string>(ownerSelectedUnitFilter);
+  const [isComparisonMode, setIsComparisonMode] = useState<boolean>(false);
+  const [selectedComparisonUlps, setSelectedComparisonUlps] = useState<string[]>([]);
   const { searchTerm } = useSearch();
 
   // Update local dashboard filter if prop changes
@@ -271,7 +275,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       ];
     }
     return list;
-  }, [gangguanList]);
+  }, [filteredGangguanList]);
 
   // 3. DASHBOARD PER KODE GANGGUAN DATA CALCULATIONS
   const kodeGangguanStats = useMemo(() => {
@@ -397,10 +401,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // 5. DASHBOARD MONITORING YANTEK DATA CALCULATIONS
   const yantekPerformanceStats = useMemo(() => {
-    const totalSpk = spkList.length;
-    const selesaiSpk = spkList.filter(s => s.status === 'Selesai').length;
-    const prosesSpk = spkList.filter(s => s.status === 'Dalam Proses').length;
-    const rencanaSpk = spkList.filter(s => s.status === 'Terencana' || s.status === 'Draft').length;
+    const filteredSpkList = selectedDashboardUlp === 'SEMUA' ? spkList : spkList.filter(s => s.unit === selectedDashboardUlp);
+    const totalSpk = filteredSpkList.length;
+    const selesaiSpk = filteredSpkList.filter(s => s.status === 'Selesai').length;
+    const prosesSpk = filteredSpkList.filter(s => s.status === 'Dalam Proses').length;
+    const rencanaSpk = filteredSpkList.filter(s => s.status === 'Terencana' || s.status === 'Draft').length;
 
     const totalGangguan = filteredGangguanList.length;
     const selesaiGangguan = filteredGangguanList.filter(g => g.jamMasuk && g.jamMasuk !== '-' && g.jamMasuk !== '').length;
@@ -409,31 +414,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const completionRate = totalSpk > 0 ? Math.round((selesaiSpk / totalSpk) * 100) : 100;
 
     return {
-      totalSpk: totalSpk || (ownerSelectedUnitFilter === 'SEMUA' ? 18 : 0),
-      selesaiSpk: selesaiSpk || (ownerSelectedUnitFilter === 'SEMUA' ? 12 : 0),
-      prosesSpk: prosesSpk || (ownerSelectedUnitFilter === 'SEMUA' ? 4 : 0),
-      rencanaSpk: rencanaSpk || (ownerSelectedUnitFilter === 'SEMUA' ? 2 : 0),
-      totalGangguan: totalGangguan || (ownerSelectedUnitFilter === 'SEMUA' ? 34 : 0),
-      selesaiGangguan: selesaiGangguan || (ownerSelectedUnitFilter === 'SEMUA' ? 26 : 0),
-      pendingGangguan: pendingGangguan || (ownerSelectedUnitFilter === 'SEMUA' ? 8 : 0),
-      completionRate: totalSpk > 0 ? completionRate : (ownerSelectedUnitFilter === 'SEMUA' ? 75 : 100),
+      totalSpk: totalSpk || (selectedDashboardUlp === 'SEMUA' ? 18 : 0),
+      selesaiSpk: selesaiSpk || (selectedDashboardUlp === 'SEMUA' ? 12 : 0),
+      prosesSpk: prosesSpk || (selectedDashboardUlp === 'SEMUA' ? 4 : 0),
+      rencanaSpk: rencanaSpk || (selectedDashboardUlp === 'SEMUA' ? 2 : 0),
+      totalGangguan: totalGangguan || (selectedDashboardUlp === 'SEMUA' ? 34 : 0),
+      selesaiGangguan: selesaiGangguan || (selectedDashboardUlp === 'SEMUA' ? 26 : 0),
+      pendingGangguan: pendingGangguan || (selectedDashboardUlp === 'SEMUA' ? 8 : 0),
+      completionRate: totalSpk > 0 ? completionRate : (selectedDashboardUlp === 'SEMUA' ? 75 : 100),
       spkChartData: [
         { name: 'Selesai', Jumlah: selesaiSpk || 12 },
         { name: 'Dalam Proses', Jumlah: prosesSpk || 4 },
         { name: 'Terencana', Jumlah: rencanaSpk || 2 }
       ]
     };
-  }, [spkList, gangguanList, ownerSelectedUnitFilter]);
+  }, [spkList, filteredGangguanList, selectedDashboardUlp]);
 
   // 6. DASHBOARD SURVEY PB PD DATA CALCULATIONS
   const surveyStatsData = useMemo(() => {
-    const totalSurvey = surveyList.length;
-    const pasangBaru = surveyList.filter(s => s.jenisTransaksi === 'Pasang Baru (PB)').length;
-    const perubahanDaya = surveyList.filter(s => s.jenisTransaksi === 'Perubahan Daya (PD)').length;
+    const filteredSurveyList = selectedDashboardUlp === 'SEMUA' ? surveyList : surveyList.filter(s => s.unit === selectedDashboardUlp);
+    const totalSurvey = filteredSurveyList.length;
+    const pasangBaru = filteredSurveyList.filter(s => s.jenisTransaksi === 'Pasang Baru (PB)').length;
+    const perubahanDaya = filteredSurveyList.filter(s => s.jenisTransaksi === 'Perubahan Daya (PD)').length;
 
     // Feasibility status mapping
     const statusMap: { [key: string]: number } = {};
-    surveyList.forEach(s => {
+    filteredSurveyList.forEach(s => {
       const status = s.statusKelayakan || 'Perlu Survey Lapangan';
       statusMap[status] = (statusMap[status] || 0) + 1;
     });
@@ -444,15 +450,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     })).sort((a, b) => b.value - a.value);
 
     // Calculate voltage statistics
-    const validTegangan = surveyList.filter(s => (s.tegPangkal || 0) > 0);
+    const validTegangan = filteredSurveyList.filter(s => (s.tegPangkal || 0) > 0);
     const avgTegPangkal = validTegangan.length > 0 
       ? Math.round(validTegangan.reduce((sum, s) => sum + (s.tegPangkal || 220), 0) / validTegangan.length)
       : 218;
 
     return {
-      totalSurvey: totalSurvey || (ownerSelectedUnitFilter === 'SEMUA' ? 14 : 0),
-      pasangBaru: pasangBaru || (ownerSelectedUnitFilter === 'SEMUA' ? 10 : 0),
-      perubahanDaya: perubahanDaya || (ownerSelectedUnitFilter === 'SEMUA' ? 4 : 0),
+      totalSurvey: totalSurvey || (selectedDashboardUlp === 'SEMUA' ? 14 : 0),
+      pasangBaru: pasangBaru || (selectedDashboardUlp === 'SEMUA' ? 10 : 0),
+      perubahanDaya: perubahanDaya || (selectedDashboardUlp === 'SEMUA' ? 4 : 0),
       avgTegPangkal,
       listStatus: listStatus.length > 0 ? listStatus : [
         { name: 'Layak Sambung', value: 8 },
@@ -465,7 +471,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         { name: 'Perubahan Daya (PD)', value: perubahanDaya || 4, color: '#f59e0b' }
       ]
     };
-  }, [surveyList, ownerSelectedUnitFilter]);
+  }, [surveyList, selectedDashboardUlp]);
 
   const handleExportPDF = () => {
     const doc = new jsPDF('p', 'mm', 'a4');
@@ -664,39 +670,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Control Bar: Filter ULP, Rentang & Cetak PDF / Print (Placed Below Header) */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 relative z-50">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Filter ULP */}
-          <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-3 py-1.5 rounded-xl">
+          {/* Filter ULP (Custom Dropdown opens downwards) */}
+          <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-2.5 py-1 rounded-xl">
             <Filter className="w-3.5 h-3.5 text-teal-700 shrink-0" />
             <span className="text-[11px] font-extrabold text-teal-950 uppercase tracking-wider whitespace-nowrap">Filter ULP:</span>
-            <select
+            <CustomDropdown
+              options={[
+                { value: 'SEMUA', label: '🌐 Semua Unit ULP' },
+                ...DAFTAR_UNIT_PLN.filter(u => u.tipe === 'ULP').map(u => ({
+                  value: u.namaUnit,
+                  label: u.namaUnit,
+                  subLabel: `Kode: ${u.kodeUnit}`,
+                  badge: u.kodeUnit
+                }))
+              ]}
               value={ownerSelectedUnitFilter}
-              onChange={(e) => onSelectUnitFilter && onSelectUnitFilter(e.target.value)}
-              className="bg-white text-slate-900 border border-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer shadow-2xs min-w-[170px]"
-            >
-              <option value="SEMUA">🌐 Semua Unit ULP</option>
-              {DAFTAR_UNIT_PLN.filter(u => u.tipe === 'ULP').map((u, idx) => (
-                <option key={`dash_unit_opt_${u.kodeUnit}_${idx}`} value={u.namaUnit} className="bg-white text-slate-900 text-xs">
-                  {u.namaUnit} ({u.kodeUnit})
-                </option>
-              ))}
-            </select>
+              onChange={(val) => onSelectUnitFilter && onSelectUnitFilter(val)}
+              variant="light"
+              searchable={true}
+              searchPlaceholder="Cari ULP..."
+              placeholder="Semua Unit ULP"
+              buttonClassName="py-1 px-2.5 bg-white text-slate-900 border-slate-300 text-xs font-bold min-w-[170px]"
+            />
           </div>
 
-          {/* Rentang */}
-          <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-3 py-1.5 rounded-xl">
+          {/* Rentang (Custom Dropdown opens downwards) */}
+          <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-2.5 py-1 rounded-xl">
             <Calendar className="w-3.5 h-3.5 text-teal-700 shrink-0" />
             <span className="text-[11px] font-extrabold text-teal-950 uppercase tracking-wider whitespace-nowrap">Rentang:</span>
-            <select
+            <CustomDropdown
+              options={[
+                { value: 'weekly', label: '📅 Mingguan' },
+                { value: 'monthly', label: '📅 Bulanan' },
+                { value: 'yearly', label: '📅 Tahunan' }
+              ]}
               value={dateRange}
-              onChange={(e) => setDateRange(e.target.value as any)}
-              className="bg-white text-slate-900 border border-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer shadow-2xs"
-            >
-              <option value="weekly">📅 Mingguan</option>
-              <option value="monthly">📅 Bulanan</option>
-              <option value="yearly">📅 Tahunan</option>
-            </select>
+              onChange={(val) => setDateRange(val as any)}
+              variant="light"
+              placeholder="Pilih Rentang"
+              buttonClassName="py-1 px-2.5 bg-white text-slate-900 border-slate-300 text-xs font-bold"
+            />
           </div>
         </div>
 
@@ -948,6 +963,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               id="dashboard_executive_monthly_category_trend"
             />
 
+            {/* Rekapitulasi Monitoring Frekuensi Gangguan Per Bulan Per Penyulang (Dark Slate Grid PLN) */}
+            <MonitoringFrekuensiPenyulangView
+              currentUser={currentUser}
+              penyulangList={penyulangList}
+              gangguanList={filteredGangguanList}
+              masterUnits={masterUnitList}
+              selectedUlpFilter={selectedDashboardUlp}
+              onSelectUlpFilter={setSelectedDashboardUlp}
+              id="dashboard_executive_monitoring_frekuensi_penyulang"
+            />
+
             {/* Interactive Grid Table of Feeders */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
               <div>
@@ -1183,6 +1209,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </table>
               </div>
             </div>
+
+            {/* Rekapitulasi Monitoring Frekuensi Gangguan Per Bulan Per Penyulang */}
+            <MonitoringFrekuensiPenyulangView
+              currentUser={currentUser}
+              penyulangList={penyulangList}
+              gangguanList={filteredGangguanList}
+              masterUnits={masterUnitList}
+              selectedUlpFilter={selectedDashboardUlp}
+              onSelectUlpFilter={setSelectedDashboardUlp}
+              id="dashboard_penyulang_monitoring_frekuensi"
+            />
           </div>
         )}
 

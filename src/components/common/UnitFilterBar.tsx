@@ -1,7 +1,8 @@
 import React from 'react';
-import { Search, Building2, RotateCcw } from 'lucide-react';
+import { Search, Building2, RotateCcw, Zap } from 'lucide-react';
 import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import { MasterUnitPLN } from '../../types';
+import { CustomDropdown, DropdownOption } from './CustomDropdown';
 
 interface UnitFilterBarProps {
   selectedUnit: string;
@@ -23,7 +24,7 @@ export const UnitFilterBar: React.FC<UnitFilterBarProps> = ({
   className = ''
 }) => {
   // Combine dynamic master units with defaults
-  const ulpOptions = React.useMemo(() => {
+  const dropdownOptions = React.useMemo<DropdownOption[]>(() => {
     const unitsMap = new Map<string, { nama: string; kode: string }>();
 
     // Add default ULP units
@@ -38,7 +39,26 @@ export const UnitFilterBar: React.FC<UnitFilterBarProps> = ({
       }
     });
 
-    return Array.from(unitsMap.values());
+    const opts: DropdownOption[] = [
+      {
+        value: 'SEMUA',
+        label: 'Filter ULP: Semua Unit',
+        subLabel: 'Semua Unit Pelaksana / ULP',
+        icon: <span className="text-amber-400">🌐</span>
+      }
+    ];
+
+    Array.from(unitsMap.values()).forEach((u) => {
+      opts.push({
+        value: u.nama,
+        label: u.nama,
+        subLabel: `Kode ULP: ${u.kode}`,
+        badge: u.kode,
+        icon: <Zap className="w-3.5 h-3.5 text-amber-400" />
+      });
+    });
+
+    return opts;
   }, [masterUnitList]);
 
   return (
@@ -65,23 +85,18 @@ export const UnitFilterBar: React.FC<UnitFilterBarProps> = ({
         </div>
       )}
 
-      {/* Select ULP Filter Dropdown */}
-      <div className="relative flex items-center shrink-0">
-        <Building2 className="w-4 h-4 text-amber-400 absolute left-3 pointer-events-none" />
-        <select
-          value={selectedUnit}
-          onChange={(e) => onSelectUnit(e.target.value)}
-          className="w-full sm:w-auto pl-9 pr-8 py-2 bg-[#011a18] border border-teal-600/70 rounded-xl text-xs font-extrabold text-teal-200 focus:outline-none focus:border-amber-400 cursor-pointer shadow-md appearance-none"
-        >
-          <option value="SEMUA">🌐 Filter ULP: Semua Unit</option>
-          {ulpOptions.map((u) => (
-            <option key={u.kode} value={u.nama}>
-              ⚡ {u.nama} (Kode: {u.kode})
-            </option>
-          ))}
-        </select>
-        <div className="absolute right-3 pointer-events-none text-teal-400 text-[10px]">▼</div>
-      </div>
+      {/* Select ULP Filter Custom Dropdown - Guaranteed to pop DOWNWARDS */}
+      <CustomDropdown
+        options={dropdownOptions}
+        value={selectedUnit}
+        onChange={onSelectUnit}
+        icon={<Building2 className="w-4 h-4 text-amber-400" />}
+        placeholder="Filter ULP: Semua Unit"
+        searchable={true}
+        searchPlaceholder="Cari nama ULP atau kode..."
+        variant="teal"
+        className="shrink-0 w-full sm:w-auto"
+      />
 
       {/* Reset Button if active */}
       {(selectedUnit !== 'SEMUA' || searchQuery !== '') && (

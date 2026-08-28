@@ -388,7 +388,7 @@ export const LiveChatView: React.FC<LiveChatViewProps> = ({
                 </span>
               </div>
               <p className="text-xs text-teal-100/90 mt-0.5">
-                Saluran obrolan langsung antar petugas dan Sistem PLN ULP Baguala.
+                Saluran obrolan langsung antar petugas dan Sistem PLN.
               </p>
             </div>
           </div>

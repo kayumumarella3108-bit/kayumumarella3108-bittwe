@@ -50,6 +50,8 @@ import { InputGangguanModal } from '../modals/InputGangguanModal';
 import { exportToCSV } from '../../utils/exportCsv';
 import { canEditModule } from '../../utils/permissions';
 import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
+import { MonitoringFrekuensiPenyulangView } from './MonitoringFrekuensiPenyulangView';
+import { CustomDropdown } from '../common/CustomDropdown';
 
 interface GangguanTripViewProps {
   currentUser?: User;
@@ -654,7 +656,7 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
                 </span>
               </div>
               <p className="text-xs text-teal-100/90 font-medium mt-0.5">
-                Monitoring, rekapitulasi, dan analisis frekuensi Trip Pangkal (PMT GI 20kV) ULP Baguala
+                Monitoring, rekapitulasi, dan analisis frekuensi Trip Pangkal (PMT GI 20kV)
               </p>
             </div>
           </div>
@@ -987,69 +989,61 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
               </button>
             </div>
 
-            {/* Filter Penyulang */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl shadow-2xs">
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Filter Penyulang</span>
-                <select
-                  value={selectedPenyulang}
-                  onChange={(e) => setSelectedPenyulang(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
-                >
-                  <option value="all">Semua Penyulang ({penyulangList.length})</option>
-                  {penyulangList.map((p) => (
-                    <option key={p.id} value={p.namaPenyulang}>
-                      {p.namaPenyulang} ({p.namaGi})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            {/* Filter Penyulang - Opens Downwards */}
+            <CustomDropdown
+              options={[
+                { value: 'all', label: `Semua Penyulang (${penyulangList.length})` },
+                ...penyulangList.map((p) => ({
+                  value: p.namaPenyulang,
+                  label: p.namaPenyulang,
+                  subLabel: p.namaGi
+                }))
+              ]}
+              value={selectedPenyulang}
+              onChange={setSelectedPenyulang}
+              searchable={true}
+              searchPlaceholder="Cari penyulang..."
+              labelPrefix="Penyulang:"
+              variant="light"
+              buttonClassName="py-1 px-3 bg-slate-50 border-slate-200 text-xs font-bold text-slate-900"
+            />
 
-            {/* Bulan & Tahun Fallback */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl shadow-2xs">
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Bulan</span>
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    disabled={!!(startDate || endDate)}
-                    className={`bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5 ${
-                      startDate || endDate ? 'opacity-40' : ''
-                    }`}
-                  >
-                    <option value="all">Semua Bulan</option>
-                    <option value="01">Januari</option>
-                    <option value="02">Februari</option>
-                    <option value="03">Maret</option>
-                    <option value="04">April</option>
-                    <option value="05">Mei</option>
-                    <option value="06">Juni</option>
-                    <option value="07">Juli</option>
-                    <option value="08">Agustus</option>
-                    <option value="09">September</option>
-                    <option value="10">Oktober</option>
-                    <option value="11">November</option>
-                    <option value="12">Desember</option>
-                  </select>
-                </div>
-                <div className="w-px h-6 bg-slate-200 mx-1" />
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Tahun</span>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                    disabled={!!(startDate || endDate)}
-                    className={`bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5 ${
-                      startDate || endDate ? 'opacity-40' : ''
-                    }`}
-                  >
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                  </select>
-                </div>
-              </div>
+            {/* Bulan & Tahun Custom Dropdowns - Opens Downwards */}
+            <div className={`flex items-center gap-2 ${startDate || endDate ? 'opacity-40 pointer-events-none' : ''}`}>
+              <CustomDropdown
+                options={[
+                  { value: 'all', label: 'Semua Bulan' },
+                  { value: '01', label: 'Januari' },
+                  { value: '02', label: 'Februari' },
+                  { value: '03', label: 'Maret' },
+                  { value: '04', label: 'April' },
+                  { value: '05', label: 'Mei' },
+                  { value: '06', label: 'Juni' },
+                  { value: '07', label: 'Juli' },
+                  { value: '08', label: 'Agustus' },
+                  { value: '09', label: 'September' },
+                  { value: '10', label: 'Oktober' },
+                  { value: '11', label: 'November' },
+                  { value: '12', label: 'Desember' }
+                ]}
+                value={selectedMonth}
+                onChange={setSelectedMonth}
+                labelPrefix="Bulan:"
+                variant="light"
+                buttonClassName="py-1 px-2.5 bg-slate-50 border-slate-200 text-xs font-bold text-slate-900"
+              />
+
+              <CustomDropdown
+                options={[
+                  { value: '2026', label: '2026' },
+                  { value: '2025', label: '2025' }
+                ]}
+                value={selectedYear}
+                onChange={setSelectedYear}
+                labelPrefix="Tahun:"
+                variant="light"
+                buttonClassName="py-1 px-2.5 bg-slate-50 border-slate-200 text-xs font-bold text-slate-900"
+              />
             </div>
           </div>
 
@@ -1370,6 +1364,14 @@ export const GangguanTripView: React.FC<GangguanTripViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Dedicated View: Monitoring Frekuensi Gangguan Per Bulan Per Penyulang (Dark Slate PLN) */}
+      <MonitoringFrekuensiPenyulangView
+        currentUser={currentUser}
+        penyulangList={penyulangList}
+        gangguanList={gangguanList}
+        id="matriks_monitoring_frekuensi_penyulang_grid"
+      />
 
       {/* Matriks Distribusi Per Kode & Bulan */}
       <div className="p-6 bg-white border border-slate-200 shadow-sm rounded-2xl space-y-4 overflow-hidden">

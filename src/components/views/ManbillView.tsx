@@ -840,6 +840,21 @@ export const ManbillView: React.FC<ManbillViewProps> = ({
               </div>
 
               <div>
+                <label className="block font-bold text-slate-700 mb-1">UNIT ULP</label>
+                <select
+                  value={invoiceForm.unit}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, unit: e.target.value })}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold"
+                >
+                  {DAFTAR_UNIT_PLN.map((u, i) => (
+                    <option key={`inv_u_${i}`} value={u.namaUnit}>
+                      {u.namaUnit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block font-bold text-slate-700 mb-1">KETERANGAN / CATATAN</label>
                 <textarea
                   rows={2}
@@ -1088,6 +1103,21 @@ export const ManbillView: React.FC<ManbillViewProps> = ({
                   className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
                   placeholder="https://..."
                 />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">UNIT ULP</label>
+                <select
+                  value={fotoMeterForm.unit}
+                  onChange={(e) => setFotoMeterForm({ ...fotoMeterForm, unit: e.target.value })}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold"
+                >
+                  {DAFTAR_UNIT_PLN.map((u, i) => (
+                    <option key={`ftm_u_${i}`} value={u.namaUnit}>
+                      {u.namaUnit}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">

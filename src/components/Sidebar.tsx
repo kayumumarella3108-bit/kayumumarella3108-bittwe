@@ -67,6 +67,7 @@ import { getOfflineQueue, clearOfflineQueue } from '../lib/offlineQueue';
 
 import { LoginBackgroundModal } from './LoginBackgroundModal';
 import { DAFTAR_UNIT_PLN, getKodeUnitByUnitName } from '../utils/unitConfig';
+import { CustomDropdown } from './common/CustomDropdown';
 
 interface SidebarProps {
   activeView: ViewType;
@@ -302,25 +303,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               )}
 
-              {/* Posisi Di Bawah Nama Pengguna: Filter Data Dropdown */}
+              {/* Posisi Di Bawah Nama Pengguna: Filter Data Dropdown (Opens downwards) */}
               {isOwnerUser(currentUser) && onSelectUnitFilter && (
                 <div className="mt-3 pt-2.5 border-t border-teal-700/60 w-full">
                   <label className="block text-[10px] font-bold text-teal-200 mb-1 flex items-center justify-center gap-1">
                     <Filter className="w-3 h-3 text-amber-400" />
                     <span>Filter Data Unit:</span>
                   </label>
-                  <select
+                  <CustomDropdown
+                    options={[
+                      { value: 'SEMUA', label: 'Semua Unit (Global)', icon: <span className="text-amber-400">🌐</span> },
+                      ...DAFTAR_UNIT_PLN.map((u) => ({
+                        value: u.namaUnit,
+                        label: u.namaUnit,
+                        subLabel: `Kode: ${u.kodeUnit}`,
+                        badge: u.kodeUnit
+                      }))
+                    ]}
                     value={ownerSelectedUnitFilter}
-                    onChange={(e) => onSelectUnitFilter(e.target.value)}
-                    className="w-full bg-[#012823] text-white text-xs font-black px-2 py-1.5 rounded-xl border border-teal-500/80 focus:outline-none focus:border-amber-400 cursor-pointer shadow-sm text-center"
-                  >
-                    <option value="SEMUA">🌐 Semua Unit (Global)</option>
-                    {DAFTAR_UNIT_PLN.map((u, idx) => (
-                      <option key={`sb_unit_${u.kodeUnit}_${u.namaUnit}_${idx}`} value={u.namaUnit}>
-                        {u.namaUnit} ({u.kodeUnit})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={onSelectUnitFilter}
+                    placeholder="Semua Unit (Global)"
+                    variant="teal"
+                    searchable={true}
+                    searchPlaceholder="Cari unit..."
+                    className="w-full"
+                    buttonClassName="w-full justify-between"
+                  />
                 </div>
               )}
             </div>

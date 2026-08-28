@@ -31,6 +31,7 @@ import { GarduHubungMasterSection } from '../master/GarduHubungMasterSection';
 import { DistributionEquipmentMasterSection } from '../master/DistributionEquipmentMasterSection';
 import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
 import { UnitFilterBar, filterByUnitOrKode } from '../common/UnitFilterBar';
+import { CustomDropdown } from '../common/CustomDropdown';
 
 interface MasterDataViewProps {
   penyulangList: Penyulang[];
@@ -419,13 +420,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-slate-700">Filter ULP:</span>
-          <select
+          <CustomDropdown
+            options={ulpOptions.map(ulp => ({
+              value: ulp,
+              label: ulp === 'SEMUA' ? '🌐 Filter ULP: Semua Unit' : `⚡ ${ulp}`
+            }))}
             value={selectedUlp}
-            onChange={(e) => setSelectedUlp(e.target.value)}
-            className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            {ulpOptions.map(ulp => <option key={ulp} value={ulp}>{ulp}</option>)}
-          </select>
+            onChange={setSelectedUlp}
+            searchable={ulpOptions.length > 6}
+            searchPlaceholder="Cari ULP..."
+            variant="light"
+            placeholder="Pilih ULP"
+            buttonClassName="py-1 px-3 bg-white border-slate-300 text-xs font-bold text-slate-800"
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
