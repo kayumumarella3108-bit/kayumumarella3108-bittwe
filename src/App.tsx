@@ -2798,6 +2798,8 @@ export default function App() {
                 onUpdateLayer={handleUpdateMapLayer}
                 masterUnits={masterUnitList}
                 masterPenyulangs={penyulangList}
+                globalUnitFilter={ownerSelectedUnitFilter}
+                onUnitFilterChange={setOwnerSelectedUnitFilter}
               />
             </motion.div>
           )}

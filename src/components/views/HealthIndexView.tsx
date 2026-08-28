@@ -26,6 +26,7 @@ import { Penyulang, GangguanLog, SectionJaringan } from '../../types';
 import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import { HealthIndexBanner } from '../HealthIndexBanner';
 import { InputGangguanModal } from '../modals/InputGangguanModal';
+import { CustomDropdown } from '../common/CustomDropdown';
 
 interface HealthIndexViewProps {
   penyulangList: Penyulang[];
@@ -178,70 +179,55 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
       {/* Filter Toolbar */}
       <div className="p-4 bg-slate-900 border border-slate-800 shadow-sm rounded-2xl flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold">
-            <span className="text-slate-400">ULP:</span>
-            <select
-              value={filterUnit}
-              onChange={(e) => setFilterUnit(e.target.value)}
-              className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer"
-            >
-              <option value="SEMUA">Semua Unit</option>
-              {DAFTAR_UNIT_PLN.map((u) => (
-                <option key={u.namaUnit} value={u.namaUnit}>{u.namaUnit}</option>
-              ))}
-            </select>
-          </div>
+          <CustomDropdown
+            options={[
+              { value: 'SEMUA', label: 'Semua Unit' },
+              ...DAFTAR_UNIT_PLN.map((u) => ({ value: u.namaUnit, label: u.namaUnit }))
+            ]}
+            value={filterUnit}
+            onChange={setFilterUnit}
+            labelPrefix="ULP:"
+            variant="dark"
+            buttonClassName="bg-slate-800 border-slate-700 text-slate-200"
+          />
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold">
-            <span className="text-slate-400">Tahun:</span>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer"
-            >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="Semua Tahun">Semua Tahun</option>
-            </select>
-          </div>
+          <CustomDropdown
+            options={[
+              { value: '2026', label: '2026' },
+              { value: '2025', label: '2025' },
+              { value: 'Semua Tahun', label: 'Semua Tahun' }
+            ]}
+            value={selectedYear}
+            onChange={setSelectedYear}
+            labelPrefix="Tahun:"
+            variant="dark"
+            buttonClassName="bg-slate-800 border-slate-700 text-slate-200"
+          />
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold">
-            <span className="text-slate-400">Bulan:</span>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer"
-            >
-              <option value="Semua Bulan">Semua Bulan</option>
-              <option value="Januari">Januari</option>
-              <option value="Februari">Februari</option>
-              <option value="Maret">Maret</option>
-              <option value="April">April</option>
-              <option value="Mei">Mei</option>
-              <option value="Juni">Juni</option>
-              <option value="Juli">Juli</option>
-              <option value="Agustus">Agustus</option>
-              <option value="September">September</option>
-              <option value="Oktober">Oktober</option>
-              <option value="November">November</option>
-              <option value="Desember">Desember</option>
-            </select>
-          </div>
+          <CustomDropdown
+            options={[
+              'Semua Bulan',
+              'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+              'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ]}
+            value={selectedMonth}
+            onChange={setSelectedMonth}
+            labelPrefix="Bulan:"
+            variant="dark"
+            buttonClassName="bg-slate-800 border-slate-700 text-slate-200"
+          />
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold">
-            <span className="text-slate-400">Status:</span>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer"
-            >
-              <option value="Semua Status">Semua Status</option>
-              <option value="Sempurna">Sempurna</option>
-              <option value="Sehat">Sehat</option>
-              <option value="Sakit">Sakit</option>
-              <option value="Kronis">Kronis</option>
-            </select>
-          </div>
+          <CustomDropdown
+            options={[
+              'Semua Status',
+              'Sempurna', 'Sehat', 'Sakit', 'Kronis'
+            ]}
+            value={selectedStatus}
+            onChange={setSelectedStatus}
+            labelPrefix="Status:"
+            variant="dark"
+            buttonClassName="bg-slate-800 border-slate-700 text-slate-200"
+          />
         </div>
 
         {/* Search Input */}

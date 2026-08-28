@@ -267,76 +267,75 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-4 space-y-4">
         {/* FULL DYNAMIC NAVIGATION ACCORDING TO USER'S ALLOWED MENUS */}
         <nav className="space-y-1.5">
-          {/* User Profile Card above Dashboard Menu */}
+          {/* User Profile Card - Compact & Flexible Version */}
           {currentUser && (
-            <div className="p-4 bg-[#022320]/80 border border-teal-600/40 rounded-2xl mb-3.5 shadow-lg backdrop-blur-xs flex flex-col items-center text-center">
-              {currentUser.avatarUrl ? (
-                <img
-                  src={currentUser.avatarUrl}
-                  alt={currentUser.name}
-                  referrerPolicy="no-referrer"
-                  className="w-16 h-16 rounded-full object-cover ring-2 ring-amber-400 shadow-md mb-2.5"
-                />
-              ) : (
-                <div className={`w-16 h-16 rounded-full ring-2 ring-amber-400 shadow-md flex items-center justify-center font-black text-base text-slate-950 mb-2.5 ${
-                  canEditData(currentUser) ? 'bg-gradient-to-tr from-emerald-400 to-teal-300' : 'bg-gradient-to-tr from-amber-400 to-yellow-300'
-                }`}>
-                  {currentUser.name ? currentUser.name.substring(0, 2).toUpperCase() : 'PLN'}
+            <div className="px-3 py-3 bg-[#022320]/40 border border-teal-700/30 rounded-2xl mb-4 shadow-sm backdrop-blur-md">
+              <div className="flex items-center gap-3 mb-2.5">
+                {currentUser.avatarUrl ? (
+                  <img
+                    src={currentUser.avatarUrl}
+                    alt={currentUser.name}
+                    referrerPolicy="no-referrer"
+                    className="w-11 h-11 rounded-xl object-cover ring-2 ring-teal-500/30 shadow-sm shrink-0"
+                  />
+                ) : (
+                  <div className={`w-11 h-11 rounded-xl ring-2 ring-teal-500/30 shadow-sm flex items-center justify-center font-black text-sm text-slate-950 shrink-0 ${
+                    canEditData(currentUser) ? 'bg-gradient-to-tr from-emerald-400 to-teal-300' : 'bg-gradient-to-tr from-amber-400 to-yellow-300'
+                  }`}>
+                    {currentUser.name ? currentUser.name.substring(0, 2).toUpperCase() : 'PLN'}
+                  </div>
+                )}
+                
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] text-amber-400/80 font-black uppercase tracking-[0.15em] leading-none mb-0.5">Welcome</div>
+                  <div className="text-[13px] font-black text-white truncate drop-shadow-sm" title={currentUser.name}>
+                    {currentUser.name}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {isOwnerUser(currentUser) ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[8px] font-black uppercase tracking-tighter">
+                        <ShieldCheck className="w-2 h-2" />
+                        OWNER
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-300 border border-teal-500/20 text-[8px] font-black uppercase tracking-tighter">
+                        {currentUser.role || 'User'}
+                      </span>
+                    )}
+                    {currentUser.unit && !isOwnerUser(currentUser) && (
+                      <span className="text-[8px] text-teal-400/80 font-bold truncate">
+                        • {currentUser.unit}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
-              
-              <div className="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">Welcome</div>
-              
-              {/* Nama Pengguna */}
-              <div className="text-xs font-black text-white truncate max-w-full drop-shadow-xs" title={currentUser.name}>
-                {currentUser.name}
               </div>
 
-              {/* Posisi Di Bawah Nama Pengguna: Akses Semua Unit / Unit Info */}
-              {isOwnerUser(currentUser) ? (
-                <div className="mt-1 flex justify-center">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-400/20 border border-amber-400/60 text-amber-300 text-[9px] font-black uppercase tracking-tight shadow-xs">
-                    👑 OWNER
-                  </span>
-                </div>
-              ) : (
-                <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1">
-                  <span className="px-2 py-0.5 rounded-md bg-teal-500/25 text-teal-100 border border-teal-400/40 text-[9px] font-black uppercase inline-block shadow-xs">
-                    {currentUser.role || 'Pengguna'}
-                  </span>
-                  {currentUser.unit && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-teal-800/80 text-teal-200 text-[9px] font-bold">
-                      {currentUser.unit}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Posisi Di Bawah Nama Pengguna: Filter Data Dropdown (Opens downwards) */}
+              {/* Compact Unit Filter for Owner */}
               {isOwnerUser(currentUser) && onSelectUnitFilter && (
-                <div className="mt-3 pt-2.5 border-t border-teal-700/60 w-full">
-                  <label className="block text-[10px] font-bold text-teal-200 mb-1 flex items-center justify-center gap-1">
-                    <Filter className="w-3 h-3 text-amber-400" />
-                    <span>Filter Data Unit:</span>
-                  </label>
+                <div className="space-y-1.5 pt-2 border-t border-teal-800/40">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[9px] font-black text-teal-400/70 uppercase tracking-wider">Unit Filter</span>
+                    <Filter className="w-2.5 h-2.5 text-teal-500" />
+                  </div>
                   <CustomDropdown
                     options={[
-                      { value: 'SEMUA', label: 'Semua Unit (Global)', icon: <span className="text-amber-400">🌐</span> },
+                      { value: 'SEMUA', label: 'Global Access', icon: <span className="text-amber-400 text-[10px]">🌐</span> },
                       ...DAFTAR_UNIT_PLN.map((u) => ({
                         value: u.namaUnit,
                         label: u.namaUnit,
-                        subLabel: `Kode: ${u.kodeUnit}`,
+                        subLabel: u.kodeUnit,
                         badge: u.kodeUnit
                       }))
                     ]}
                     value={ownerSelectedUnitFilter}
                     onChange={onSelectUnitFilter}
-                    placeholder="Semua Unit (Global)"
+                    placeholder="Global Access"
                     variant="teal"
                     searchable={true}
                     searchPlaceholder="Cari unit..."
                     className="w-full"
-                    buttonClassName="w-full justify-between"
+                    buttonClassName="w-full h-8 !text-[11px] !py-1 px-2.5 justify-between border-teal-700/30 bg-teal-900/20 hover:bg-teal-900/40"
                   />
                 </div>
               )}

@@ -109,28 +109,28 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
       button: 'bg-[#011a18] border-teal-600/70 text-teal-100 hover:border-amber-400 hover:text-white',
       menu: 'bg-[#021f1d] border-teal-500/80 text-teal-100 divide-teal-900/60',
       activeItem: 'bg-teal-900/80 text-amber-300 font-black',
-      hoverItem: 'hover:bg-teal-900/50 hover:text-white',
+      hoverItem: 'text-teal-100 hover:bg-teal-900/50 hover:text-white',
       search: 'bg-[#011211] border-teal-700/60 text-white placeholder-teal-500/60 focus:border-amber-400'
     },
     dark: {
       button: 'bg-[#0f172a] border-slate-700 text-slate-200 hover:border-amber-400 hover:text-white',
       menu: 'bg-[#0a0f1d] border-slate-700 text-slate-200 divide-slate-800',
       activeItem: 'bg-slate-800 text-amber-300 font-black',
-      hoverItem: 'hover:bg-slate-800/60 hover:text-white',
+      hoverItem: 'text-slate-200 hover:bg-slate-800/60 hover:text-white',
       search: 'bg-[#060913] border-slate-800 text-white placeholder-slate-500 focus:border-amber-400'
     },
     amber: {
       button: 'bg-[#1a1408] border-amber-500/60 text-amber-200 hover:border-amber-400 hover:text-amber-100',
       menu: 'bg-[#181105] border-amber-500/70 text-amber-100 divide-amber-900/50',
       activeItem: 'bg-amber-950/90 text-amber-300 font-black border-l-2 border-amber-400',
-      hoverItem: 'hover:bg-amber-950/50 hover:text-white',
+      hoverItem: 'text-amber-100 hover:bg-amber-950/50 hover:text-white',
       search: 'bg-[#0d0902] border-amber-800 text-amber-100 placeholder-amber-500/50 focus:border-amber-400'
     },
     light: {
       button: 'bg-white border-slate-300 text-slate-800 hover:border-teal-500',
       menu: 'bg-white border-slate-200 text-slate-800 divide-slate-100 shadow-xl',
       activeItem: 'bg-teal-50 text-teal-700 font-black',
-      hoverItem: 'hover:bg-slate-50 hover:text-slate-900',
+      hoverItem: 'text-slate-700 hover:bg-slate-50 hover:text-slate-900',
       search: 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-teal-500'
     }
   }[variant];

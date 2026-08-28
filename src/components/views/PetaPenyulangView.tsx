@@ -54,6 +54,8 @@ interface PetaPenyulangViewProps {
   onUpdateLayer?: (layer: MapLayerItem) => void;
   masterUnits?: MasterUnitPLN[];
   masterPenyulangs?: Penyulang[];
+  globalUnitFilter?: string;
+  onUnitFilterChange?: (unit: string) => void;
 }
 
 export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
@@ -63,7 +65,9 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
   onAddLayer,
   onUpdateLayer,
   masterUnits = [],
-  masterPenyulangs = []
+  masterPenyulangs = [],
+  globalUnitFilter = 'SEMUA',
+  onUnitFilterChange
 }) => {
   const getLayerIconComponent = (type?: string) => {
     switch (type) {
@@ -92,8 +96,20 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUlp, setSelectedUlp] = useState('SEMUA');
+  const [selectedUlp, setSelectedUlp] = useState(globalUnitFilter);
   const [selectedCategory, setSelectedCategory] = useState<'Semua' | 'SUTM' | 'Gardu' | 'Percabangan' | 'ROW' | 'Inspeksi' | 'Maintenance'>('Semua');
+
+  // Sync with global filter
+  useEffect(() => {
+    setSelectedUlp(globalUnitFilter);
+  }, [globalUnitFilter]);
+
+  const handleUlpChange = (val: string) => {
+    setSelectedUlp(val);
+    if (onUnitFilterChange) {
+      onUnitFilterChange(val);
+    }
+  };
 
   const ulpOptions = React.useMemo(() => {
     const list = getDynamicUnitList(masterUnits);
@@ -1112,7 +1128,7 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
                 }))
               ]}
               value={selectedUlp}
-              onChange={setSelectedUlp}
+              onChange={handleUlpChange}
               icon={<Building2 className="w-3.5 h-3.5 text-amber-500" />}
               searchable={true}
               searchPlaceholder="Cari ULP..."
