@@ -39,7 +39,9 @@ import {
   ChevronRight,
   Info,
   MapPin,
-  Monitor
+  Monitor,
+  Grid,
+  Magnet
 } from 'lucide-react';
 import { db, doc, onSnapshot, setDoc, OperationType, handleFirestoreError } from '../../lib/firebase';
 import { User } from '../../types';
@@ -445,6 +447,23 @@ export const MiniDccView: React.FC<MiniDccViewProps> = ({ currentUser }) => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const [showGridLines, setShowGridLines] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('minidcc_show_grid_lines');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('minidcc_show_grid_lines', String(showGridLines));
+    } catch {
+      // ignore
+    }
+  }, [showGridLines]);
+
   const [logs, setLogs] = useState<ScadaLogEvent[]>([
     { id: '1', timestamp: new Date().toLocaleTimeString('id-ID'), tag: 'SYSTEM', description: 'SCADA Mini DCC Multistation System Siap.', type: 'INFO' }
   ]);
@@ -1147,8 +1166,9 @@ export const MiniDccView: React.FC<MiniDccViewProps> = ({ currentUser }) => {
       <style>{`
         .mini-dcc-grid {
           background-color: #06080e;
-          background-image: radial-gradient(#1e293b 1.2px, transparent 1.2px);
-          background-size: 20px 20px;
+          ${showGridLines 
+            ? 'background-image: radial-gradient(#1e293b 1.2px, transparent 1.2px); background-size: 20px 20px;' 
+            : 'background-image: none !important;'}
         }
         .glow-line-cyan {
           box-shadow: 0 0 10px rgba(0, 242, 255, 0.85);
@@ -1334,6 +1354,22 @@ export const MiniDccView: React.FC<MiniDccViewProps> = ({ currentUser }) => {
             <span>Log ({logs.length})</span>
           </button>
 
+          {/* Grid Visibility Toggle Button (Snap remains active without visual clutter) */}
+          <button
+            onClick={() => setShowGridLines(!showGridLines)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black border transition-all cursor-pointer ${
+              showGridLines 
+                ? 'bg-cyan-950/90 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
+                : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300'
+            }`}
+            title={showGridLines 
+              ? "Sembunyikan Garis/Titik Grid (Snap magnet tetap aktif untuk gambar bebas tanpa visual clutter)" 
+              : "Tampilkan Garis/Titik Grid (Snap magnet aktif)"}
+          >
+            <Grid className={`w-3.5 h-3.5 ${showGridLines ? 'text-cyan-400' : 'text-slate-500'}`} />
+            <span>Grid: {showGridLines ? 'ON' : 'OFF'}</span>
+          </button>
+
           {/* Reset Button */}
           <button
             onClick={resetStationToNormal}
@@ -1396,7 +1432,11 @@ export const MiniDccView: React.FC<MiniDccViewProps> = ({ currentUser }) => {
 
           {mainViewMode === 'CUSTOM_DRAW_SLD' ? (
             <div className="w-full">
-              <CustomSldCanvasEditor stations={stations} />
+              <CustomSldCanvasEditor 
+                stations={stations} 
+                showGridLines={showGridLines}
+                onToggleGridLines={() => setShowGridLines(!showGridLines)}
+              />
             </div>
           ) : mainViewMode === 'FULL_SYSTEM_SLD' ? (
             /* 🌐 WALLBOARD MONITORING 1 LAYAR SEPARUH SISTEM */

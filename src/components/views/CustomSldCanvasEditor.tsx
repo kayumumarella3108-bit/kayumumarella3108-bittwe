@@ -42,7 +42,15 @@ import {
   Unlink,
   Files,
   ClipboardPaste,
-  LocateFixed
+  LocateFixed,
+  Scaling,
+  Expand,
+  Shrink,
+  ArrowLeftRight,
+  ArrowUpDown,
+  MoveHorizontal,
+  MoveVertical,
+  Minus
 } from 'lucide-react';
 
 export type CustomElementType = 
@@ -70,6 +78,7 @@ export interface CustomBusbar {
   length: number;
   orientation: 'HORIZONTAL' | 'VERTICAL';
   color: string;
+  thickness?: number; // 6, 8, 12, 16
 }
 
 export interface CustomLine {
@@ -84,6 +93,7 @@ export interface CustomLine {
   style: 'SOLID' | 'DASHED';
   status: 'ENERGIZED' | 'DEENERGIZED' | 'TRIP';
   flowSpeed?: number;
+  strokeWidth?: number; // 2, 3, 4, 6, 8
   fromId?: string;
   toId?: string;
 }
@@ -109,10 +119,20 @@ export interface CustomDevice {
   status: 'CLOSED' | 'OPEN' | 'TRIP';
   voltageKv?: number;
   ratingA?: number;
+  scale?: number; // 0.5 to 3.0 (default 1.0)
   stationId?: string;
   busbar1Id?: string;
   busbar2Id?: string;
 }
+
+export type DragAction = 
+  | { mode: 'MOVE_ELEMENT'; type: 'BUSBAR' | 'LINE' | 'NODE' | 'DEVICE'; id: string }
+  | { mode: 'RESIZE_LINE_START'; id: string }
+  | { mode: 'RESIZE_LINE_END'; id: string }
+  | { mode: 'RESIZE_BUSBAR_START'; id: string }
+  | { mode: 'RESIZE_BUSBAR_END'; id: string }
+  | { mode: 'RESIZE_NODE'; id: string; handle: 'NW' | 'NE' | 'SW' | 'SE' | 'N' | 'S' | 'E' | 'W'; startX: number; startY: number; startW: number; startH: number }
+  | { mode: 'RESIZE_DEVICE'; id: string; centerX: number; centerY: number; startDist: number; startScale: number };
 
 export interface CustomSldSystemLayout {
   id: string;
@@ -231,12 +251,16 @@ interface CustomSldCanvasEditorProps {
   stations?: StationData[];
   onSaveLayout?: (layout: CustomSldSystemLayout) => void;
   onClose?: () => void;
+  showGridLines?: boolean;
+  onToggleGridLines?: () => void;
 }
 
 export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
   stations = [],
   onSaveLayout,
-  onClose
+  onClose,
+  showGridLines,
+  onToggleGridLines
 }) => {
   // 1. Layout State
   const [layout, setLayout] = useState<CustomSldSystemLayout>(() => {
@@ -308,7 +332,15 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
   // Snap-to-Grid Controls
   const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
   const [gridSize, setGridSize] = useState<number>(20); // 10, 20, 40
-  const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [localShowGrid, setLocalShowGrid] = useState<boolean>(true);
+  const showGrid = showGridLines !== undefined ? showGridLines : localShowGrid;
+  const toggleGrid = () => {
+    if (onToggleGridLines) {
+      onToggleGridLines();
+    } else {
+      setLocalShowGrid(!localShowGrid);
+    }
+  };
   const [orthoMode, setOrthoMode] = useState<boolean>(false); // 90-degree lines
 
   // Dynamic Alignment Guide Lines
@@ -324,8 +356,8 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
   const [editingDeviceModal, setEditingDeviceModal] = useState<CustomDevice | null>(null);
   const [editingNodeModal, setEditingNodeModal] = useState<CustomNode | null>(null);
 
-  // Dragging Canvas Elements State
-  const [isDragging, setIsDragging] = useState<boolean>(false);
+  // Dragging and Resizing Canvas Elements State
+  const [dragAction, setDragAction] = useState<DragAction | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const canvasRef = useRef<SVGSVGElement | null>(null);
@@ -818,20 +850,23 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
     }
   };
 
-  // Mouse move handler with dynamic alignment snapping
+  // Mouse move handler with dynamic alignment snapping and full resizing/stretching
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    const coords = getCanvasCoords(e.clientX, e.clientY);
+    let coords = getCanvasCoords(e.clientX, e.clientY);
+    if (snapToGrid) {
+      coords = {
+        x: Math.round(coords.x / gridSize) * gridSize,
+        y: Math.round(coords.y / gridSize) * gridSize
+      };
+    }
     setMousePos(coords);
 
-    if (isDragging && selectedElement) {
-      const { type, id } = selectedElement;
+    if (!dragAction) return;
+
+    if (dragAction.mode === 'MOVE_ELEMENT') {
+      const { type, id } = dragAction;
       let targetX = coords.x - dragOffset.x;
       let targetY = coords.y - dragOffset.y;
-
-      if (snapToGrid) {
-        targetX = Math.round(targetX / gridSize) * gridSize;
-        targetY = Math.round(targetY / gridSize) * gridSize;
-      }
 
       // Check alignment guides
       const guides = findAlignmentGuides(targetX, targetY, id);
@@ -854,16 +889,240 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
           ...prev,
           devices: prev.devices.map(d => d.id === id ? { ...d, x: targetX, y: targetY } : d)
         }));
+      } else if (type === 'LINE') {
+        setLayout(prev => {
+          const currentLine = prev.lines.find(l => l.id === id);
+          if (!currentLine) return prev;
+          const deltaX = (coords.x - dragOffset.x) - currentLine.x1;
+          const deltaY = (coords.y - dragOffset.y) - currentLine.y1;
+          return {
+            ...prev,
+            lines: prev.lines.map(l => l.id === id ? {
+              ...l,
+              x1: l.x1 + deltaX,
+              y1: l.y1 + deltaY,
+              x2: l.x2 + deltaX,
+              y2: l.y2 + deltaY
+            } : l)
+          };
+        });
       }
+    } else if (dragAction.mode === 'RESIZE_LINE_START') {
+      const line = layout.lines.find(l => l.id === dragAction.id);
+      if (!line) return;
+      let targetX = coords.x;
+      let targetY = coords.y;
+      if (orthoMode) {
+        const dx = Math.abs(targetX - line.x2);
+        const dy = Math.abs(targetY - line.y2);
+        if (dx > dy) targetY = line.y2;
+        else targetX = line.x2;
+      }
+      setLayout(prev => ({
+        ...prev,
+        lines: prev.lines.map(l => l.id === dragAction.id ? { ...l, x1: targetX, y1: targetY } : l)
+      }));
+    } else if (dragAction.mode === 'RESIZE_LINE_END') {
+      const line = layout.lines.find(l => l.id === dragAction.id);
+      if (!line) return;
+      let targetX = coords.x;
+      let targetY = coords.y;
+      if (orthoMode) {
+        const dx = Math.abs(targetX - line.x1);
+        const dy = Math.abs(targetY - line.y1);
+        if (dx > dy) targetY = line.y1;
+        else targetX = line.x1;
+      }
+      setLayout(prev => ({
+        ...prev,
+        lines: prev.lines.map(l => l.id === dragAction.id ? { ...l, x2: targetX, y2: targetY } : l)
+      }));
+    } else if (dragAction.mode === 'RESIZE_BUSBAR_END') {
+      const bus = layout.busbars.find(b => b.id === dragAction.id);
+      if (!bus) return;
+      if (bus.orientation === 'HORIZONTAL') {
+        const newLen = Math.max(gridSize * 2, coords.x - bus.x);
+        setLayout(prev => ({
+          ...prev,
+          busbars: prev.busbars.map(b => b.id === dragAction.id ? { ...b, length: newLen } : b)
+        }));
+      } else {
+        const newLen = Math.max(gridSize * 2, coords.y - bus.y);
+        setLayout(prev => ({
+          ...prev,
+          busbars: prev.busbars.map(b => b.id === dragAction.id ? { ...b, length: newLen } : b)
+        }));
+      }
+    } else if (dragAction.mode === 'RESIZE_BUSBAR_START') {
+      const bus = layout.busbars.find(b => b.id === dragAction.id);
+      if (!bus) return;
+      if (bus.orientation === 'HORIZONTAL') {
+        const currentEndX = bus.x + bus.length;
+        const newX = Math.min(coords.x, currentEndX - gridSize * 2);
+        const newLen = currentEndX - newX;
+        setLayout(prev => ({
+          ...prev,
+          busbars: prev.busbars.map(b => b.id === dragAction.id ? { ...b, x: newX, length: newLen } : b)
+        }));
+      } else {
+        const currentEndY = bus.y + bus.length;
+        const newY = Math.min(coords.y, currentEndY - gridSize * 2);
+        const newLen = currentEndY - newY;
+        setLayout(prev => ({
+          ...prev,
+          busbars: prev.busbars.map(b => b.id === dragAction.id ? { ...b, y: newY, length: newLen } : b)
+        }));
+      }
+    } else if (dragAction.mode === 'RESIZE_NODE') {
+      const { id, handle, startX, startY, startW, startH } = dragAction;
+      const MIN_W = 100;
+      const MIN_H = 60;
+      setLayout(prev => ({
+        ...prev,
+        nodes: prev.nodes.map(n => {
+          if (n.id !== id) return n;
+          let newX = n.x;
+          let newY = n.y;
+          let newW = n.width;
+          let newH = n.height;
+
+          if (handle === 'SE') {
+            newW = Math.max(MIN_W, coords.x - startX);
+            newH = Math.max(MIN_H, coords.y - startY);
+          } else if (handle === 'E') {
+            newW = Math.max(MIN_W, coords.x - startX);
+          } else if (handle === 'S') {
+            newH = Math.max(MIN_H, coords.y - startY);
+          } else if (handle === 'NW') {
+            const right = startX + startW;
+            const bottom = startY + startH;
+            newX = Math.min(coords.x, right - MIN_W);
+            newY = Math.min(coords.y, bottom - MIN_H);
+            newW = right - newX;
+            newH = bottom - newY;
+          } else if (handle === 'NE') {
+            const bottom = startY + startH;
+            newY = Math.min(coords.y, bottom - MIN_H);
+            newW = Math.max(MIN_W, coords.x - startX);
+            newH = bottom - newY;
+          } else if (handle === 'SW') {
+            const right = startX + startW;
+            newX = Math.min(coords.x, right - MIN_W);
+            newW = right - newX;
+            newH = Math.max(MIN_H, coords.y - startY);
+          } else if (handle === 'W') {
+            const right = startX + startW;
+            newX = Math.min(coords.x, right - MIN_W);
+            newW = right - newX;
+          } else if (handle === 'N') {
+            const bottom = startY + startH;
+            newY = Math.min(coords.y, bottom - MIN_H);
+            newH = bottom - newY;
+          }
+
+          return { ...n, x: newX, y: newY, width: newW, height: newH };
+        })
+      }));
+    } else if (dragAction.mode === 'RESIZE_DEVICE') {
+      const { id, centerX, centerY, startDist, startScale } = dragAction;
+      const currentDist = Math.hypot(coords.x - centerX, coords.y - centerY);
+      const ratio = currentDist / (startDist || 1);
+      let newScale = Math.round((startScale * ratio) * 20) / 20;
+      newScale = Math.max(0.4, Math.min(3.0, newScale));
+      setLayout(prev => ({
+        ...prev,
+        devices: prev.devices.map(d => d.id === id ? { ...d, scale: newScale } : d)
+      }));
     }
   };
 
   const handleMouseUp = () => {
-    if (isDragging) {
-      setIsDragging(false);
+    if (dragAction) {
+      setDragAction(null);
       setGuideLines({});
       saveCurrentLayout(layout);
     }
+  };
+
+  // Helper function for interactive line resizing
+  const handleModifyLineLength = (lineId: string, delta: number) => {
+    const line = layout.lines.find(l => l.id === lineId);
+    if (!line) return;
+    const dx = line.x2 - line.x1;
+    const dy = line.y2 - line.y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const newLen = Math.max(20, len + delta);
+    const ratio = newLen / len;
+    const newX2 = Math.round((line.x1 + dx * ratio) / gridSize) * gridSize;
+    const newY2 = Math.round((line.y1 + dy * ratio) / gridSize) * gridSize;
+    saveCurrentLayout({
+      ...layout,
+      lines: layout.lines.map(l => l.id === lineId ? { ...l, x2: newX2, y2: newY2 } : l)
+    });
+    showToast(`📏 Panjang Garis: ${Math.round(newLen)}px`);
+  };
+
+  const handleModifyLineThickness = (lineId: string, strokeWidth: number) => {
+    saveCurrentLayout({
+      ...layout,
+      lines: layout.lines.map(l => l.id === lineId ? { ...l, strokeWidth } : l)
+    });
+    showToast(`🎨 Ketebalan Garis diubah: ${strokeWidth}px`);
+  };
+
+  const handleModifyBusbarLength = (busId: string, delta: number) => {
+    const bus = layout.busbars.find(b => b.id === busId);
+    if (!bus) return;
+    const newLen = Math.max(gridSize * 2, bus.length + delta);
+    saveCurrentLayout({
+      ...layout,
+      busbars: layout.busbars.map(b => b.id === busId ? { ...b, length: newLen } : b)
+    });
+    showToast(`📏 Panjang Rel Busbar: ${newLen}px`);
+  };
+
+  const handleModifyBusbarThickness = (busId: string, thickness: number) => {
+    saveCurrentLayout({
+      ...layout,
+      busbars: layout.busbars.map(b => b.id === busId ? { ...b, thickness } : b)
+    });
+    showToast(`🎨 Ketebalan Rel diubah: ${thickness}px`);
+  };
+
+  const handleModifyBusbarOrientation = (busId: string) => {
+    const bus = layout.busbars.find(b => b.id === busId);
+    if (!bus) return;
+    const nextOrient = bus.orientation === 'HORIZONTAL' ? 'VERTICAL' : 'HORIZONTAL';
+    saveCurrentLayout({
+      ...layout,
+      busbars: layout.busbars.map(b => b.id === busId ? { ...b, orientation: nextOrient } : b)
+    });
+    showToast(`🔄 Orientasi Rel diubah: ${nextOrient}`);
+  };
+
+  const handleModifyDeviceScale = (devId: string, scaleOrDelta: number, isDelta = false) => {
+    const dev = layout.devices.find(d => d.id === devId);
+    if (!dev) return;
+    const currentScale = dev.scale || 1.0;
+    const targetScale = isDelta ? currentScale + scaleOrDelta : scaleOrDelta;
+    const clamped = Math.max(0.4, Math.min(3.0, Math.round(targetScale * 20) / 20));
+    saveCurrentLayout({
+      ...layout,
+      devices: layout.devices.map(d => d.id === devId ? { ...d, scale: clamped } : d)
+    });
+    showToast(`🔍 Ukuran Komponen: ${Math.round(clamped * 100)}%`);
+  };
+
+  const handleModifyNodeDimensions = (nodeId: string, deltaW: number, deltaH: number) => {
+    const node = layout.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    const newW = Math.max(100, node.width + deltaW);
+    const newH = Math.max(60, node.height + deltaH);
+    saveCurrentLayout({
+      ...layout,
+      nodes: layout.nodes.map(n => n.id === nodeId ? { ...n, width: newW, height: newH } : n)
+    });
+    showToast(`📐 Ukuran Gardu: ${newW}x${newH}px`);
   };
 
   // Delete selected element
@@ -1198,12 +1457,20 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
               <option value={40}>40px (Renggang)</option>
             </select>
 
+            {/* Toggle Grid Lines Visibility */}
             <button
-              onClick={() => setShowGrid(!showGrid)}
-              className={`p-1.5 rounded text-xs font-bold ${showGrid ? 'text-cyan-300' : 'text-slate-500'}`}
-              title="Tampilkan Kisi Grid"
+              onClick={toggleGrid}
+              className={`px-2 py-1 rounded-lg text-xs font-black flex items-center gap-1 transition-all cursor-pointer ${
+                showGrid 
+                  ? 'bg-cyan-950 border border-cyan-400 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.3)]' 
+                  : 'bg-slate-900 border border-slate-700 text-slate-500 hover:text-slate-300'
+              }`}
+              title={showGrid 
+                ? "Sembunyikan Garis Grid (Snap magnet tetap aktif untuk gambar bebas tanpa visual clutter)" 
+                : "Tampilkan Garis Grid (Snap magnet aktif)"}
             >
-              <Grid className="w-4 h-4" />
+              <Grid className="w-3.5 h-3.5" />
+              <span>Grid: {showGrid ? 'ON' : 'OFF'}</span>
             </button>
 
             {/* Auto Snap All Elements */}
@@ -1463,14 +1730,176 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
 
           {/* Floating Selected Element Action Bar HUD */}
           {selectedElement && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#060e20]/95 border border-cyan-500/60 rounded-2xl px-3 py-2 shadow-[0_0_30px_rgba(6,182,212,0.4)] backdrop-blur-xl flex items-center gap-2">
-              <span className="text-[10px] font-mono font-black text-cyan-300 px-2 py-1 bg-cyan-950/80 rounded-lg border border-cyan-800">
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#060e20]/95 border border-cyan-500/60 rounded-2xl px-3 py-2 shadow-[0_0_30px_rgba(6,182,212,0.4)] backdrop-blur-xl flex flex-wrap items-center gap-2 max-w-[92vw]">
+              <span className="text-[10px] font-mono font-black text-cyan-300 px-2 py-1 bg-cyan-950/80 rounded-lg border border-cyan-800 shrink-0">
                 PILIHAN: {selectedElement.type}
               </span>
+
+              {/* DYNAMIC SIZING CONTROLS DEPENDING ON SELECTED ELEMENT TYPE */}
+              {selectedElement.type === 'LINE' && (() => {
+                const line = layout.lines.find(l => l.id === selectedElement.id);
+                if (!line) return null;
+                const len = Math.round(Math.hypot(line.x2 - line.x1, line.y2 - line.y1));
+                const currentStroke = line.strokeWidth || (line.type === 'SUTT_150KV' ? 4 : line.type === 'BUS_KOPEL' ? 4.5 : 3);
+                return (
+                  <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-700/80 rounded-xl px-2 py-1 shrink-0">
+                    <span className="text-[10px] font-bold text-slate-300 mr-1">Panjang: <b className="text-cyan-300">{len}px</b></span>
+                    <button
+                      onClick={() => handleModifyLineLength(line.id, -40)}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black text-[10px] cursor-pointer"
+                      title="Perpendek garis (-40px)"
+                    >
+                      - 40px
+                    </button>
+                    <button
+                      onClick={() => handleModifyLineLength(line.id, 40)}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black text-[10px] cursor-pointer"
+                      title="Perpanjang garis (+40px)"
+                    >
+                      + 40px
+                    </button>
+                    
+                    <div className="h-3.5 w-px bg-slate-700 mx-1" />
+                    
+                    <span className="text-[10px] font-bold text-slate-400">Tebal:</span>
+                    {[2, 3, 5, 8].map(th => (
+                      <button
+                        key={th}
+                        onClick={() => handleModifyLineThickness(line.id, th)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                          currentStroke === th ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                        }`}
+                      >
+                        {th}px
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {selectedElement.type === 'BUSBAR' && (() => {
+                const bus = layout.busbars.find(b => b.id === selectedElement.id);
+                if (!bus) return null;
+                const currentTh = bus.thickness || 8;
+                return (
+                  <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-700/80 rounded-xl px-2 py-1 shrink-0">
+                    <span className="text-[10px] font-bold text-slate-300 mr-1">Panjang Rel: <b className="text-amber-300">{bus.length}px</b></span>
+                    <button
+                      onClick={() => handleModifyBusbarLength(bus.id, -40)}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 font-black text-[10px] cursor-pointer"
+                      title="Perpendek rel busbar (-40px)"
+                    >
+                      - 40px
+                    </button>
+                    <button
+                      onClick={() => handleModifyBusbarLength(bus.id, 40)}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 font-black text-[10px] cursor-pointer"
+                      title="Perpanjang rel busbar (+40px)"
+                    >
+                      + 40px
+                    </button>
+                    <button
+                      onClick={() => handleModifyBusbarOrientation(bus.id)}
+                      className="px-2 py-0.5 rounded bg-amber-950/80 hover:bg-amber-900 border border-amber-600/40 text-amber-300 font-bold text-[10px] cursor-pointer ml-1"
+                      title="Ganti orientasi Horizontal/Vertikal"
+                    >
+                      {bus.orientation === 'HORIZONTAL' ? '↔ Horiz' : '↕ Vert'}
+                    </button>
+
+                    <div className="h-3.5 w-px bg-slate-700 mx-1" />
+                    <span className="text-[10px] font-bold text-slate-400">Tebal:</span>
+                    {[6, 8, 12, 16].map(th => (
+                      <button
+                        key={th}
+                        onClick={() => handleModifyBusbarThickness(bus.id, th)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                          currentTh === th ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                        }`}
+                      >
+                        {th}px
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {selectedElement.type === 'DEVICE' && (() => {
+                const dev = layout.devices.find(d => d.id === selectedElement.id);
+                if (!dev) return null;
+                const curScale = dev.scale || 1.0;
+                return (
+                  <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-700/80 rounded-xl px-2 py-1 shrink-0">
+                    <span className="text-[10px] font-bold text-slate-300 mr-1">Skala: <b className="text-cyan-300">{Math.round(curScale * 100)}%</b></span>
+                    <button
+                      onClick={() => handleModifyDeviceScale(dev.id, -0.1, true)}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black text-[10px] cursor-pointer"
+                      title="Perkecil ukuran (-10%)"
+                    >
+                      - 10%
+                    </button>
+                    <button
+                      onClick={() => handleModifyDeviceScale(dev.id, 0.1, true)}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-black text-[10px] cursor-pointer"
+                      title="Perbesar ukuran (+10%)"
+                    >
+                      + 10%
+                    </button>
+                    {[0.75, 1.0, 1.25, 1.5, 2.0].map(sc => (
+                      <button
+                        key={sc}
+                        onClick={() => handleModifyDeviceScale(dev.id, sc)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                          Math.abs(curScale - sc) < 0.05 ? 'bg-cyan-400 text-slate-950 font-black' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                        }`}
+                      >
+                        {Math.round(sc * 100)}%
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {selectedElement.type === 'NODE' && (() => {
+                const node = layout.nodes.find(n => n.id === selectedElement.id);
+                if (!node) return null;
+                return (
+                  <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-700/80 rounded-xl px-2 py-1 shrink-0">
+                    <span className="text-[10px] font-bold text-slate-300 mr-1">Dimensi: <b className="text-emerald-300">{node.width}x{node.height}</b></span>
+                    <button
+                      onClick={() => handleModifyNodeDimensions(node.id, -40, 0)}
+                      className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-[10px] cursor-pointer"
+                      title="Kurangi lebar"
+                    >
+                      ↔ -40
+                    </button>
+                    <button
+                      onClick={() => handleModifyNodeDimensions(node.id, 40, 0)}
+                      className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-[10px] cursor-pointer"
+                      title="Tambah lebar"
+                    >
+                      ↔ +40
+                    </button>
+                    <button
+                      onClick={() => handleModifyNodeDimensions(node.id, 0, -40)}
+                      className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-[10px] cursor-pointer"
+                      title="Kurangi tinggi"
+                    >
+                      ↕ -40
+                    </button>
+                    <button
+                      onClick={() => handleModifyNodeDimensions(node.id, 0, 40)}
+                      className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-[10px] cursor-pointer"
+                      title="Tambah tinggi"
+                    >
+                      ↕ +40
+                    </button>
+                  </div>
+                );
+              })()}
               
               <button
                 onClick={handleDuplicate}
-                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition-all"
+                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition-all shrink-0"
                 title="Duplikasi elemen (Ctrl+D)"
               >
                 <Files className="w-3.5 h-3.5" />
@@ -1479,7 +1908,7 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
 
               <button
                 onClick={handleCopy}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
                 title="Salin (Ctrl+C)"
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -1502,7 +1931,7 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                     if (item) setEditingNodeModal(item);
                   }
                 }}
-                className="px-3 py-1.5 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                className="px-3 py-1.5 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
                 title="Edit properti komponen"
               >
                 <Edit3 className="w-3.5 h-3.5" />
@@ -1511,7 +1940,7 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
 
               <button
                 onClick={handleDeleteSelected}
-                className="px-3 py-1.5 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                className="px-3 py-1.5 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0"
                 title="Hapus elemen (Delete)"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -1624,10 +2053,14 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   <g 
                     key={node.id} 
                     transform={`translate(${node.x}, ${node.y})`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedElement({ type: 'NODE', id: node.id });
+                    }}
                     onMouseDown={(e) => {
                       e.stopPropagation();
                       setSelectedElement({ type: 'NODE', id: node.id });
-                      setIsDragging(true);
+                      setDragAction({ mode: 'MOVE_ELEMENT', type: 'NODE', id: node.id });
                       const coords = getCanvasCoords(e.clientX, e.clientY);
                       setDragOffset({ x: coords.x - node.x, y: coords.y - node.y });
                     }}
@@ -1655,20 +2088,251 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                     <text x="12" y="20" fill="#ffffff" fontSize="11" fontWeight="900" fontFamily="sans-serif">
                       {node.name} ({node.code})
                     </text>
+
+                    {/* 8 RESIZE HANDLES AROUND NODE WHEN SELECTED */}
+                    {isSelected && (
+                      <g>
+                        {/* Dimension readout tag */}
+                        <rect
+                          x={node.width / 2 - 35}
+                          y={node.height + 6}
+                          width="70"
+                          height="16"
+                          rx="4"
+                          fill="#0f172a"
+                          stroke="#06b6d4"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={node.width / 2}
+                          y={node.height + 17}
+                          fill="#67e8f9"
+                          fontSize="9"
+                          fontWeight="bold"
+                          textAnchor="middle"
+                          className="select-none pointer-events-none"
+                        >
+                          {node.width} × {node.height}
+                        </text>
+
+                        {/* NW Handle */}
+                        <rect
+                          x="-6"
+                          y="-6"
+                          width="12"
+                          height="12"
+                          rx="2"
+                          fill="#06b6d4"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="cursor-nwse-resize"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDragAction({
+                              mode: 'RESIZE_NODE',
+                              id: node.id,
+                              handle: 'nw',
+                              startX: node.x,
+                              startY: node.y,
+                              startW: node.width,
+                              startH: node.height
+                            });
+                          }}
+                        />
+                        {/* N Handle */}
+                        <rect
+                          x={node.width / 2 - 8}
+                          y="-5"
+                          width="16"
+                          height="10"
+                          rx="2"
+                          fill="#06b6d4"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="cursor-ns-resize"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDragAction({
+                              mode: 'RESIZE_NODE',
+                              id: node.id,
+                              handle: 'n',
+                              startX: node.x,
+                              startY: node.y,
+                              startW: node.width,
+                              startH: node.height
+                            });
+                          }}
+                        />
+                        {/* NE Handle */}
+                        <rect
+                          x={node.width - 6}
+                          y="-6"
+                          width="12"
+                          height="12"
+                          rx="2"
+                          fill="#06b6d4"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="cursor-nesw-resize"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDragAction({
+                              mode: 'RESIZE_NODE',
+                              id: node.id,
+                              handle: 'ne',
+                              startX: node.x,
+                              startY: node.y,
+                              startW: node.width,
+                              startH: node.height
+                            });
+                          }}
+                        />
+                        {/* E Handle */}
+                        <rect
+                          x={node.width - 5}
+                          y={node.height / 2 - 8}
+                          width="10"
+                          height="16"
+                          rx="2"
+                          fill="#06b6d4"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="cursor-ew-resize"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDragAction({
+                              mode: 'RESIZE_NODE',
+                              id: node.id,
+                              handle: 'e',
+                              startX: node.x,
+                              startY: node.y,
+                              startW: node.width,
+                              startH: node.height
+                            });
+                          }}
+                        />
+                        {/* SE Handle */}
+                        <rect
+                          x={node.width - 6}
+                          y={node.height - 6}
+                          width="12"
+                          height="12"
+                          rx="2"
+                          fill="#06b6d4"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="cursor-nwse-resize"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDragAction({
+                              mode: 'RESIZE_NODE',
+                              id: node.id,
+                              handle: 'se',
+                              startX: node.x,
+                              startY: node.y,
+                              startW: node.width,
+                              startH: node.height
+                            });
+                          }}
+                        />
+                        {/* S Handle */}
+                        <rect
+                          x={node.width / 2 - 8}
+                          y={node.height - 5}
+                          width="16"
+                          height="10"
+                          rx="2"
+                          fill="#06b6d4"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="cursor-ns-resize"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDragAction({
+                              mode: 'RESIZE_NODE',
+                              id: node.id,
+                              handle: 's',
+                              startX: node.x,
+                              startY: node.y,
+                              startW: node.width,
+                              startH: node.height
+                            });
+                          }}
+                        />
+                        {/* SW Handle */}
+                        <rect
+                          x="-6"
+                          y={node.height - 6}
+                          width="12"
+                          height="12"
+                          rx="2"
+                          fill="#06b6d4"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="cursor-nesw-resize"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDragAction({
+                              mode: 'RESIZE_NODE',
+                              id: node.id,
+                              handle: 'sw',
+                              startX: node.x,
+                              startY: node.y,
+                              startW: node.width,
+                              startH: node.height
+                            });
+                          }}
+                        />
+                        {/* W Handle */}
+                        <rect
+                          x="-5"
+                          y={node.height / 2 - 8}
+                          width="10"
+                          height="16"
+                          rx="2"
+                          fill="#06b6d4"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="cursor-ew-resize"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDragAction({
+                              mode: 'RESIZE_NODE',
+                              id: node.id,
+                              handle: 'w',
+                              startX: node.x,
+                              startY: node.y,
+                              startW: node.width,
+                              startH: node.height
+                            });
+                          }}
+                        />
+                      </g>
+                    )}
                   </g>
                 );
               })}
 
-            {/* RENDER LINES / CONNECTORS */}
+            {/* RENDER LINES / CONNECTORS (TARIK PANJANG / PENDEK KABEL/JARINGAN) */}
             {layout.lines.map(line => {
               const isSelected = selectedElement?.type === 'LINE' && selectedElement.id === line.id;
               const isKopelLine = line.type === 'BUS_KOPEL';
+              const lineThickness = line.strokeWidth || (line.type === 'SUTT_150KV' ? 4 : isKopelLine ? 4.5 : 3);
+              const lineLen = Math.round(Math.hypot(line.x2 - line.x1, line.y2 - line.y1));
+
               return (
                 <g 
                   key={line.id}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedElement({ type: 'LINE', id: line.id });
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    setSelectedElement({ type: 'LINE', id: line.id });
+                    setDragAction({ mode: 'MOVE_ELEMENT', type: 'LINE', id: line.id });
+                    const coords = getCanvasCoords(e.clientX, e.clientY);
+                    setDragOffset({ x: coords.x - line.x1, y: coords.y - line.y1 });
                   }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
@@ -1683,7 +2347,7 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                     x2={line.x2}
                     y2={line.y2}
                     stroke={isSelected ? '#38bdf8' : isKopelLine ? '#06b6d4' : line.color}
-                    strokeWidth={isSelected ? '10' : isKopelLine ? '7' : '5'}
+                    strokeWidth={isSelected ? '12' : isKopelLine ? '7' : '5'}
                     strokeOpacity={isSelected ? '0.7' : isKopelLine ? '0.5' : '0.2'}
                   />
 
@@ -1694,14 +2358,14 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                     x2={line.x2}
                     y2={line.y2}
                     stroke={line.color}
-                    strokeWidth={line.type === 'SUTT_150KV' ? '4' : isKopelLine ? '4.5' : '3'}
+                    strokeWidth={lineThickness}
                     strokeDasharray={line.style === 'DASHED' ? '6,6' : undefined}
                     filter={line.type === 'SUTT_150KV' ? 'url(#glow-rose)' : isKopelLine ? 'url(#glow-cyan)' : undefined}
                   />
 
                   {/* Terminal Node End Dots */}
-                  <circle cx={line.x1} cy={line.y1} r="3" fill={line.color} />
-                  <circle cx={line.x2} cy={line.y2} r="3" fill={line.color} />
+                  <circle cx={line.x1} cy={line.y1} r={isSelected ? 4 : 3} fill={line.color} />
+                  <circle cx={line.x2} cy={line.y2} r={isSelected ? 4 : 3} fill={line.color} />
 
                   <text
                     x={(line.x1 + line.x2) / 2}
@@ -1714,6 +2378,64 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   >
                     {line.name}
                   </text>
+
+                  {/* INTERACTIVE RESIZE ENDPOINTS (TARIK PANJANG / PENDEK) */}
+                  {isSelected && (
+                    <g>
+                      {/* Length readout badge */}
+                      <rect
+                        x={(line.x1 + line.x2) / 2 - 25}
+                        y={(line.y1 + line.y2) / 2 + 6}
+                        width="50"
+                        height="15"
+                        rx="4"
+                        fill="#020617"
+                        stroke="#38bdf8"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x={(line.x1 + line.x2) / 2}
+                        y={(line.y1 + line.y2) / 2 + 17}
+                        fill="#38bdf8"
+                        fontSize="9"
+                        fontWeight="900"
+                        textAnchor="middle"
+                        className="select-none pointer-events-none"
+                      >
+                        {lineLen}px
+                      </text>
+
+                      {/* Start handle (Pangkal Garis) */}
+                      <circle
+                        cx={line.x1}
+                        cy={line.y1}
+                        r="8"
+                        fill="#06b6d4"
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                        className="cursor-crosshair animate-pulse"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setDragAction({ mode: 'RESIZE_LINE_START', id: line.id });
+                        }}
+                      />
+
+                      {/* End handle (Ujung Garis) */}
+                      <circle
+                        cx={line.x2}
+                        cy={line.y2}
+                        r="8"
+                        fill="#f43f5e"
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                        className="cursor-crosshair animate-pulse"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setDragAction({ mode: 'RESIZE_LINE_END', id: line.id });
+                        }}
+                      />
+                    </g>
+                  )}
                 </g>
               );
             })}
@@ -1732,21 +2454,26 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
               />
             )}
 
-            {/* 🔴 RENDER BUSBARS AS DISTINCTIVE ELECTRICAL CONDUCTOR BARS (BATANG REL GARIS) */}
+            {/* 🔴 RENDER BUSBARS AS DISTINCTIVE ELECTRICAL CONDUCTOR BARS (BATANG REL GARIS DENGAN RESIZE HANDLES) */}
             {layout.busbars.map(bus => {
               const isSelected = selectedElement?.type === 'BUSBAR' && selectedElement.id === bus.id;
               const isHoriz = bus.orientation === 'HORIZONTAL';
               const x2 = isHoriz ? bus.x + bus.length : bus.x;
               const y2 = isHoriz ? bus.y : bus.y + bus.length;
               const is150kV = bus.voltageKv >= 150;
+              const busThickness = bus.thickness || 8;
 
               return (
                 <g
                   key={bus.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedElement({ type: 'BUSBAR', id: bus.id });
+                  }}
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     setSelectedElement({ type: 'BUSBAR', id: bus.id });
-                    setIsDragging(true);
+                    setDragAction({ mode: 'MOVE_ELEMENT', type: 'BUSBAR', id: bus.id });
                     const coords = getCanvasCoords(e.clientX, e.clientY);
                     setDragOffset({ x: coords.x - bus.x, y: coords.y - bus.y });
                   }}
@@ -1763,7 +2490,7 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                     x2={x2}
                     y2={y2}
                     stroke={bus.color}
-                    strokeWidth={isSelected ? '16' : '12'}
+                    strokeWidth={isSelected ? `${busThickness + 8}` : `${busThickness + 4}`}
                     strokeLinecap="round"
                     strokeOpacity="0.4"
                     filter={is150kV ? 'url(#glow-rose)' : 'url(#glow-cyan)'}
@@ -1776,7 +2503,7 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                     x2={x2}
                     y2={y2}
                     stroke={bus.color}
-                    strokeWidth="8"
+                    strokeWidth={busThickness}
                     strokeLinecap="round"
                   />
 
@@ -1838,6 +2565,68 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   >
                     ⚡ {bus.name} ({bus.voltageKv}kV)
                   </text>
+
+                  {/* 7. RESIZE HANDLES FOR BUSBAR (TARIK PANJANG / PENDEK REL) */}
+                  {isSelected && (
+                    <g>
+                      {/* Length info badge */}
+                      <rect
+                        x={(bus.x + x2) / 2 - 25}
+                        y={(bus.y + y2) / 2 + 10}
+                        width="50"
+                        height="16"
+                        rx="4"
+                        fill="#020617"
+                        stroke="#f59e0b"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x={(bus.x + x2) / 2}
+                        y={(bus.y + y2) / 2 + 22}
+                        fill="#fbbf24"
+                        fontSize="9"
+                        fontWeight="900"
+                        textAnchor="middle"
+                        className="select-none pointer-events-none"
+                      >
+                        {bus.length}px
+                      </text>
+
+                      {/* Start handle */}
+                      <rect
+                        x={bus.x - 7}
+                        y={bus.y - 7}
+                        width="14"
+                        height="14"
+                        rx="3"
+                        fill="#f59e0b"
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                        className={isHoriz ? 'cursor-ew-resize' : 'cursor-ns-resize'}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setDragAction({ mode: 'RESIZE_BUSBAR_START', id: bus.id });
+                        }}
+                      />
+
+                      {/* End handle */}
+                      <rect
+                        x={x2 - 7}
+                        y={y2 - 7}
+                        width="14"
+                        height="14"
+                        rx="3"
+                        fill="#10b981"
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                        className={isHoriz ? 'cursor-ew-resize' : 'cursor-ns-resize'}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setDragAction({ mode: 'RESIZE_BUSBAR_END', id: bus.id });
+                        }}
+                      />
+                    </g>
+                  )}
                 </g>
               );
             })}
@@ -1846,18 +2635,12 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
             {layout.devices.map(dev => {
               const isSelected = selectedElement?.type === 'DEVICE' && selectedElement.id === dev.id;
               const isClosed = dev.status === 'CLOSED';
+              const devScale = dev.scale || 1.0;
 
               return (
                 <g
                   key={dev.id}
-                  transform={`translate(${dev.x}, ${dev.y})`}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    setSelectedElement({ type: 'DEVICE', id: dev.id });
-                    setIsDragging(true);
-                    const coords = getCanvasCoords(e.clientX, e.clientY);
-                    setDragOffset({ x: coords.x - dev.x, y: coords.y - dev.y });
-                  }}
+                  transform={`translate(${dev.x}, ${dev.y}) scale(${devScale})`}
                   onClick={(e) => {
                     e.stopPropagation();
                     // Toggle status
@@ -1867,12 +2650,58 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                       devices: layout.devices.map(d => d.id === dev.id ? { ...d, status: nextStatus } : d)
                     });
                   }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    setSelectedElement({ type: 'DEVICE', id: dev.id });
+                    setDragAction({ mode: 'MOVE_ELEMENT', type: 'DEVICE', id: dev.id });
+                    const coords = getCanvasCoords(e.clientX, e.clientY);
+                    setDragOffset({ x: coords.x - dev.x, y: coords.y - dev.y });
+                  }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
                     setEditingDeviceModal(dev);
                   }}
                   className="cursor-pointer group"
                 >
+                  {/* Selection highlight box & scale handle */}
+                  {isSelected && (
+                    <g>
+                      <rect
+                        x="-24"
+                        y="-24"
+                        width="48"
+                        height="48"
+                        rx="8"
+                        fill="none"
+                        stroke="#38bdf8"
+                        strokeWidth="1.5"
+                        strokeDasharray="3,3"
+                      />
+                      {/* Scale Resize Corner Handle */}
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="6"
+                        fill="#38bdf8"
+                        stroke="#ffffff"
+                        strokeWidth="1.5"
+                        className="cursor-nwse-resize"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          const coords = getCanvasCoords(e.clientX, e.clientY);
+                          setDragAction({
+                            mode: 'RESIZE_DEVICE',
+                            id: dev.id,
+                            centerX: dev.x,
+                            centerY: dev.y,
+                            startDist: Math.hypot(coords.x - dev.x, coords.y - dev.y) || 1,
+                            startScale: devScale
+                          });
+                        }}
+                      />
+                    </g>
+                  )}
+
                   {/* 1. TRAFO SYMBOL (DUAL INTERLOCKING WINDING COILS) */}
                   {dev.type === 'TRAFO' && (
                     <g>
@@ -2041,7 +2870,7 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-slate-400 font-bold block mb-1">Tegangan (kV):</label>
                   <select
@@ -2056,11 +2885,23 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-slate-400 font-bold block mb-1">Panjang Batang Rel (px):</label>
+                  <label className="text-slate-400 font-bold block mb-1">Panjang (px):</label>
                   <input
                     type="number"
                     value={editingBusbarModal.length}
                     onChange={(e) => setEditingBusbarModal({ ...editingBusbarModal, length: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 font-bold block mb-1">Ketebalan Rel (px):</label>
+                  <input
+                    type="number"
+                    min="4"
+                    max="32"
+                    value={editingBusbarModal.thickness || 8}
+                    onChange={(e) => setEditingBusbarModal({ ...editingBusbarModal, thickness: Number(e.target.value) })}
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
                   />
                 </div>
@@ -2155,13 +2996,26 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-slate-400 font-bold block mb-1">Kode Tag:</label>
                   <input
                     type="text"
                     value={editingDeviceModal.code}
                     onChange={(e) => setEditingDeviceModal({ ...editingDeviceModal, code: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 font-bold block mb-1">Skala / Ukuran:</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.4"
+                    max="4.0"
+                    value={editingDeviceModal.scale || 1.0}
+                    onChange={(e) => setEditingDeviceModal({ ...editingDeviceModal, scale: Number(e.target.value) })}
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
                   />
                 </div>
@@ -2225,22 +3079,22 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-400 font-bold block mb-1">Tipe Garis:</label>
-                  <select
-                    value={editingLineModal.type}
-                    onChange={(e) => setEditingLineModal({ ...editingLineModal, type: e.target.value as any })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
-                  >
-                    <option value="SUTT_150KV">SUTT 150kV High Voltage</option>
-                    <option value="SKTT_20KV">SKTT 20kV Cable</option>
-                    <option value="TIE_LINE_20KV">20kV Tie-Line Interkoneksi</option>
-                    <option value="FEEDER_LINE">Penyulang Outgoing</option>
-                    <option value="BUS_KOPEL">Garis Kopel Busbar Link</option>
-                  </select>
-                </div>
+              <div>
+                <label className="text-slate-400 font-bold block mb-1">Tipe Garis:</label>
+                <select
+                  value={editingLineModal.type}
+                  onChange={(e) => setEditingLineModal({ ...editingLineModal, type: e.target.value as any })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
+                >
+                  <option value="SUTT_150KV">SUTT 150kV High Voltage</option>
+                  <option value="SKTT_20KV">SKTT 20kV Cable</option>
+                  <option value="TIE_LINE_20KV">20kV Tie-Line Interkoneksi</option>
+                  <option value="FEEDER_LINE">Penyulang Outgoing</option>
+                  <option value="BUS_KOPEL">Garis Kopel Busbar Link</option>
+                </select>
+              </div>
 
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-400 font-bold block mb-1">Gaya Line:</label>
                   <select
@@ -2252,6 +3106,28 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                     <option value="DASHED">Dashed Line (Putus-putus)</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="text-slate-400 font-bold block mb-1">Ketebalan Garis (px):</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={editingLineModal.strokeWidth || 3}
+                    onChange={(e) => setEditingLineModal({ ...editingLineModal, strokeWidth: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-bold block mb-1">Warna Garis:</label>
+                <input
+                  type="color"
+                  value={editingLineModal.color}
+                  onChange={(e) => setEditingLineModal({ ...editingLineModal, color: e.target.value })}
+                  className="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg p-1 cursor-pointer"
+                />
               </div>
             </div>
 
