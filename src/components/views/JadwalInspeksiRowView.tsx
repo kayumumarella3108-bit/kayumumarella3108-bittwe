@@ -124,6 +124,16 @@ export const JadwalInspeksiRowView: React.FC = () => {
   const [isCellModalOpen, setIsCellModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{rowId: string, date: string} | null>(null);
 
+  // Helper to calculate row completion progress
+  const getRowProgress = (item: JadwalInspeksiRow) => {
+    const scheduleValues = Object.values(item.schedule || {});
+    const total = scheduleValues.length;
+    if (total === 0) return { total: 0, realized: 0, percentage: 0 };
+    const realized = scheduleValues.filter((s: any) => Boolean(s?.isRealized)).length;
+    const percentage = Math.round((realized / total) * 100);
+    return { total, realized, percentage };
+  };
+
   // Filtering logic
   const filteredData = useMemo(() => {
     return data.filter(item => {
@@ -134,6 +144,19 @@ export const JadwalInspeksiRowView: React.FC = () => {
       return matchUnit && matchSearch && matchYear;
     });
   }, [data, searchTerm, filterUnit, selectedYear]);
+
+  // Overall statistics for footer
+  const overallStats = useMemo(() => {
+    let totalSchedules = 0;
+    let totalRealized = 0;
+    filteredData.forEach(item => {
+      const values = Object.values(item.schedule || {});
+      totalSchedules += values.length;
+      totalRealized += values.filter((s: any) => Boolean(s?.isRealized)).length;
+    });
+    const percentage = totalSchedules > 0 ? Math.round((totalRealized / totalSchedules) * 100) : 0;
+    return { totalSchedules, totalRealized, percentage };
+  }, [filteredData]);
 
   const handleSaveData = (newData: Partial<JadwalInspeksiRow>) => {
     if (editItem) {
@@ -366,7 +389,8 @@ export const JadwalInspeksiRowView: React.FC = () => {
                 <th rowSpan={2} className="px-4 py-3 text-xs font-black uppercase tracking-wider border-r border-teal-800/50 min-w-[100px]">KODE ULP</th>
                 <th rowSpan={2} className="px-4 py-3 text-xs font-black uppercase tracking-wider border-r border-teal-800/50 min-w-[150px]">PENYULANG</th>
                 <th rowSpan={2} className="px-3 py-3 text-xs font-black uppercase tracking-wider border-r border-teal-800/50">KMS</th>
-                <th rowSpan={2} className="px-4 py-3 text-xs font-black uppercase tracking-wider border-r border-teal-800/50 min-w-[100px]">AKSI</th>
+                <th rowSpan={2} className="px-4 py-3 text-xs font-black uppercase tracking-wider border-r border-teal-800/50 min-w-[140px]">PROGRESS</th>
+                <th rowSpan={2} className="px-4 py-3 text-xs font-black uppercase tracking-wider border-r border-teal-800/50 min-w-[90px]">AKSI</th>
                 
                 {/* Single Month View for clarity on all screens, but with enough space for days */}
                 <th colSpan={MONTHS[viewMonth].days} className={`px-4 py-2 text-[10px] font-black border-b border-teal-800/50 ${MONTHS[viewMonth].color} text-teal-100 uppercase tracking-[0.2em]`}>
@@ -426,6 +450,46 @@ export const JadwalInspeksiRowView: React.FC = () => {
                   <td className="px-3 py-3 text-[11px] font-bold text-teal-300 border-r border-teal-800/30 text-center">
                     {item.kms}
                   </td>
+                  {/* Progress Bar Column */}
+                  <td className="px-3 py-2.5 border-r border-teal-800/30">
+                    {(() => {
+                      const { total, realized, percentage } = getRowProgress(item);
+                      let barGradient = 'from-slate-600 to-slate-500';
+                      let badgeColor = 'text-slate-400 bg-slate-800/60 border-slate-700/50';
+
+                      if (total > 0) {
+                        if (percentage === 100) {
+                          barGradient = 'from-emerald-500 via-teal-400 to-emerald-300';
+                          badgeColor = 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40 shadow-sm shadow-emerald-950';
+                        } else if (percentage >= 50) {
+                          barGradient = 'from-amber-500 to-amber-300';
+                          badgeColor = 'text-amber-300 bg-amber-500/20 border-amber-500/40';
+                        } else if (percentage > 0) {
+                          barGradient = 'from-sky-500 to-teal-400';
+                          badgeColor = 'text-sky-300 bg-sky-500/20 border-sky-500/40';
+                        }
+                      }
+
+                      return (
+                        <div className="flex flex-col gap-1.5 min-w-[120px]">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className={`px-1.5 py-0.5 rounded-md border text-[9px] font-mono font-black tracking-tight ${badgeColor}`}>
+                              {percentage}%
+                            </span>
+                            <span className="text-[10px] text-teal-300/80 font-bold">
+                              {realized}/{total} <span className="opacity-60 font-normal">Selesai</span>
+                            </span>
+                          </div>
+                          <div className="w-full h-2 bg-teal-950/90 rounded-full overflow-hidden border border-teal-800/40 p-[1px] shadow-inner">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 bg-gradient-to-r ${barGradient}`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </td>
                   <td className="px-4 py-3 text-[11px] font-bold border-r border-teal-800/30 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button 
@@ -480,15 +544,15 @@ export const JadwalInspeksiRowView: React.FC = () => {
       </div>
 
       {/* Footer Info */}
-      <div className="flex items-center justify-between text-[10px] font-bold text-teal-600 uppercase tracking-widest px-2">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between text-[10px] font-bold text-teal-600 uppercase tracking-widest px-2 gap-2">
+        <div className="flex items-center gap-5">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Selesai: 45%</span>
+            <span>Total Realisasi: <strong className="text-emerald-300 font-mono">{overallStats.percentage}%</strong> ({overallStats.totalRealized}/{overallStats.totalSchedules} Jadwal)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>On-Progress: 12%</span>
+            <span>Belum Realisasi: <strong className="text-amber-300 font-mono">{overallStats.totalSchedules - overallStats.totalRealized}</strong> Jadwal</span>
           </div>
         </div>
         <div>Total Penyulang: {filteredData.length} Data</div>

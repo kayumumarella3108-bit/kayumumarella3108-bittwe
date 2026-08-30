@@ -15,9 +15,13 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
-  Check
+  Check,
+  Calendar,
+  Building2
 } from 'lucide-react';
 import { PohonGisItem, Penyulang } from '../../types';
+import { INITIAL_PENYULANG } from '../../data/mockData';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 import {
   readGisFileWithValidation,
   convertToPohonItems,
@@ -31,6 +35,23 @@ interface ImportPohonModalProps {
   onImport: (items: PohonGisItem[]) => void;
   penyulangList?: Penyulang[];
 }
+
+export const MONTH_OPTIONS = [
+  { value: 1, label: 'Januari' },
+  { value: 2, label: 'Februari' },
+  { value: 3, label: 'Maret' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'Mei' },
+  { value: 6, label: 'Juni' },
+  { value: 7, label: 'Juli' },
+  { value: 8, label: 'Agustus' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'Oktober' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'Desember' }
+];
+
+export const YEAR_OPTIONS = [2023, 2024, 2025, 2026, 2027, 2028];
 
 export const ICON_OPTIONS: { id: NonNullable<PohonGisItem['iconType']>; label: string; emoji: string; desc: string; category: string }[] = [
   { id: 'pohon', label: 'Pohon Rimbun', emoji: '🌳', desc: 'Trembesi, Mahoni, Sengon', category: 'Pohon & ROW' },
@@ -53,24 +74,61 @@ export const ImportPohonModal: React.FC<ImportPohonModalProps> = ({
   onImport,
   penyulangList = []
 }) => {
+  const now = new Date();
+  const activeFeeders = penyulangList && penyulangList.length > 0 ? penyulangList : INITIAL_PENYULANG;
+
   const [dragActive, setDragActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState('');
   const [validationReport, setValidationReport] = useState<GisValidationReport | null>(null);
   const [rawFeatures, setRawFeatures] = useState<RawGisFeature[]>([]);
   const [parsedItems, setParsedItems] = useState<PohonGisItem[]>([]);
-  const [defaultPenyulang, setDefaultPenyulang] = useState(penyulangList[0]?.nama || 'PASSO');
+  const [defaultPenyulang, setDefaultPenyulang] = useState<string>(
+    activeFeeders[0]?.namaPenyulang || (activeFeeders[0] as any)?.nama || 'PASSO'
+  );
+  const [selectedUlp, setSelectedUlp] = useState<string>('ULP Baguala');
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedIcon, setSelectedIcon] = useState<NonNullable<PohonGisItem['iconType']>>('pohon');
   const [showErrorRows, setShowErrorRows] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
-  const validPenyulangNames = (penyulangList || []).map((p) => p?.nama).filter((n): n is string => Boolean(n));
+  const validPenyulangNames = activeFeeders
+    .map((p) => p?.namaPenyulang || (p as any)?.nama)
+    .filter((n): n is string => Boolean(n));
 
-  const processFeatures = (features: RawGisFeature[], feeder: string, icon: NonNullable<PohonGisItem['iconType']>) => {
+  const processFeatures = (
+    features: RawGisFeature[],
+    feeder: string,
+    icon: NonNullable<PohonGisItem['iconType']>,
+    month: number,
+    year: number,
+    ulpName: string
+  ) => {
     const converted = convertToPohonItems(features, feeder, icon, validPenyulangNames);
-    setParsedItems(converted);
+    const monthPad = String(month).padStart(2, '0');
+    const targetDateStr = `${year}-${monthPad}-01`;
+    const targetUnitObj = DAFTAR_UNIT_PLN.find(u => u.namaUnit === ulpName);
+
+    const updated = converted.map((item) => {
+      const finalPenyulang = feeder || item.penyulang;
+      const matchedP = activeFeeders.find(
+        (p) =>
+          ((p.namaPenyulang || (p as any).nama) || '').toUpperCase() === (finalPenyulang || '').toUpperCase()
+      );
+
+      return {
+        ...item,
+        penyulang: finalPenyulang,
+        unit: ulpName || matchedP?.unit || item.unit || 'ULP Baguala',
+        kodeUnit: targetUnitObj?.kodeUnit || matchedP?.kodeUnit || item.kodeUnit || '41130',
+        tglTemuan: targetDateStr
+      };
+    });
+
+    setParsedItems(updated);
   };
 
   const handleFiles = async (files: FileList | null) => {
@@ -90,7 +148,7 @@ export const ImportPohonModal: React.FC<ImportPohonModalProps> = ({
         setParsedItems([]);
       } else {
         setRawFeatures(report.features);
-        processFeatures(report.features, defaultPenyulang, selectedIcon);
+        processFeatures(report.features, defaultPenyulang, selectedIcon, selectedMonth, selectedYear, selectedUlp);
       }
     } catch (err: any) {
       console.error('Import validation error:', err);
@@ -128,17 +186,38 @@ export const ImportPohonModal: React.FC<ImportPohonModalProps> = ({
     }
   };
 
+  const handleUlpChange = (ulp: string) => {
+    setSelectedUlp(ulp);
+    if (rawFeatures.length > 0) {
+      processFeatures(rawFeatures, defaultPenyulang, selectedIcon, selectedMonth, selectedYear, ulp);
+    }
+  };
+
   const handlePenyulangChange = (feeder: string) => {
     setDefaultPenyulang(feeder);
     if (rawFeatures.length > 0) {
-      processFeatures(rawFeatures, feeder, selectedIcon);
+      processFeatures(rawFeatures, feeder, selectedIcon, selectedMonth, selectedYear, selectedUlp);
+    }
+  };
+
+  const handleMonthChange = (month: number) => {
+    setSelectedMonth(month);
+    if (rawFeatures.length > 0) {
+      processFeatures(rawFeatures, defaultPenyulang, selectedIcon, month, selectedYear, selectedUlp);
+    }
+  };
+
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+    if (rawFeatures.length > 0) {
+      processFeatures(rawFeatures, defaultPenyulang, selectedIcon, selectedMonth, year, selectedUlp);
     }
   };
 
   const handleIconChange = (icon: NonNullable<PohonGisItem['iconType']>) => {
     setSelectedIcon(icon);
     if (rawFeatures.length > 0) {
-      processFeatures(rawFeatures, defaultPenyulang, icon);
+      processFeatures(rawFeatures, defaultPenyulang, icon, selectedMonth, selectedYear, selectedUlp);
     }
   };
 
@@ -272,8 +351,30 @@ LATERI,TG-19,Pohon Mangga,1,Jl. Raya Lateri,-3.635400,128.237800,Perlu Tebas,Dek
             </div>
           </div>
 
-          {/* Setup Penyulang & Pilihan Icon */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+          {/* Setup ULP Target, Penyulang, Periode Bulan/Tahun, & Pilihan Icon */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+            {/* Pilihan ULP Target */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>🏢 Pilihan ULP Target:</span>
+              </label>
+              <select
+                value={selectedUlp}
+                onChange={(e) => handleUlpChange(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+              >
+                {DAFTAR_UNIT_PLN.map((u) => (
+                  <option key={u.kodeUnit || u.namaUnit} value={u.namaUnit}>
+                    {u.namaUnit} ({u.kodeUnit})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400">
+                Disinkronkan dengan Master Data Unit
+              </p>
+            </div>
+
             {/* Penyulang Source */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
@@ -284,37 +385,67 @@ LATERI,TG-19,Pohon Mangga,1,Jl. Raya Lateri,-3.635400,128.237800,Perlu Tebas,Dek
                 onChange={(e) => handlePenyulangChange(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
               >
-                {penyulangList.length > 0 ? (
-                  penyulangList.map((p) => (
-                    <option key={p.id} value={p.nama}>
-                      {p.nama} {p.panjangJtm ? `(${p.panjangJtm} kms)` : ''}
+                {activeFeeders.map((p, idx) => {
+                  const name = p.namaPenyulang || (p as any).nama || `Penyulang ${idx + 1}`;
+                  const lengthStr = (p.panjangJaringanKms || (p as any).panjangJtm) ? `(${p.panjangJaringanKms || (p as any).panjangJtm} kms)` : '';
+                  const giStr = p.namaGi ? `[${p.namaGi}]` : '';
+                  return (
+                    <option key={p.id || `${name}-${idx}`} value={name}>
+                      {name} {giStr} {lengthStr}
                     </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="PASSO">PASSO</option>
-                    <option value="WAIHERU">WAIHERU</option>
-                    <option value="HUTUMURI">HUTUMURI</option>
-                    <option value="LATERI">LATERI</option>
-                    <option value="TIAL">TIAL</option>
-                    <option value="SULI">SULI</option>
-                  </>
-                )}
+                  );
+                })}
               </select>
               <p className="text-[11px] text-slate-400">
-                Penyulang akan dicocokkan otomatis jika terdapat kolom 'penyulang' di file.
+                Disinkronkan dengan Master Data Penyulang
+              </p>
+            </div>
+
+            {/* Periode Inspeksi (Bulan & Tahun) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                <span>📅 Periode Bulan & Tahun:</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => handleMonthChange(Number(e.target.value))}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+                >
+                  {MONTH_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedYear}
+                  onChange={(e) => handleYearChange(Number(e.target.value))}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+                >
+                  {YEAR_OPTIONS.map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Tanggal temuan: <span className="text-emerald-300 font-mono font-bold">{selectedYear}-{String(selectedMonth).padStart(2, '0')}-01</span>
               </p>
             </div>
 
             {/* Pilihan Icon */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                <span>🎨 Pilihan Icon Titik Pohon:</span>
+                <span>🎨 Icon Titik Pohon:</span>
                 <span className="text-emerald-400 text-[11px] font-bold">
                   {ICON_OPTIONS.find(i => i.id === selectedIcon)?.emoji} {ICON_OPTIONS.find(i => i.id === selectedIcon)?.label}
                 </span>
               </label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
                 {ICON_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
@@ -539,7 +670,7 @@ LATERI,TG-19,Pohon Mangga,1,Jl. Raya Lateri,-3.635400,128.237800,Perlu Tebas,Dek
                       </span>
                     </h3>
                     <p className="text-[11px] text-slate-300">
-                      Penyulang: <strong className="text-white">{defaultPenyulang}</strong> • Icon: <strong className="text-white">{ICON_OPTIONS.find(i => i.id === selectedIcon)?.emoji} {ICON_OPTIONS.find(i => i.id === selectedIcon)?.label}</strong>
+                      ULP: <strong className="text-emerald-300">{selectedUlp}</strong> • Penyulang: <strong className="text-white">{defaultPenyulang}</strong> • Periode: <strong className="text-emerald-300">{MONTH_OPTIONS.find(m => m.value === selectedMonth)?.label} {selectedYear}</strong> • Icon: <strong className="text-white">{ICON_OPTIONS.find(i => i.id === selectedIcon)?.emoji} {ICON_OPTIONS.find(i => i.id === selectedIcon)?.label}</strong>
                     </p>
                   </div>
                 </div>
@@ -572,8 +703,6 @@ LATERI,TG-19,Pohon Mangga,1,Jl. Raya Lateri,-3.635400,128.237800,Perlu Tebas,Dek
                     <tr>
                       <th className="py-2 px-3">No</th>
                       <th className="py-2 px-3">Icon</th>
-                      <th className="py-2 px-3">Penyulang</th>
-                      <th className="py-2 px-3">No Tiang / Span</th>
                       <th className="py-2 px-3">Jenis Pohon</th>
                       <th className="py-2 px-3">Lokasi</th>
                       <th className="py-2 px-3">Koordinat (Lat, Lng)</th>
@@ -586,8 +715,6 @@ LATERI,TG-19,Pohon Mangga,1,Jl. Raya Lateri,-3.635400,128.237800,Perlu Tebas,Dek
                         <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
                           <td className="py-1.5 px-3 font-mono text-slate-500 text-[11px]">{idx + 1}</td>
                           <td className="py-1.5 px-3 text-base">{iconOpt.emoji}</td>
-                          <td className="py-1.5 px-3 font-bold text-emerald-400">{item.penyulang}</td>
-                          <td className="py-1.5 px-3 font-mono text-white">{item.noTiangOrSpan}</td>
                           <td className="py-1.5 px-3 font-medium">{item.jenisPohon}</td>
                           <td className="py-1.5 px-3 text-slate-400 max-w-[150px] truncate" title={item.lokasi}>
                             {item.lokasi || '-'}

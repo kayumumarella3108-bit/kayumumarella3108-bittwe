@@ -79,6 +79,51 @@ export const TREE_ICON_MAP: Record<string, TreeIconOption> = {
   warning: { emoji: '⚠️', label: 'Bahaya Kritis / Anomali', desc: 'Rawan gangguan kawat / pohon roboh', category: 'konstruksi', categoryLabel: 'Konstruksi & Gardu' }
 };
 
+export const MONTH_OPTIONS = [
+  { value: 'Semua', label: 'Semua Bulan' },
+  { value: '1', label: 'Januari' },
+  { value: '2', label: 'Februari' },
+  { value: '3', label: 'Maret' },
+  { value: '4', label: 'April' },
+  { value: '5', label: 'Mei' },
+  { value: '6', label: 'Juni' },
+  { value: '7', label: 'Juli' },
+  { value: '8', label: 'Agustus' },
+  { value: '9', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' }
+];
+
+export const YEAR_OPTIONS = [2023, 2024, 2025, 2026, 2027, 2028];
+
+export const getItemMonthAndYear = (item: PohonGisItem) => {
+  const dateStr = item.tglTemuan || item.tglEksekusi || '';
+  if (!dateStr) return { month: null, year: null };
+
+  const str = dateStr.trim();
+
+  // Pattern 1: YYYY-MM-DD or YYYY/MM/DD
+  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(str)) {
+    const parts = str.split(/[-/]/);
+    return {
+      year: parseInt(parts[0], 10),
+      month: parseInt(parts[1], 10)
+    };
+  }
+
+  // Pattern 2: D/M/YYYY or DD/MM/YYYY
+  if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(str)) {
+    const parts = str.split(/[-/]/);
+    return {
+      month: parseInt(parts[1], 10),
+      year: parseInt(parts[2], 10)
+    };
+  }
+
+  return { month: null, year: null };
+};
+
 interface PetaPohonViewProps {
   currentUser?: User | null;
   pohonList: PohonGisItem[];
@@ -107,6 +152,8 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
   const [selectedPenyulang, setSelectedPenyulang] = useState<string>('Semua');
   const [selectedBahaya, setSelectedBahaya] = useState<string>('Semua');
   const [selectedStatus, setSelectedStatus] = useState<string>('Semua');
+  const [selectedBulan, setSelectedBulan] = useState<string>('Semua');
+  const [selectedTahun, setSelectedTahun] = useState<string>('Semua');
 
   const ulpOptions = useMemo(() => {
     const list = getDynamicUnitList(masterUnits);
@@ -339,7 +386,25 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
       matchUlp = hasMatchingItem || group.name.toLowerCase().includes(targetUlpClean);
     }
 
-    return matchSearch && matchPenyulang && matchUlp;
+    let matchBulan = true;
+    if (selectedBulan !== 'Semua') {
+      const targetMonth = parseInt(selectedBulan, 10);
+      matchBulan = group.items.some((item) => {
+        const { month } = getItemMonthAndYear(item);
+        return month === targetMonth;
+      });
+    }
+
+    let matchTahun = true;
+    if (selectedTahun !== 'Semua') {
+      const targetYear = parseInt(selectedTahun, 10);
+      matchTahun = group.items.some((item) => {
+        const { year } = getItemMonthAndYear(item);
+        return year === targetYear;
+      });
+    }
+
+    return matchSearch && matchPenyulang && matchUlp && matchBulan && matchTahun;
   });
 
   // Toggle Feeder visibility on map
@@ -597,15 +662,25 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
     const matchBahaya = selectedBahaya === 'Semua' || item.tingkatBahaya === selectedBahaya;
     const matchStatus = selectedStatus === 'Semua' || item.statusEksekusi === selectedStatus;
 
-    return matchSearch && matchUlp && matchPenyulang && matchBahaya && matchStatus;
+    const { month: itemMonth, year: itemYear } = getItemMonthAndYear(item);
+
+    const matchBulan =
+      selectedBulan === 'Semua' ||
+      (itemMonth !== null && itemMonth === parseInt(selectedBulan, 10));
+
+    const matchTahun =
+      selectedTahun === 'Semua' ||
+      (itemYear !== null && itemYear === parseInt(selectedTahun, 10));
+
+    return matchSearch && matchUlp && matchPenyulang && matchBahaya && matchStatus && matchBulan && matchTahun;
   });
 
   // Calculate statistics
   const totalTitik = pohonList.length;
-  const totalKritis = pohonList.filter(
+  const totalKritis = filteredList.filter(
     (p) => p.tingkatBahaya === 'Kritis (Bahaya Padam)' || p.jarakKeJaringan === '< 1 meter' || p.jarakKeJaringan === 'Menempel Kawat'
   ).length;
-  const totalSelesai = pohonList.filter((p) => p.statusEksekusi === 'Selesai Pangkas').length;
+  const totalSelesai = filteredList.filter((p) => p.statusEksekusi === 'Selesai Pangkas').length;
 
   // Focus map to all markers
   const handleFocusMap = () => {
@@ -669,9 +744,6 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
                 ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
                 : `<span style="font-size: 15px; line-height: 1; user-select: none;">${iconInfo.emoji}</span>`
               }
-            </div>
-            <div style="position: absolute; bottom: -8px; background: #0f172a; color: ${isDone ? '#34d399' : '#f8fafc'}; font-size: 8.5px; font-weight: 800; padding: 1px 5px; border-radius: 4px; border: 1px solid ${markerColor}; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5);">
-              ${isDone ? `✓ ${item.noTiangOrSpan || item.penyulang}` : (item.noTiangOrSpan || item.penyulang)}
             </div>
           </div>
         `,
@@ -1123,7 +1195,63 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
               <option value="Perlu Padam">Perlu Padam</option>
               <option value="Selesai Pangkas">Selesai Pangkas</option>
             </select>
+
+            {/* Filter Bulan */}
+            <select
+              value={selectedBulan}
+              onChange={(e) => setSelectedBulan(e.target.value)}
+              className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-[11px] font-bold focus:outline-none focus:border-emerald-500"
+            >
+              <option value="Semua">📅 Semua Bulan</option>
+              {MONTH_OPTIONS.filter((m) => m.value !== 'Semua').map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Filter Tahun */}
+            <select
+              value={selectedTahun}
+              onChange={(e) => setSelectedTahun(e.target.value)}
+              className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-[11px] font-bold focus:outline-none focus:border-emerald-500"
+            >
+              <option value="Semua">🗓️ Semua Tahun</option>
+              {YEAR_OPTIONS.map((yr) => (
+                <option key={yr} value={String(yr)}>
+                  {yr}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {/* Reset Active Filter Bar */}
+          {(selectedUlp !== 'Semua' ||
+            selectedPenyulang !== 'Semua' ||
+            selectedStatus !== 'Semua' ||
+            selectedBulan !== 'Semua' ||
+            selectedTahun !== 'Semua' ||
+            searchQuery) && (
+            <div className="flex items-center justify-between px-1.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[10.5px]">
+              <span className="font-semibold text-emerald-800 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Filter aktif ({filteredList.length} titik cocok)
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedUlp('Semua');
+                  setSelectedPenyulang('Semua');
+                  setSelectedStatus('Semua');
+                  setSelectedBulan('Semua');
+                  setSelectedTahun('Semua');
+                  setSearchQuery('');
+                }}
+                className="font-bold text-rose-600 hover:text-rose-800 underline transition-colors"
+              >
+                Reset Filter
+              </button>
+            </div>
+          )}
 
           {/* Section Subheader with Subtitle & Import KML/KMZ button */}
           <div className="flex items-center justify-between pt-1 border-t border-slate-100">
@@ -1242,7 +1370,7 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
                           )}
                         </h3>
                         <p className="text-[10.5px] text-slate-500 font-medium truncate mt-0.5">
-                          {group.count} Titik Tiang • {group.lastDate}
+                          {group.count} Titik Pohon • {group.lastDate}
                         </p>
                       </div>
                     </div>
@@ -2294,7 +2422,7 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
                   <h3 className="text-sm font-black text-white flex items-center gap-2">
                     Edit Dataset Feeder: <span className="text-emerald-400">{editingFeeder.originalName}</span>
                   </h3>
-                  <p className="text-[11px] text-slate-400">{editingFeeder.itemCount} Titik Tiang Terhubung</p>
+                  <p className="text-[11px] text-slate-400">{editingFeeder.itemCount} Titik Pohon Terhubung</p>
                 </div>
               </div>
               <button
@@ -2431,7 +2559,7 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Total Titik Terhapus:</span>
-                <span className="font-bold text-rose-400">{deletingFeeder.itemCount} Titik Tiang</span>
+                <span className="font-bold text-rose-400">{deletingFeeder.itemCount} Titik Pohon</span>
               </div>
             </div>
 
