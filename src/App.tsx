@@ -394,12 +394,24 @@ export default function App() {
     setCashFlowList(prev => prev.filter(i => i.id !== id));
   };
 
-  const handleUpdatePenyulang = (updated: Penyulang) => {
+  const handleUpdatePenyulang = async (updated: Penyulang) => {
     setPenyulangList(prev => prev.map(p => p.id === updated.id ? updated : p));
+    try {
+      await setDoc(doc(db, 'penyulang_list', updated.id), sanitizeForFirestore(updated));
+      logActivity(`Update data pelanggan penyulang: ${updated.namaPenyulang}`, 'Master Pelanggan');
+    } catch (err) {
+      console.error('Error updating penyulang in Firestore:', err);
+    }
   };
 
-  const handleUpdateSection = (updated: SectionJaringan) => {
+  const handleUpdateSection = async (updated: SectionJaringan) => {
     setSectionList(prev => prev.map(s => s.id === updated.id ? updated : s));
+    try {
+      await setDoc(doc(db, 'section_list', updated.id), sanitizeForFirestore(updated));
+      logActivity(`Update data pelanggan section: ${updated.namaSection}`, 'Master Pelanggan');
+    } catch (err) {
+      console.error('Error updating section in Firestore:', err);
+    }
   };
 
   // User Management State (RBAC)
@@ -3387,6 +3399,7 @@ export default function App() {
               sectionList={sectionList}
               onUpdatePenyulang={handleUpdatePenyulang}
               onUpdateSection={handleUpdateSection}
+              onAddPenyulang={handleAddPenyulang}
             />
           )}
 
