@@ -47,6 +47,7 @@ import { SurveyPbPdMapTab } from './SurveyPbPdMapTab';
 import { generateLivePaperPdf, exportElementToA4Pdf } from '../../utils/exportLivePaperPdf';
 import { DigitalSignaturePad } from '../common/DigitalSignaturePad';
 import { TableSkeletonLoader } from '../common/TableSkeletonLoader';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 
 interface SurveyPbPdViewProps {
   currentUser?: User | null;
@@ -72,6 +73,7 @@ export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
   const [activeTab, setActiveTab] = useState<'daftar' | 'peta' | 'analisis' | 'berita_acara'>('daftar');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPenyulang, setFilterPenyulang] = useState('ALL');
+  const [filterUnit, setFilterUnit] = useState('ALL');
   const [filterJenis, setFilterJenis] = useState<'ALL' | 'PB' | 'PD'>('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterFasa, setFilterFasa] = useState('ALL');
@@ -347,6 +349,7 @@ export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
         item.petugasSurvey.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchPenyulang = filterPenyulang === 'ALL' || item.penyulang === filterPenyulang;
+      const matchUnit = filterUnit === 'ALL' || item.unit === filterUnit;
       const matchJenis =
         filterJenis === 'ALL' ||
         (filterJenis === 'PB' && item.jenisTransaksi.includes('PB')) ||
@@ -359,25 +362,25 @@ export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
         (filterFasa === 'T' && item.fasaYangDiambil.includes('T') && !item.fasaYangDiambil.includes('R-S-T')) ||
         (filterFasa === '3F' && (item.fasaYangDiambil.includes('3 Fasa') || item.fasaYangDiambil.includes('RST') || item.fasaYangDiambil.includes('R-S-T')));
 
-      return matchSearch && matchPenyulang && matchJenis && matchStatus && matchFasa;
+      return matchSearch && matchPenyulang && matchUnit && matchJenis && matchStatus && matchFasa;
     });
-  }, [surveyList, searchQuery, filterPenyulang, filterJenis, filterStatus, filterFasa]);
+  }, [surveyList, searchQuery, filterPenyulang, filterUnit, filterJenis, filterStatus, filterFasa]);
 
   // Summary Metrics
   const metrics = useMemo(() => {
-    const total = surveyList.length;
-    const pbCount = surveyList.filter(s => s.jenisTransaksi.includes('PB')).length;
-    const pdCount = surveyList.filter(s => s.jenisTransaksi.includes('PD')).length;
-    const layakCount = surveyList.filter(s => s.statusKelayakan === 'Layak Sambung').length;
-    const sisipTiangCount = surveyList.filter(s => s.statusKelayakan === 'Perlu Sisip Tiang' || s.statusKelayakan === 'Perlu Perluasan JTR').length;
-    const dropKritisCount = surveyList.filter(s => {
+    const total = filteredList.length;
+    const pbCount = filteredList.filter(s => s.jenisTransaksi.includes('PB')).length;
+    const pdCount = filteredList.filter(s => s.jenisTransaksi.includes('PD')).length;
+    const layakCount = filteredList.filter(s => s.statusKelayakan === 'Layak Sambung').length;
+    const sisipTiangCount = filteredList.filter(s => s.statusKelayakan === 'Perlu Sisip Tiang' || s.statusKelayakan === 'Perlu Perluasan JTR').length;
+    const dropKritisCount = filteredList.filter(s => {
       const dropPct = ((s.tegPangkal - s.tegTetangga) / (s.tegPangkal || 220)) * 100;
       return dropPct >= 10 || s.statusKelayakan === 'Drop Tegangan (Tidak Layak)';
     }).length;
-    const selesaiSambungCount = surveyList.filter(s => s.statusKelayakan === 'Selesai Penyambungan').length;
+    const selesaiSambungCount = filteredList.filter(s => s.statusKelayakan === 'Selesai Penyambungan').length;
 
     return { total, pbCount, pdCount, layakCount, sisipTiangCount, dropKritisCount, selesaiSambungCount };
-  }, [surveyList]);
+  }, [filteredList]);
 
   // Export CSV (Semua data yang terfilter)
   const handleExportCsv = () => {
@@ -751,9 +754,6 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 drop-shadow-xs">
                 Survey Pasang Baru &amp; Perubahan Daya (PB/PD)
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
-                  PLN ULP Baguala
-                </span>
               </h1>
               <p className="text-xs sm:text-sm text-teal-100/90 max-w-2xl">
                 Pencatatan survei kelayakan teknis jaringan TR, tegangan pangkal/tetangga, beban fasa, dan titik sambung pelanggan.
@@ -888,48 +888,51 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+      <div className="flex items-center justify-between border-b border-white/5 pb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setActiveTab('daftar')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer border flex items-center gap-2 ${
               activeTab === 'daftar'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                ? 'bg-amber-500 text-teal-950 border-amber-400 shadow-lg shadow-amber-500/20'
+                : 'bg-[#023330] text-teal-300 border-teal-500/30 hover:bg-[#024440] hover:text-white'
             }`}
           >
-            📋 Data Hasil Survey ({filteredList.length})
+            <span>📋</span>
+            Data Hasil Survey ({filteredList.length})
           </button>
           <button
             onClick={() => setActiveTab('peta')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer border flex items-center gap-2 ${
               activeTab === 'peta'
-                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                ? 'bg-amber-500 text-teal-950 border-amber-400 shadow-lg shadow-amber-500/20'
+                : 'bg-[#023330] text-teal-300 border-teal-500/30 hover:bg-[#024440] hover:text-white'
             }`}
           >
-            <Map className="w-3.5 h-3.5 text-sky-400" />
+            <Map className={`w-3.5 h-3.5 ${activeTab === 'peta' ? 'text-teal-900' : 'text-sky-400'}`} />
             <span>🗺️ Peta GIS Sebaran Survey ({filteredList.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('analisis')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer border flex items-center gap-2 ${
               activeTab === 'analisis'
-                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                ? 'bg-amber-500 text-teal-950 border-amber-400 shadow-lg shadow-amber-500/20'
+                : 'bg-[#023330] text-teal-300 border-teal-500/30 hover:bg-[#024440] hover:text-white'
             }`}
           >
-            📊 Analisis Beban & Drop Tegangan
+            <span>📊</span>
+            Analisis Beban & Drop Tegangan
           </button>
           <button
             onClick={() => setActiveTab('berita_acara')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer border flex items-center gap-2 ${
               activeTab === 'berita_acara'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                ? 'bg-amber-500 text-teal-950 border-amber-400 shadow-lg shadow-amber-500/20'
+                : 'bg-[#023330] text-teal-300 border-teal-500/30 hover:bg-[#024440] hover:text-white'
             }`}
           >
-            📄 Cetak Berita Acara (BA)
+            <span>📄</span>
+            Cetak Berita Acara (BA)
           </button>
         </div>
       </div>
@@ -950,25 +953,33 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
         <div className="space-y-4">
           {/* Filter Bar */}
           <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-md space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
               {/* Search Bar */}
               <div className="relative lg:col-span-2">
                 <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Cari nama pemohon, no agenda, no gardu, titik sambung..."
+                  placeholder="Cari nama pemohon, no agenda..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/70"
                 />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
+              </div>
+
+              {/* Filter ULP */}
+              <div>
+                <select
+                  value={filterUnit}
+                  onChange={e => setFilterUnit(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="ALL">Semua ULP</option>
+                  {DAFTAR_UNIT_PLN.map(u => (
+                    <option key={u.kodeUnit} value={u.namaUnit}>
+                      {u.namaUnit}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Filter Penyulang */}
@@ -1392,134 +1403,199 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
         </div>
       )}
 
-      {/* Tab Content: ANALISIS BEBAN & TEGANGAN */}
+      {/* Tab Content: ANALISIS BEBAN & DROP TEGANGAN */}
       {activeTab === 'analisis' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Analisis Distribusi Fasa */}
-            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-amber-400" />
-                  Keseimbangan Beban Fasa Survey
-                </h3>
-                <span className="text-[10px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-mono">
-                  Total {surveyList.length}
-                </span>
+        <div className="animate-fade-in space-y-6">
+          {/* Main Hero Card for Analysis */}
+          <div className="p-6 bg-gradient-to-br from-[#023330] to-[#011a18] rounded-3xl border border-teal-500/30 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10">
+              <Activity className="w-32 h-32 text-teal-400" />
+            </div>
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+                  <div className="p-2 bg-amber-500/20 rounded-xl">
+                    <Activity className="w-6 h-6 text-amber-400" />
+                  </div>
+                  Data Hasil Survey & Analisis Beban BA
+                </h2>
+                <p className="text-sm text-teal-200/80 max-w-xl">
+                  Visualisasi distribusi beban fasa dan analisis kualitas tegangan (drop voltage) dari seluruh data survey lapangan yang telah terkumpul.
+                </p>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+                  <div className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-1">Total Titik Survey</div>
+                  <div className="text-3xl font-black text-white">{filteredList.length}</div>
+                </div>
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+                  <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Status Kelayakan</div>
+                  <div className="text-3xl font-black text-emerald-400">{((metrics.layakCount / (metrics.total || 1)) * 100).toFixed(0)}%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Keseimbangan Beban Fasa Survey */}
+            <div className="bg-[#022e2a]/80 backdrop-blur-xl border-2 border-teal-500/20 p-6 rounded-3xl shadow-2xl space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-black text-white flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center border border-rose-500/30">
+                    <Activity className="w-4 h-4 text-rose-400" />
+                  </div>
+                  Keseimbangan Beban Fasa
+                </h3>
+              </div>
+              
+              <div className="space-y-5">
                 {[
                   {
-                    fasa: 'Fasa R',
-                    count: surveyList.filter(s => s.fasaYangDiambil.includes('R') && !s.fasaYangDiambil.includes('3 Fasa')).length,
+                    fasa: 'Fasa R (Merah)',
+                    count: filteredList.filter(s => s.fasaYangDiambil.includes('R') && !s.fasaYangDiambil.includes('3 Fasa')).length,
                     color: 'bg-rose-500',
                     border: 'border-rose-500/40',
-                    text: 'text-rose-400'
+                    text: 'text-rose-400',
+                    glow: 'shadow-rose-500/20'
                   },
                   {
-                    fasa: 'Fasa S',
-                    count: surveyList.filter(s => s.fasaYangDiambil.includes('S') && !s.fasaYangDiambil.includes('3 Fasa')).length,
+                    fasa: 'Fasa S (Kuning)',
+                    count: filteredList.filter(s => s.fasaYangDiambil.includes('S') && !s.fasaYangDiambil.includes('3 Fasa')).length,
                     color: 'bg-amber-500',
                     border: 'border-amber-500/40',
-                    text: 'text-amber-400'
+                    text: 'text-amber-400',
+                    glow: 'shadow-amber-500/20'
                   },
                   {
-                    fasa: 'Fasa T',
-                    count: surveyList.filter(s => s.fasaYangDiambil.includes('T') && !s.fasaYangDiambil.includes('3 Fasa')).length,
+                    fasa: 'Fasa T (Biru)',
+                    count: filteredList.filter(s => s.fasaYangDiambil.includes('T') && !s.fasaYangDiambil.includes('3 Fasa')).length,
                     color: 'bg-sky-500',
                     border: 'border-sky-500/40',
-                    text: 'text-sky-400'
+                    text: 'text-sky-400',
+                    glow: 'shadow-sky-500/20'
                   },
                   {
                     fasa: '3 Fasa (R-S-T)',
-                    count: surveyList.filter(s => s.fasaYangDiambil.includes('3 Fasa') || s.fasaYangDiambil.includes('RST')).length,
-                    color: 'bg-purple-500',
-                    border: 'border-purple-500/40',
-                    text: 'text-purple-400'
+                    count: filteredList.filter(s => s.fasaYangDiambil.includes('3 Fasa') || s.fasaYangDiambil.includes('RST')).length,
+                    color: 'bg-indigo-500',
+                    border: 'border-indigo-500/40',
+                    text: 'text-indigo-400',
+                    glow: 'shadow-indigo-500/20'
                   }
                 ].map(item => {
-                  const pct = surveyList.length > 0 ? (item.count / surveyList.length) * 100 : 0;
+                  const pct = filteredList.length > 0 ? (item.count / filteredList.length) * 100 : 0;
                   return (
-                    <div key={item.fasa} className="space-y-1">
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className={item.text}>{item.fasa}</span>
-                        <span className="text-white font-mono">{item.count} Sambungan ({pct.toFixed(0)}%)</span>
+                    <div key={item.fasa} className="space-y-2 group">
+                      <div className="flex justify-between text-xs font-black">
+                        <span className={`${item.text} tracking-wide`}>{item.fasa}</span>
+                        <span className="text-white bg-slate-800/80 px-2 py-0.5 rounded-lg border border-white/5">{item.count} Sambungan ({pct.toFixed(0)}%)</span>
                       </div>
-                      <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
-                        <div className={`h-full ${item.color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                      <div className="w-full bg-black/40 h-3 rounded-full overflow-hidden border border-white/5 p-0.5 shadow-inner">
+                        <div 
+                          className={`h-full ${item.color} ${item.glow} rounded-full transition-all duration-700 shadow-lg`} 
+                          style={{ width: `${pct}%` }} 
+                        />
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <p className="text-[11px] text-slate-400 italic">
-                *Rekomendasi sistem: Prioritaskan pengalokasian fasa dengan beban persentase terendah untuk mencegah unbalance trafo.
-              </p>
+              
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+                <p className="text-[11px] text-amber-200/90 leading-relaxed font-semibold">
+                  <span className="text-amber-400 font-black mr-1">Rekomendasi:</span> 
+                  Prioritaskan pengalokasian fasa dengan beban persentase terendah untuk menjaga keseimbangan beban trafo.
+                </p>
+              </div>
             </div>
 
             {/* Analisis Kualitas Tegangan (Drop Voltage) */}
-            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-lg space-y-4">
+            <div className="bg-[#022e2a]/80 backdrop-blur-xl border-2 border-teal-500/20 p-6 rounded-3xl shadow-2xl space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <TrendingDown className="w-4 h-4 text-emerald-400" />
-                  Kepatuhan Standar Tegangan PLN
+                <h3 className="text-base font-black text-white flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                    <TrendingDown className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  Kualitas Tegangan Pelayanan
                 </h3>
               </div>
-              <div className="space-y-3">
+
+              <div className="space-y-4">
                 {[
                   {
                     label: 'Sangat Baik (Drop < 5%)',
-                    count: surveyList.filter(s => ((s.tegPangkal - s.tegTetangga) / (s.tegPangkal || 220)) * 100 < 5).length,
-                    badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    count: filteredList.filter(s => ((s.tegPangkal - s.tegTetangga) / (s.tegPangkal || 220)) * 100 < 5).length,
+                    badge: 'bg-emerald-500 text-emerald-950',
+                    text: 'text-emerald-400'
                   },
                   {
                     label: 'Waspada (Drop 5% - 9.9%)',
-                    count: surveyList.filter(s => {
+                    count: filteredList.filter(s => {
                       const p = ((s.tegPangkal - s.tegTetangga) / (s.tegPangkal || 220)) * 100;
                       return p >= 5 && p < 10;
                     }).length,
-                    badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    badge: 'bg-amber-500 text-amber-950',
+                    text: 'text-amber-400'
                   },
                   {
                     label: 'Kritis / Tidak Layak (Drop ≥ 10%)',
-                    count: surveyList.filter(s => ((s.tegPangkal - s.tegTetangga) / (s.tegPangkal || 220)) * 100 >= 10).length,
-                    badge: 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                    count: filteredList.filter(s => ((s.tegPangkal - s.tegTetangga) / (s.tegPangkal || 220)) * 100 >= 10).length,
+                    badge: 'bg-rose-500 text-rose-950',
+                    text: 'text-rose-400'
                   }
                 ].map(stat => (
-                  <div key={stat.label} className="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl border border-slate-800">
-                    <span className="text-xs text-slate-300">{stat.label}</span>
-                    <span className={`text-xs px-2.5 py-0.5 rounded font-black border ${stat.badge}`}>
-                      {stat.count} Lokasi
-                    </span>
+                  <div key={stat.label} className="flex items-center justify-between p-4 bg-black/40 rounded-2xl border border-white/5 group hover:border-white/10 transition-all">
+                    <span className="text-xs font-bold text-slate-300">{stat.label}</span>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-[10px] font-black px-3 py-1 rounded-full ${stat.badge} shadow-lg`}>
+                        {stat.count} Titik
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
-              <div className="p-3 bg-indigo-950/40 border border-indigo-800/40 rounded-xl text-[11px] text-indigo-300">
-                <strong>Standar SPLN:</strong> Batas toleransi drop tegangan pelayanan TR adalah maksimal -10% (+5% / -10% dari 220V = batas bawah 198 Volt).
+              
+              <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-2">
+                <div className="text-[11px] text-indigo-300 font-black flex items-center gap-1.5 uppercase tracking-wider">
+                  <Info className="w-3.5 h-3.5" />
+                  Standar SPLN D3.002-1:2007
+                </div>
+                <p className="text-[11px] text-indigo-200/90 leading-relaxed font-semibold">
+                  Variasi tegangan pelayanan TR diperbolehkan maksimal +5% dan -10% dari tegangan nominal 220V (198V - 231V).
+                </p>
               </div>
             </div>
 
             {/* Rekap Status Konstruksi */}
-            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl shadow-lg space-y-4">
+            <div className="bg-[#022e2a]/80 backdrop-blur-xl border-2 border-teal-500/20 p-6 rounded-3xl shadow-2xl space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Building className="w-4 h-4 text-cyan-400" />
-                  Kebutuhan Tindak Lanjut JTR
+                <h3 className="text-base font-black text-white flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30">
+                    <Building className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  Tindak Lanjut Infrastruktur
                 </h3>
               </div>
-              <div className="space-y-2.5">
+              
+              <div className="space-y-2">
                 {[
-                  { title: 'Layak Langsung Sambung', count: metrics.layakCount, color: 'text-emerald-400' },
-                  { title: 'Perlu Sisip Tiang JTR', count: surveyList.filter(s => s.statusKelayakan === 'Perlu Sisip Tiang').length, color: 'text-amber-400' },
-                  { title: 'Perlu Perluasan Jaringan JTR', count: surveyList.filter(s => s.statusKelayakan === 'Perlu Perluasan JTR').length, color: 'text-indigo-400' },
-                  { title: 'Perlu Up-rating / Sisip Trafo', count: surveyList.filter(s => s.statusKelayakan === 'Perlu Up-rating Trafo').length, color: 'text-purple-400' },
-                  { title: 'Selesai Penyambungan (Nyala)', count: metrics.selesaiSambungCount, color: 'text-sky-400' }
+                  { title: 'Layak Sambung Langsung', count: metrics.layakCount, color: 'text-emerald-400', bg: 'bg-emerald-400/5' },
+                  { title: 'Sisip Tiang JTR', count: filteredList.filter(s => s.statusKelayakan === 'Perlu Sisip Tiang').length, color: 'text-amber-400', bg: 'bg-amber-400/5' },
+                  { title: 'Perluasan Jaringan JTR', count: filteredList.filter(s => s.statusKelayakan === 'Perlu Perluasan JTR').length, color: 'text-indigo-400', bg: 'bg-indigo-400/5' },
+                  { title: 'Uprating / Sisip Trafo', count: filteredList.filter(s => s.statusKelayakan === 'Perlu Up-rating Trafo').length, color: 'text-rose-400', bg: 'bg-rose-400/5' },
+                  { title: 'Penyambungan Selesai', count: metrics.selesaiSambungCount, color: 'text-sky-400', bg: 'bg-sky-400/5' }
                 ].map(k => (
-                  <div key={k.title} className="flex justify-between items-center text-xs py-1.5 border-b border-slate-800/50">
-                    <span className="text-slate-300">{k.title}</span>
-                    <span className={`font-black font-mono ${k.color}`}>{k.count} Pelanggan</span>
+                  <div key={k.title} className={`flex justify-between items-center p-3.5 ${k.bg} rounded-xl border border-white/5`}>
+                    <span className="text-xs font-bold text-slate-300">{k.title}</span>
+                    <span className={`text-sm font-black font-mono ${k.color}`}>{k.count}</span>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-4 p-4 bg-teal-500/5 border border-teal-500/10 rounded-2xl text-center">
+                <p className="text-[10px] text-teal-400 font-bold italic">
+                  Data diperbarui secara real-time berdasarkan akumulasi input petugas survey di lapangan.
+                </p>
               </div>
             </div>
           </div>

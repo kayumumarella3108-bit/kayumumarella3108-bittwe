@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   Calendar, 
@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { JadwalInspeksiRow } from '../../types';
 import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
+import { INITIAL_PENYULANG } from '../../data/mockData';
 
 interface InputJadwalInspeksiModalProps {
   isOpen: boolean;
@@ -32,9 +33,7 @@ export const InputJadwalInspeksiModal: React.FC<InputJadwalInspeksiModalProps> =
   const [ulp, setUlp] = useState('ULP Baguala');
   const [kodeUlp, setKodeUlp] = useState('54110');
   const [penyulang, setPenyulang] = useState('');
-  const [line, setLine] = useState('');
   const [kms, setKms] = useState<number>(0);
-  const [gangguan, setGangguan] = useState<number>(0);
   const [tahun, setTahun] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
@@ -43,18 +42,14 @@ export const InputJadwalInspeksiModal: React.FC<InputJadwalInspeksiModalProps> =
         setUlp(editItem.ulp);
         setKodeUlp(editItem.kodeUlp);
         setPenyulang(editItem.penyulang);
-        setLine(editItem.line);
         setKms(editItem.kms);
-        setGangguan(editItem.gangguan);
         setTahun(editItem.tahun);
       } else {
         // Default values for new entry
         setUlp('ULP Baguala');
         setKodeUlp('54110');
         setPenyulang('');
-        setLine('F');
         setKms(0);
-        setGangguan(0);
         setTahun(new Date().getFullYear());
       }
     }
@@ -66,15 +61,26 @@ export const InputJadwalInspeksiModal: React.FC<InputJadwalInspeksiModalProps> =
     if (unit) setKodeUlp(unit.kodeUnit);
   };
 
+  const handlePenyulangChange = (val: string) => {
+    setPenyulang(val);
+    // Find in master data to auto-fill KMS
+    const master = INITIAL_PENYULANG.find(p => p.namaPenyulang === val);
+    if (master) {
+      setKms(master.panjangJaringanKms);
+    }
+  };
+
+  const sortedPenyulangs = useMemo(() => {
+    return [...INITIAL_PENYULANG].sort((a, b) => a.namaPenyulang.localeCompare(b.namaPenyulang));
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       ulp,
       kodeUlp,
       penyulang,
-      line,
       kms,
-      gangguan,
       tahun,
       schedule: editItem?.schedule || {}
     });
@@ -142,19 +148,24 @@ export const InputJadwalInspeksiModal: React.FC<InputJadwalInspeksiModalProps> =
             </div>
           </div>
 
-          {/* Penyulang & Line */}
+          {/* Penyulang */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-teal-500 uppercase tracking-widest ml-1">Nama Penyulang</label>
             <div className="relative">
               <SearchIcon className="w-4 h-4 text-teal-600 absolute left-4 top-3" />
-              <input
+              <select
                 required
-                type="text"
-                placeholder="Masukkan nama penyulang..."
                 value={penyulang}
-                onChange={(e) => setPenyulang(e.target.value)}
-                className="w-full bg-teal-900/20 border border-teal-500/30 rounded-xl pl-11 pr-4 py-2.5 text-sm font-bold text-white placeholder-teal-800 focus:outline-none focus:border-amber-400/50 transition-all"
-              />
+                onChange={(e) => handlePenyulangChange(e.target.value)}
+                className="w-full bg-teal-900/20 border border-teal-500/30 rounded-xl pl-11 pr-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-amber-400/50 transition-all appearance-none cursor-pointer"
+              >
+                <option value="" disabled className="bg-[#011a18]">Pilih Penyulang...</option>
+                {sortedPenyulangs.map(p => (
+                  <option key={p.id} value={p.namaPenyulang} className="bg-[#011a18]">
+                    {p.namaPenyulang}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

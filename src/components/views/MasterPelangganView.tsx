@@ -414,7 +414,7 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
         <div className="space-y-4">
           {/* Filters Bar */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
               {/* Search */}
               <div className="relative lg:col-span-2">
                 <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
@@ -425,6 +425,22 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:bg-white font-medium"
                 />
+              </div>
+
+              {/* Filter ULP */}
+              <div>
+                <select
+                  value={filterUnit}
+                  onChange={e => setFilterUnit(e.target.value)}
+                  className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="ALL">Semua ULP</option>
+                  {DAFTAR_UNIT_PLN.map(u => (
+                    <option key={u.kodeUnit} value={u.namaUnit}>
+                      {u.namaUnit}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Filter Gardu Induk */}
@@ -566,8 +582,8 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
       {/* TAB 2: BREAKDOWN PELANGGAN PER SECTION JARINGAN */}
       {activeTab === 'section' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-            <div className="relative w-full max-w-md">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative w-full">
               <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
               <input
                 type="text"
@@ -577,8 +593,22 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
                 className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-teal-500"
               />
             </div>
-            <div className="text-xs font-bold text-slate-600">
-              Total Section: <span className="text-teal-700 font-black">{filteredSections.length}</span> Section
+            <div>
+              <select
+                value={filterUnit}
+                onChange={e => setFilterUnit(e.target.value)}
+                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="ALL">Semua ULP</option>
+                {DAFTAR_UNIT_PLN.map(u => (
+                  <option key={u.kodeUnit} value={u.namaUnit}>
+                    {u.namaUnit}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center justify-end text-xs font-bold text-slate-600">
+              Total Section: <span className="text-teal-700 font-black ml-1">{filteredSections.length}</span>
             </div>
           </div>
 

@@ -29,10 +29,8 @@ const MOCK_DATA: JadwalInspeksiRow[] = [
     id: '1',
     ulp: 'ULP Baguala',
     kodeUlp: '54110',
-    penyulang: 'Penyulang Baguala',
-    line: 'F1',
-    kms: 12.5,
-    gangguan: 3,
+    penyulang: 'BAGUALA UTAMA',
+    kms: 12.4,
     tahun: 2026,
     schedule: {
       '2026-01-05': { type: 'INSPEKSI', isRealized: true },
@@ -46,10 +44,8 @@ const MOCK_DATA: JadwalInspeksiRow[] = [
     id: '2',
     ulp: 'ULP Namlea',
     kodeUlp: '54120',
-    penyulang: 'Penyulang Namlea',
-    line: 'F2',
-    kms: 24.8,
-    gangguan: 5,
+    penyulang: 'TULEHU',
+    kms: 55.9,
     tahun: 2026,
     schedule: {
       '2026-01-10': { type: 'INSPEKSI', isRealized: false },
@@ -76,6 +72,26 @@ const MONTHS = [
   { name: 'DES', days: 31, color: 'bg-rose-400/30' },
 ];
 
+const DAYS_ID = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+// Indonesian Public Holidays 2026 (Approximate/Fixed)
+const HOLIDAYS_2026: Record<string, string> = {
+  '01-01': 'Tahun Baru Masehi',
+  '01-29': 'Tahun Baru Imlek',
+  '02-15': 'Isra Mikraj',
+  '03-20': 'Hari Suci Nyepi / Idul Fitri',
+  '03-21': 'Idul Fitri',
+  '04-03': 'Wafat Isa Almasih',
+  '05-01': 'Hari Buruh',
+  '05-14': 'Kenaikan Isa Almasih',
+  '05-27': 'Idul Adha',
+  '06-01': 'Hari Lahir Pancasila',
+  '06-16': 'Tahun Baru Islam',
+  '08-17': 'Hari Kemerdekaan RI',
+  '08-25': 'Maulid Nabi Muhammad SAW',
+  '12-25': 'Hari Raya Natal',
+};
+
 export const JadwalInspeksiRowView: React.FC = () => {
   const [data, setData] = useState<JadwalInspeksiRow[]>(MOCK_DATA);
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,6 +99,20 @@ export const JadwalInspeksiRowView: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState('2026');
   const [viewMonth, setViewMonth] = useState(0); // 0 = JAN, 1 = FEB...
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  
+  // Helper to check if a day is "red" (weekend or holiday)
+  const getRedDayInfo = (monthIdx: number, day: number) => {
+    const date = new Date(parseInt(selectedYear), monthIdx, day);
+    const dayOfWeek = date.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    const mm = String(monthIdx + 1).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    const holidayKey = `${mm}-${dd}`;
+    const holidayName = HOLIDAYS_2026[holidayKey];
+    
+    return { isRed: isWeekend || !!holidayName, holidayName };
+  };
   
   // New states for cell modal details
   const [cellSection, setCellSection] = useState('');
@@ -345,17 +375,24 @@ export const JadwalInspeksiRowView: React.FC = () => {
               </tr>
               <tr className="bg-[#033f3a] text-teal-400">
                 {Array.from({ length: MONTHS[viewMonth].days }).map((_, i) => {
-                  const day = i + 1;
-                  // Simple weekend check (mock)
-                  const isWeekend = day % 7 === 0 || day % 7 === 6; 
+                  const dayNum = i + 1;
+                  const date = new Date(parseInt(selectedYear), viewMonth, dayNum);
+                  const dayOfWeek = date.getDay(); 
+                  const { isRed, holidayName } = getRedDayInfo(viewMonth, dayNum);
+                  const dayName = DAYS_ID[dayOfWeek];
+
                   return (
                     <th 
                       key={i} 
-                      className={`w-8 min-w-[32px] py-1 text-[9px] font-black border-r border-teal-800/30 ${
-                        isWeekend ? 'text-rose-400 bg-rose-900/20' : ''
+                      className={`w-8 min-w-[40px] py-2 text-[8px] font-black border-r border-teal-800/30 leading-tight ${
+                        isRed ? 'text-rose-400 bg-rose-900/30' : ''
                       }`}
+                      title={holidayName}
                     >
-                      {day}
+                      <div className="flex flex-col items-center">
+                        <span className="opacity-50">{dayName}</span>
+                        <span className="text-[10px]">{dayNum}</span>
+                      </div>
                     </th>
                   );
                 })}
@@ -420,11 +457,12 @@ export const JadwalInspeksiRowView: React.FC = () => {
                   {/* Calendar Days */}
                   {Array.from({ length: MONTHS[viewMonth].days }).map((_, i) => {
                     const day = i + 1;
-                    const isWeekend = day % 7 === 0 || day % 7 === 6;
+                    const { isRed, holidayName } = getRedDayInfo(viewMonth, day);
                     return (
                       <td 
                         key={i} 
-                        className={`w-8 h-10 border-r border-teal-800/20 p-0 relative ${isWeekend ? 'bg-rose-950/10' : ''}`}
+                        className={`w-8 h-10 border-r border-teal-800/20 p-0 relative ${isRed ? 'bg-rose-950/20' : ''}`}
+                        title={holidayName}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCellClick(item.id, viewMonth, day);

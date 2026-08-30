@@ -1652,9 +1652,7 @@ export interface JadwalInspeksiRow {
   ulp: string;
   kodeUlp: string;
   penyulang: string;
-  line: string;
   kms: number;
-  gangguan: number;
   tahun: number;
   // Store dates as keys in format "MM-DD" or similar, or just a flat array of marked dates
   schedule: {
