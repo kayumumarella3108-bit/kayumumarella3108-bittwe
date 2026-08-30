@@ -540,7 +540,7 @@ export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
     doc.text('PT PLN (PERSERO) UIW MALUKU DAN MALUKU UTARA - UP3 AMBON', 14, 10);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('UNIT LAYANAN PELANGGAN (ULP) BAGUALA | SISTEM INFORMASI PERANG PADAM', 14, 16);
+    doc.text('UNIT LAYANAN PELANGGAN (ULP) | SISTEM INFORMASI PERANG PADAM', 14, 16);
     doc.setFontSize(8);
     doc.text(`Dicetak pada: ${currentDateStr} | Total: ${filteredList.length} Permohonan`, 283, 16, { align: 'right' });
 
@@ -639,7 +639,7 @@ export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
         doc.setFontSize(7);
         doc.setTextColor(148, 163, 184);
         doc.text(
-          `Dokumen Resmi PLN ULP Baguala - Sistem Perang Padam | Halaman ${data.pageNumber}`,
+          `Dokumen Resmi Sistem Perang Padam | Halaman ${data.pageNumber}`,
           148.5,
           202,
           { align: 'center' }
@@ -662,20 +662,20 @@ export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
     doc.setTextColor(15, 23, 42);
     doc.text('Mengetahui / Menyetujui,', 40, signY);
     doc.text('Supervisor Transaksi Energi / TL Teknik,', 40, signY + 4);
-    doc.text('ULP Baguala', 40, signY + 8);
+    doc.text('UNIT LAYANAN PELANGGAN', 40, signY + 8);
 
     doc.text('Ambon, ' + currentDateStr, 220, signY);
     doc.text('Petugas Koordinator Survey Lapangan,', 220, signY + 4);
-    doc.text('ULP Baguala', 220, signY + 8);
+    doc.text('UNIT LAYANAN PELANGGAN', 220, signY + 8);
 
     doc.setFont('helvetica', 'bold');
     doc.text('Samuel Leimena', 40, signY + 24);
     doc.text('NIP. 8812345678', 40, signY + 28);
 
-    doc.text(currentUser?.name || 'Tim Survey Teknik Baguala', 220, signY + 24);
+    doc.text(currentUser?.name || 'Tim Survey Teknik', 220, signY + 24);
     doc.text('Surveyor Teknik Lapangan', 220, signY + 28);
 
-    doc.save(`Laporan_Rekap_Survey_PB_PD_PLN_Baguala_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Laporan_Rekap_Survey_PB_PD_PLN_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   // Generate Berita Acara PDF
@@ -735,7 +735,7 @@ export const SurveyPbPdView: React.FC<SurveyPbPdViewProps> = ({
 • *Surveyor Lapangan:* ${item.petugasSurvey || '-'} (${item.tanggalSurvey || new Date().toISOString().split('T')[0]})
 • *Supervisor/TL Teknik:* ${item.teamLeaderName || 'Samuel Leimena'}
 
-_Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
+_Dokumen Elektronik Sistem Perang Padam PLN_`;
 
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
@@ -952,17 +952,17 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
       {activeTab === 'daftar' && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-md space-y-3">
+          <div className="bg-gradient-to-r from-[#022623]/95 via-[#044c45]/95 to-[#022e2a]/95 border border-teal-500/30 p-4 rounded-xl shadow-lg backdrop-blur-md space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
               {/* Search Bar */}
               <div className="relative lg:col-span-2">
-                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-teal-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Cari nama pemohon, no agenda..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/70"
+                  className="w-full pl-9 pr-3.5 py-2 bg-slate-950/40 border border-teal-500/30 rounded-xl text-xs text-white placeholder-teal-500/50 focus:outline-none focus:border-teal-400"
                 />
               </div>
 
@@ -971,7 +971,7 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
                 <select
                   value={filterUnit}
                   onChange={e => setFilterUnit(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3 py-2 bg-slate-950/40 border border-teal-500/30 rounded-xl text-xs text-teal-100 focus:outline-none focus:border-teal-400 font-bold cursor-pointer"
                 >
                   <option value="ALL">Semua ULP</option>
                   {DAFTAR_UNIT_PLN.map(u => (
@@ -987,7 +987,7 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
                 <select
                   value={filterPenyulang}
                   onChange={e => setFilterPenyulang(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-slate-950/40 border border-teal-500/30 rounded-xl text-xs text-teal-100 focus:outline-none focus:border-teal-400 font-bold cursor-pointer"
                 >
                   <option value="ALL">Semua Penyulang</option>
                   {penyulangList.map(p => (
@@ -1003,7 +1003,7 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
                 <select
                   value={filterJenis}
                   onChange={e => setFilterJenis(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-slate-950/40 border border-teal-500/30 rounded-xl text-xs text-teal-100 focus:outline-none focus:border-teal-400 font-bold cursor-pointer"
                 >
                   <option value="ALL">Semua Transaksi (PB & PD)</option>
                   <option value="PB">Pasang Baru (PB)</option>
@@ -1016,7 +1016,7 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
                 <select
                   value={filterStatus}
                   onChange={e => setFilterStatus(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-slate-950/40 border border-teal-500/30 rounded-xl text-xs text-teal-100 focus:outline-none focus:border-teal-400 font-bold cursor-pointer"
                 >
                   <option value="ALL">Semua Status Kelayakan</option>
                   <option value="Perlu Survey Lapangan">Perlu Survey Lapangan (WO Baru)</option>
@@ -2356,11 +2356,11 @@ _Dokumen Elektronik Sistem Perang Padam PLN ULP Baguala_`;
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-slate-400">Dokumentasi Survei Lapangan PLN ULP Baguala</span>
+              <span className="text-[11px] text-slate-400">Dokumentasi Survei Lapangan</span>
               <div className="flex items-center gap-2">
                 <a
                   href={previewModalPhoto.url}
-                  download="Foto_Survei_PLN_Baguala.jpg"
+                  download="Foto_Survei_PLN.jpg"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"

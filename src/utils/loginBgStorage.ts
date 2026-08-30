@@ -1,4 +1,4 @@
-import evLoginBgAsset from '../assets/images/ev_login_bg_1787911883438.jpg';
+import evLoginBgAsset from '../assets/images/clean_ev_login_bg_1788064511364.jpg';
 import { db, doc, setDoc, onSnapshot } from '../lib/firebase';
 
 export interface LoginBgPreset {
@@ -28,7 +28,7 @@ export const PRESET_LOGIN_BACKGROUNDS: LoginBgPreset[] = [
     name: 'SPKLU Mobil Listrik EV Futuristic 4K (Default)',
     category: 'Mobil Listrik (EV)',
     url: evLoginBgAsset,
-    description: 'Wallpaper cinematic 4K pengisian daya Mobil Listrik di stasiun SPKLU PLN malam hari dengan lintasan energi neon cyan-emerald',
+    description: 'Wallpaper cinematic 4K pengisian daya Mobil Listrik di stasiun SPKLU PLN malam hari dengan tampilan segar dan bersih',
     defaultTurbines: false
   },
   {

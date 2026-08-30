@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { SurveyPbPdItem, Penyulang } from '../../types';
 import { calculateDistanceMeters } from '../modals/SurveyMapPicker';
+import { DAFTAR_UNIT_PLN } from '../../utils/unitConfig';
 
 interface SurveyPbPdMapTabProps {
   surveyList: SurveyPbPdItem[];
@@ -36,6 +37,7 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
   onShareWA
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUlp, setSelectedUlp] = useState('Semua');
   const [selectedPenyulang, setSelectedPenyulang] = useState('Semua');
   const [selectedStatus, setSelectedStatus] = useState('Semua');
   const [selectedJenis, setSelectedJenis] = useState<'Semua' | 'PB' | 'PD'>('Semua');
@@ -71,6 +73,7 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
       item.lokasi.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.titikSambung.toLowerCase().includes(searchQuery.toLowerCase());
 
+    const matchUnit = selectedUlp === 'Semua' || item.unit === selectedUlp;
     const matchPenyulang = selectedPenyulang === 'Semua' || item.penyulang === selectedPenyulang;
     const matchStatus = selectedStatus === 'Semua' || item.statusKelayakan === selectedStatus;
     const matchJenis =
@@ -78,7 +81,7 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
       (selectedJenis === 'PB' && item.jenisTransaksi.includes('PB')) ||
       (selectedJenis === 'PD' && item.jenisTransaksi.includes('PD'));
 
-    return matchSearch && matchPenyulang && matchStatus && matchJenis;
+    return matchSearch && matchUnit && matchPenyulang && matchStatus && matchJenis;
   });
 
   // Initialize Map
@@ -95,6 +98,7 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
 
     const tile = L.tileLayer(getTileUrl(mapStyle), {
       maxZoom: 19,
+      detectRetina: true,
       attribution: '&copy; OpenStreetMap | Esri World Imagery'
     }).addTo(map);
 
@@ -112,7 +116,10 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
   useEffect(() => {
     if (!mapInstanceRef.current || !tileLayerRef.current) return;
     mapInstanceRef.current.removeLayer(tileLayerRef.current);
-    const newTile = L.tileLayer(getTileUrl(mapStyle), { maxZoom: 19 }).addTo(mapInstanceRef.current);
+    const newTile = L.tileLayer(getTileUrl(mapStyle), { 
+      maxZoom: 19,
+      detectRetina: true
+    }).addTo(mapInstanceRef.current);
     tileLayerRef.current = newTile;
   }, [mapStyle]);
 
@@ -147,21 +154,21 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
       const buildingIcon = L.divIcon({
         className: 'custom-survey-b-pin',
         html: `
-          <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-            <div style="width: 28px; height: 28px; border-radius: 9px; background: ${statusColor}; border: 2px solid #ffffff; box-shadow: 0 0 10px ${statusColor}99, 0 4px 8px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; color: #ffffff;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));">
+            <div style="width: 36px; height: 36px; border-radius: 12px; background: ${statusColor}; border: 3px solid #ffffff; box-shadow: 0 0 15px ${statusColor}cc; display: flex; align-items: center; justify-content: center; color: #ffffff;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                 <polyline points="9 22 9 12 15 12 15 22"></polyline>
               </svg>
             </div>
-            <div style="position: absolute; bottom: -8px; background: #0f172a; color: #f8fafc; font-size: 8px; font-weight: 900; padding: 1px 4px; border-radius: 4px; border: 1px solid ${statusColor}; white-space: nowrap;">
+            <div style="position: absolute; bottom: -8px; background: #0f172a; color: #ffffff; font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 6px; border: 2px solid ${statusColor}; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.6);">
               ${item.jenisTransaksi.includes('PB') ? 'PB' : 'PD'}
             </div>
           </div>
         `,
-        iconSize: [34, 34],
-        iconAnchor: [17, 17],
-        popupAnchor: [0, -18]
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
+        popupAnchor: [0, -20]
       });
 
       const bMarker = L.marker([bLat, bLng], { icon: buildingIcon }).addTo(lg);
@@ -207,16 +214,16 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
         const poleIcon = L.divIcon({
           className: 'custom-survey-p-pin',
           html: `
-            <div style="position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;">
-              <div style="width: 20px; height: 20px; border-radius: 6px; background: #f59e0b; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; color: #000000;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1">
+            <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+              <div style="width: 24px; height: 24px; border-radius: 8px; background: #f59e0b; border: 2.5px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; color: #000000;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                 </svg>
               </div>
             </div>
           `,
-          iconSize: [26, 26],
-          iconAnchor: [13, 13],
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
           popupAnchor: [0, -14]
         });
 
@@ -256,9 +263,10 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
           ],
           {
             color: statusColor,
-            weight: 3,
-            dashArray: '6, 6',
-            opacity: 0.85
+            weight: 5,
+            dashArray: '8, 8',
+            opacity: 0.9,
+            lineCap: 'round'
           }
         ).addTo(lg);
 
@@ -296,6 +304,22 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
             />
+          </div>
+
+          {/* ULP Filter */}
+          <div>
+            <select
+              value={selectedUlp}
+              onChange={(e) => setSelectedUlp(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-bold"
+            >
+              <option value="Semua">Semua Unit (ULP)</option>
+              {DAFTAR_UNIT_PLN.map((u) => (
+                <option key={u.kodeUnit} value={u.namaUnit}>
+                  {u.namaUnit}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Penyulang */}

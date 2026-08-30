@@ -16,6 +16,7 @@ interface InputPelangganPenyulangModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
+  penyulangList: any[];
   editItem?: any;
 }
 
@@ -23,6 +24,7 @@ export const InputPelangganPenyulangModal: React.FC<InputPelangganPenyulangModal
   isOpen,
   onClose,
   onSave,
+  penyulangList,
   editItem
 }) => {
   const [ulp, setUlp] = useState('ULP Baguala');
@@ -33,7 +35,7 @@ export const InputPelangganPenyulangModal: React.FC<InputPelangganPenyulangModal
   useEffect(() => {
     if (isOpen) {
       if (editItem) {
-        setUlp(editItem.ulp || editItem.namaUnit);
+        setUlp(editItem.ulp || editItem.namaUnit || editItem.unit);
         setKodeUnit(editItem.kodeId || editItem.kodeUnit);
         setPenyulang(editItem.namaPenyulang || editItem.penyulang);
         setJumlahPelanggan(editItem.jumlahPelanggan || 0);
@@ -55,17 +57,22 @@ export const InputPelangganPenyulangModal: React.FC<InputPelangganPenyulangModal
   };
 
   const sortedPenyulangs = useMemo(() => {
-    return [...INITIAL_PENYULANG].sort((a, b) => a.namaPenyulang.localeCompare(b.namaPenyulang));
-  }, []);
+    const list = penyulangList && penyulangList.length > 0 ? penyulangList : INITIAL_PENYULANG;
+    return [...list].sort((a, b) => a.namaPenyulang.localeCompare(b.namaPenyulang));
+  }, [penyulangList]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Find the original penyulang data from master list to preserve other fields (like namaGi)
+    const masterPenyulang = sortedPenyulangs.find(p => p.namaPenyulang === penyulang);
+    
     onSave({
-      id: editItem?.id || Math.random().toString(36).substr(2, 9),
-      ulp,
-      kodeId: kodeUnit,
-      penyulang,
-      jumlahPelanggan,
+      id: editItem?.id || masterPenyulang?.id || Math.random().toString(36).substr(2, 9),
+      namaPenyulang: penyulang,
+      unit: ulp,
+      kodeUnit: kodeUnit,
+      jumlahPelanggan: Number(jumlahPelanggan),
       updatedAt: new Date().toISOString()
     });
     onClose();

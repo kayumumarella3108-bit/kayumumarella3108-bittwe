@@ -112,12 +112,28 @@ export const JadwalPiketView: React.FC<JadwalPiketViewProps> = ({
 
   const getDayName = (day: number) => {
     const date = new Date(currentYear, currentMonth, day);
-    return new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(date).toUpperCase();
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    return dayNames[date.getDay()].toUpperCase();
   };
 
   const isSunday = (day: number) => {
     const date = new Date(currentYear, currentMonth, day);
     return date.getDay() === 0;
+  };
+
+  const isHoliday = (day: number) => {
+    const padM = String(currentMonth + 1).padStart(2, '0');
+    const padD = String(day).padStart(2, '0');
+    const mmdd = `${padM}-${padD}`;
+    const yyyymmdd = `${currentYear}-${padM}-${padD}`;
+    
+    // Simple holiday list check (matches dateParser logic)
+    const holidays = ['01-01', '05-01', '06-01', '08-17', '12-25'];
+    const specificHolidays = [
+      '2024-02-09', '2024-03-11', '2024-03-29', '2024-04-10', '2024-04-11', '2024-05-09', '2024-05-23', '2024-06-17', '2024-07-07', '2024-09-16',
+      '2025-01-29', '2025-03-29', '2025-03-31', '2025-04-01', '2025-04-18', '2025-05-01', '2025-05-12', '2025-05-29', '2025-06-01', '2025-06-06', '2025-06-27', '2025-08-17', '2025-09-05', '2025-12-25'
+    ];
+    return holidays.includes(mmdd) || specificHolidays.includes(yyyymmdd);
   };
 
   const handleExportPDF = () => {
@@ -338,30 +354,34 @@ export const JadwalPiketView: React.FC<JadwalPiketViewProps> = ({
               </div>
               
               <div className="grid grid-cols-7 md:grid-cols-10 lg:grid-cols-15 gap-2">
-                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
-                  <div key={day} className="space-y-1 text-center">
-                    <span className={`text-[9px] font-bold ${isSunday(day) ? 'text-rose-600' : 'text-slate-400'}`}>
-                      {day} {getDayName(day).substring(0, 3)}
-                    </span>
-                    <select
-                      value={formData.jadwal[day] || ''}
-                      onChange={(e) => handleShiftChange(day, e.target.value)}
-                      className={`w-full text-center py-1 text-xs font-bold border rounded-lg appearance-none outline-none ${
-                        formData.jadwal[day] === 'L' ? 'bg-slate-100 border-slate-200 text-slate-400' :
-                        formData.jadwal[day] === 'P' ? 'bg-blue-100 border-blue-200 text-blue-600' :
-                        formData.jadwal[day] === 'S' ? 'bg-amber-100 border-amber-200 text-amber-600' :
-                        formData.jadwal[day] === 'M' ? 'bg-indigo-100 border-indigo-200 text-indigo-600' :
-                        'bg-white border-slate-200 text-slate-300'
-                      }`}
-                    >
-                      <option value="">-</option>
-                      <option value="P">P</option>
-                      <option value="S">S</option>
-                      <option value="M">M</option>
-                      <option value="L">L</option>
-                    </select>
-                  </div>
-                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                  const holiday = isHoliday(day);
+                  const sunday = isSunday(day);
+                  return (
+                    <div key={day} className="space-y-1 text-center">
+                      <span className={`text-[9px] font-bold ${(holiday || sunday) ? 'text-rose-600' : 'text-slate-400'}`}>
+                        {day} {getDayName(day).substring(0, 3)}
+                      </span>
+                      <select
+                        value={formData.jadwal[day] || ''}
+                        onChange={(e) => handleShiftChange(day, e.target.value)}
+                        className={`w-full text-center py-1 text-xs font-bold border rounded-lg appearance-none outline-none ${
+                          formData.jadwal[day] === 'L' ? 'bg-slate-100 border-slate-200 text-slate-400' :
+                          formData.jadwal[day] === 'P' ? 'bg-blue-100 border-blue-200 text-blue-600' :
+                          formData.jadwal[day] === 'S' ? 'bg-amber-100 border-amber-200 text-amber-600' :
+                          formData.jadwal[day] === 'M' ? 'bg-indigo-100 border-indigo-200 text-indigo-600' :
+                          'bg-white border-slate-200 text-slate-300'
+                        }`}
+                      >
+                        <option value="">-</option>
+                        <option value="P">P</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                      </select>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -432,17 +452,21 @@ export const JadwalPiketView: React.FC<JadwalPiketViewProps> = ({
               <th className="px-4 py-4 border border-slate-800 text-center sticky left-0 bg-slate-900 z-10 w-12">NO</th>
               <th className="px-4 py-4 border border-slate-800 sticky left-12 bg-slate-900 z-10 min-w-[200px]">NAMA PETUGAS</th>
               <th className="px-4 py-4 border border-slate-800 text-center min-w-[140px]">NO HP</th>
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
-                <th 
-                  key={day} 
-                  className={`px-1 py-4 border border-slate-800 text-center min-w-[40px] ${isSunday(day) ? 'bg-rose-900 text-rose-200' : ''}`}
-                >
-                  <div className="flex flex-col items-center leading-none gap-1">
-                    <span className="text-[8px] opacity-60 font-medium">{getDayName(day)}</span>
-                    <span className="text-xs">{day}</span>
-                  </div>
-                </th>
-              ))}
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                const holiday = isHoliday(day);
+                const sunday = isSunday(day);
+                return (
+                  <th 
+                    key={day} 
+                    className={`px-1 py-4 border border-slate-800 text-center min-w-[40px] ${(holiday || sunday) ? 'bg-rose-900 text-rose-200' : ''}`}
+                  >
+                    <div className="flex flex-col items-center leading-none gap-1">
+                      <span className="text-[8px] opacity-60 font-medium">{getDayName(day)}</span>
+                      <span className="text-xs">{day}</span>
+                    </div>
+                  </th>
+                );
+              })}
               <th className="px-4 py-4 border border-slate-800 text-center w-24">AKSI</th>
             </tr>
           </thead>
@@ -474,19 +498,22 @@ export const JadwalPiketView: React.FC<JadwalPiketViewProps> = ({
                       </td>
                       {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                         const shift = item.jadwal[day];
+                        const holiday = isHoliday(day);
+                        const sunday = isSunday(day);
                         return (
                           <td 
                             key={day} 
-                            className={`px-1 py-4 text-xs font-bold text-center border-r border-slate-50 ${isSunday(day) ? 'bg-rose-50/30' : ''}`}
+                            className={`px-1 py-4 text-xs font-bold text-center border-r border-slate-50 ${(holiday || sunday) ? 'bg-rose-50/30' : ''}`}
                           >
                             <span className={
                               shift === 'L' ? 'text-slate-300' :
                               shift === 'P' ? 'text-blue-600' :
                               shift === 'S' ? 'text-amber-600' :
                               shift === 'M' ? 'text-indigo-600' :
+                              (holiday || sunday) ? 'text-rose-500' :
                               'text-slate-200'
                             }>
-                              {shift || '-'}
+                              {shift || (holiday || sunday ? 'OFF' : '-')}
                             </span>
                           </td>
                         );

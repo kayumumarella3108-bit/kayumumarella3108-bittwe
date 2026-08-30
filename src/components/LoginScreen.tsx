@@ -43,130 +43,7 @@ interface LoginScreenProps {
   onSendHelpDesk?: (msg: Omit<HelpDeskMessage, 'id' | 'tanggal' | 'status'>) => Promise<void> | void;
 }
 
-// Helper Component: Animated Interactive Canvas for Moving Energy Grid & Floating Particles
-const ElectricGridCanvas: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Particle class for energy grid nodes
-    const particlesCount = Math.min(Math.floor(width / 25), 55);
-    const particles: Array<{
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      radius: number;
-      color: string;
-      pulse: number;
-      pulseSpeed: number;
-    }> = [];
-
-    const colors = ['#22d3ee', '#34d399', '#38bdf8', '#a7f3d0', '#fbbf24'];
-
-    for (let i = 0; i < particlesCount; i++) {
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.7,
-        vy: (Math.random() - 0.5) * 0.7,
-        radius: Math.random() * 2 + 1.2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        pulse: Math.random() * Math.PI * 2,
-        pulseSpeed: 0.02 + Math.random() * 0.03
-      });
-    }
-
-    const draw = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // Draw subtle energy grid lines
-      ctx.strokeStyle = 'rgba(20, 184, 166, 0.08)';
-      ctx.lineWidth = 1;
-      const gridSize = 60;
-      for (let x = 0; x < width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-
-      // Update & Draw Particles
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (p.x < 0 || p.x > width) p.vx *= -1;
-        if (p.y < 0 || p.y > height) p.vy *= -1;
-
-        p.pulse += p.pulseSpeed;
-        const currentRadius = p.radius + Math.sin(p.pulse) * 0.8;
-
-        // Draw particle glow
-        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, currentRadius * 4);
-        gradient.addColorStop(0, p.color);
-        gradient.addColorStop(1, 'transparent');
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, currentRadius * 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Connect nearby particles with electric lines
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dx = p.x - p2.x;
-          const dy = p.y - p2.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < 140) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            const alpha = (1 - dist / 140) * 0.25;
-            ctx.strokeStyle = `rgba(52, 211, 153, ${alpha})`;
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-          }
-        }
-      }
-
-      animationFrameId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0" />;
-};
+// Helper Component: Realistic Wind Turbine for EBT representation
 
 // Helper Component: Realistic Industrial Wind Turbine (Kincir Angin EBT)
 const RealisticWindTurbine: React.FC<{
@@ -508,9 +385,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   return (
     <div className="relative min-h-screen w-full flex flex-col justify-between items-center text-white bg-[#022e2a] overflow-x-hidden font-sans select-none">
       
-      {/* Dynamic Animated Canvas Grid Layer */}
-      <ElectricGridCanvas />
-
       {/* Top Navigation / Quick Action Header */}
       <div className="relative z-30 w-full max-w-7xl px-4 pt-4 flex items-center justify-end">
         {/* Right: Actions (Change Background & Help Desk) */}

@@ -47,13 +47,54 @@ const INDONESIAN_MONTH_NAMES = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
+const INDONESIAN_DAY_NAMES = [
+  'Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'
+];
+
+// Daftar Hari Libur Nasional (format: "MM-DD" atau "YYYY-MM-DD")
+const NATIONAL_HOLIDAYS = [
+  '01-01', // Tahun Baru
+  '05-01', // Hari Buruh
+  '06-01', // Hari Lahir Pancasila
+  '08-17', // Hari Kemerdekaan RI
+  '12-25', // Hari Natal
+  // Untuk tahun 2024/2025 bisa ditambahkan manual atau menggunakan API di masa depan
+  '2024-02-09', // Imlek
+  '2024-03-11', // Hari Raya Nyepi
+  '2024-03-29', // Wafat Yesus Kristus
+  '2024-04-10', // Idul Fitri
+  '2024-04-11', // Idul Fitri
+  '2024-05-09', // Kenaikan Yesus Kristus
+  '2024-05-23', // Hari Raya Waisak
+  '2024-06-17', // Idul Adha
+  '2024-07-07', // Tahun Baru Hijriah
+  '2024-09-16', // Maulid Nabi Muhammad SAW
+  '2025-01-29', // Imlek
+  '2025-03-29', // Nyepi
+  '2025-03-31', // Idul Fitri
+  '2025-04-01', // Idul Fitri
+  '2025-04-18', // Wafat Yesus Kristus
+  '2025-05-01', // Hari Buruh
+  '2025-05-12', // Hari Raya Waisak
+  '2025-05-29', // Kenaikan Yesus Kristus
+  '2025-06-01', // Hari Lahir Pancasila
+  '2025-06-06', // Idul Adha
+  '2025-06-27', // Tahun Baru Hijriah
+  '2025-08-17', // Hari Kemerdekaan RI
+  '2025-09-05', // Maulid Nabi Muhammad SAW
+  '2025-12-25', // Hari Natal
+];
+
 export interface ParsedDateResult {
   year: number;
   month: number; // 1 - 12
   day: number;   // 1 - 31
+  dayName: string; // contoh: "Senin"
   formattedDMY: string; // contoh: "6/8/2026"
-  formattedIndonesian: string; // contoh: "6 Agustus 2026"
+  formattedIndonesian: string; // contoh: "Senin, 6 Agustus 2026"
   isoDate: string; // contoh: "2026-08-06"
+  isHoliday: boolean;
+  isSunday: boolean;
 }
 
 /**
@@ -164,14 +205,26 @@ function buildResult(year: number, month: number, day: number): ParsedDateResult
   const padM = String(month).padStart(2, '0');
   const padD = String(day).padStart(2, '0');
   const monthName = INDONESIAN_MONTH_NAMES[month - 1] || `Bulan-${month}`;
+  
+  const d = new Date(year, month - 1, day);
+  const dayIndex = d.getDay();
+  const dayName = INDONESIAN_DAY_NAMES[dayIndex];
+  const isSunday = dayIndex === 0;
+
+  const mmdd = `${padM}-${padD}`;
+  const yyyymmdd = `${year}-${padM}-${padD}`;
+  const isHoliday = NATIONAL_HOLIDAYS.includes(mmdd) || NATIONAL_HOLIDAYS.includes(yyyymmdd);
 
   return {
     year,
     month,
     day,
+    dayName,
     formattedDMY: `${day}/${month}/${year}`,
-    formattedIndonesian: `${day} ${monthName} ${year}`,
-    isoDate: `${year}-${padM}-${padD}`
+    formattedIndonesian: `${dayName}, ${day} ${monthName} ${year}`,
+    isoDate: `${year}-${padM}-${padD}`,
+    isHoliday,
+    isSunday
   };
 }
 

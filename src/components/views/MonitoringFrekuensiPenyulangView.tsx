@@ -412,12 +412,12 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
   return (
     <div
       id={id}
-      className={`rounded-2xl border border-slate-800 bg-[#0a0f1d] text-slate-100 shadow-2xl p-5 md:p-6 space-y-5 ${className}`}
+      className={`rounded-2xl border border-teal-500/30 bg-gradient-to-br from-[#023330] via-[#022623] to-[#011a18] text-slate-100 shadow-2xl p-5 md:p-6 space-y-5 ${className}`}
     >
       {/* Top Main Header Card */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-slate-800/80">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-teal-500/30">
         <div className="flex items-start gap-3.5">
-          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 shrink-0 shadow-inner">
+          <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 shrink-0 shadow-inner">
             <Calendar className="w-6 h-6" />
           </div>
           <div>
@@ -429,7 +429,7 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
                 Tahun {selectedYear}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <p className="text-xs text-teal-200/80 mt-1 leading-relaxed">
               Rekapitulasi total kali trip / padam penyulang sepanjang tahun berjalan
             </p>
           </div>
@@ -449,7 +449,7 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
             onChange={setSelectedYear}
             labelPrefix="Tahun:"
             variant="amber"
-            buttonClassName="py-1 px-2.5 bg-[#131b2e] border-amber-500/40 text-amber-300 text-xs font-bold"
+            buttonClassName="py-1 px-2.5 bg-[#011f1d] border-amber-500/40 text-amber-300 text-xs font-bold"
           />
 
           {/* Export Buttons */}
@@ -457,7 +457,7 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
             type="button"
             onClick={handleExportExcel}
             title="Download Excel"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 rounded-xl text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-500/50 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Excel</span>
@@ -467,7 +467,7 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
             type="button"
             onClick={handleExportPDF}
             title="Download PDF Laporan"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-600/50 rounded-xl text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/80 hover:bg-rose-900/90 text-rose-300 border border-rose-500/50 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
           >
             <FileText className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">PDF</span>
@@ -493,25 +493,25 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
             searchPlaceholder="Cari ULP..."
             variant="dark"
             className="w-full"
-            buttonClassName="w-full bg-[#101729] border-slate-800 text-white hover:border-amber-500/50 py-2"
+            buttonClassName="w-full bg-[#011f1d] border-teal-500/40 text-white hover:border-amber-500/50 py-2"
           />
         </div>
 
         {/* Search Input */}
-        <div className="md:col-span-4 flex items-center gap-2 bg-[#101729] px-3 py-2.5 rounded-xl border border-slate-800 focus-within:border-amber-500/50 transition-all">
-          <Search className="w-4 h-4 text-slate-400 shrink-0" />
+        <div className="md:col-span-4 flex items-center gap-2 bg-[#011f1d] px-3 py-2.5 rounded-xl border border-teal-500/40 focus-within:border-amber-500/50 transition-all">
+          <Search className="w-4 h-4 text-teal-400 shrink-0" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari nama penyulang, GI, atau kode..."
-            className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
+            className="w-full bg-transparent text-xs text-white placeholder-teal-300/50 focus:outline-none font-medium"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="text-slate-400 hover:text-white"
+              className="text-teal-400 hover:text-white"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -523,10 +523,10 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
           <button
             type="button"
             onClick={() => setSelectedStatusFilter('ALL')}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               selectedStatusFilter === 'ALL'
                 ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                : 'bg-[#101729] text-slate-300 hover:bg-[#162038] border border-slate-800'
+                : 'bg-[#011f1d] text-teal-200 hover:bg-[#024440] border border-teal-500/30'
             }`}
           >
             Semua ({countsByStatus.TOTAL})
@@ -535,49 +535,49 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
           <button
             type="button"
             onClick={() => setSelectedStatusFilter('KRITIS')}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border ${
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border cursor-pointer ${
               selectedStatusFilter === 'KRITIS'
                 ? 'bg-rose-950 text-rose-300 border-rose-500 shadow-xs'
-                : 'bg-[#101729] text-rose-400 hover:bg-rose-950/40 border-rose-900/60'
+                : 'bg-[#011f1d] text-rose-300 hover:bg-rose-950/40 border-rose-900/60'
             }`}
           >
-            <Flame className="w-3 h-3 text-rose-500" />
+            <Flame className="w-3 h-3 text-rose-400" />
             <span>Kritis ({countsByStatus.KRITIS})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedStatusFilter('WASPADA')}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border ${
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border cursor-pointer ${
               selectedStatusFilter === 'WASPADA'
                 ? 'bg-amber-950 text-amber-300 border-amber-500 shadow-xs'
-                : 'bg-[#101729] text-amber-400 hover:bg-amber-950/40 border-amber-900/60'
+                : 'bg-[#011f1d] text-amber-300 hover:bg-amber-950/40 border-amber-900/60'
             }`}
           >
-            <AlertTriangle className="w-3 h-3 text-amber-500" />
+            <AlertTriangle className="w-3 h-3 text-amber-400" />
             <span>Waspada ({countsByStatus.WASPADA})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedStatusFilter('HANDAL')}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border ${
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border cursor-pointer ${
               selectedStatusFilter === 'HANDAL'
                 ? 'bg-emerald-950 text-emerald-300 border-emerald-500 shadow-xs'
-                : 'bg-[#101729] text-emerald-400 hover:bg-emerald-950/40 border-emerald-900/60'
+                : 'bg-[#011f1d] text-emerald-300 hover:bg-emerald-950/40 border-emerald-900/60'
             }`}
           >
-            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
             <span>Handal ({countsByStatus.HANDAL})</span>
           </button>
         </div>
       </div>
 
-      {/* Main Monitoring Matrix Table (Identik Screenshot) */}
-      <div className="overflow-x-auto rounded-xl border border-slate-800/90 shadow-inner bg-[#080d1a]">
+      {/* Main Monitoring Matrix Table (Teal Header Theme) */}
+      <div className="overflow-x-auto rounded-xl border border-teal-500/30 shadow-inner bg-[#011a18]">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-[#0f172a] text-slate-400 font-bold border-b border-slate-800 text-[11px] uppercase tracking-wider select-none">
+            <tr className="bg-[#024440] text-teal-100 font-bold border-b border-teal-500/40 text-[11px] uppercase tracking-wider select-none">
               <th className="py-3 px-4 min-w-[240px] text-left">PENYULANG &amp; GI</th>
               {monthShortHeaders.map(m => (
                 <th key={m} className="py-3 px-1.5 text-center w-[48px] font-mono">
@@ -592,14 +592,14 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody className="divide-y divide-teal-500/20">
             {feederRows.length === 0 ? (
               <tr>
-                <td colSpan={15} className="py-12 text-center text-slate-500">
+                <td colSpan={15} className="py-12 text-center text-teal-200/80">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <Zap className="w-8 h-8 text-slate-600 animate-pulse" />
-                    <p className="font-bold text-slate-400">Tidak ada data penyulang yang sesuai dengan filter.</p>
-                    <p className="text-[11px] text-slate-500">Coba ubah kata kunci pencarian atau ganti pilihan Unit Layanan (ULP).</p>
+                    <Zap className="w-8 h-8 text-teal-400 animate-pulse" />
+                    <p className="font-bold text-teal-200">Tidak ada data penyulang yang sesuai dengan filter.</p>
+                    <p className="text-[11px] text-teal-300/60">Coba ubah kata kunci pencarian atau ganti pilihan Unit Layanan (ULP).</p>
                   </div>
                 </td>
               </tr>
@@ -611,8 +611,8 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
                   <React.Fragment key={row.id}>
                     <tr
                       onClick={() => setExpandedFeederId(isExpanded ? null : row.id)}
-                      className={`hover:bg-[#131b2e]/80 transition-colors cursor-pointer group ${
-                        isExpanded ? 'bg-[#141d33]' : idx % 2 === 1 ? 'bg-[#090e1c]/40' : ''
+                      className={`hover:bg-[#02403c]/70 transition-colors cursor-pointer group ${
+                        isExpanded ? 'bg-[#023835]' : idx % 2 === 1 ? 'bg-[#022623]/60' : ''
                       }`}
                     >
                       {/* PENYULANG & GI Cell */}
@@ -622,10 +622,10 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
                             <div className="font-bold text-white text-xs md:text-sm group-hover:text-amber-300 transition-colors">
                               {row.displayName}
                             </div>
-                            <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
+                            <div className="text-[11px] text-teal-200/70 font-medium flex items-center gap-1.5 mt-0.5">
                               <span>{row.namaGi}</span>
                               {activeUlpFilter === 'SEMUA' && row.unit && (
-                                <span className="px-1.5 py-0.2 rounded bg-slate-800/90 text-slate-400 text-[9px]">
+                                <span className="px-1.5 py-0.2 rounded bg-teal-900/60 text-teal-200 text-[9px]">
                                   {row.unit}
                                 </span>
                               )}
@@ -639,7 +639,7 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
                         return (
                           <td key={`m-${row.id}-${mIdx}`} className="py-2.5 px-1 text-center align-middle">
                             {val === 0 ? (
-                              <span className="text-slate-600 font-bold text-xs select-none">-</span>
+                              <span className="text-teal-500/40 font-bold text-xs select-none">-</span>
                             ) : val === 1 ? (
                               /* Amber Box (1 kali) */
                               <span className="inline-flex items-center justify-center min-w-[28px] h-[26px] px-2 rounded-md bg-[#3b240a] text-amber-400 border border-amber-500/70 font-black text-xs font-mono shadow-2xs">
@@ -685,9 +685,9 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
 
                     {/* Expanded Detail Accordion for the Feeder */}
                     {isExpanded && (
-                      <tr className="bg-[#111827]">
-                        <td colSpan={15} className="p-4 border-t border-b border-slate-800">
-                          <div className="bg-[#0b101e] p-4 rounded-xl border border-slate-800 space-y-3">
+                      <tr className="bg-[#022623]">
+                        <td colSpan={15} className="p-4 border-t border-b border-teal-500/30">
+                          <div className="bg-[#011917] p-4 rounded-xl border border-teal-500/30 space-y-3">
                             <div className="flex items-center justify-between flex-wrap gap-2">
                               <div className="flex items-center gap-2">
                                 <span className="p-1 rounded bg-amber-500/20 text-amber-400">⚡</span>
@@ -696,11 +696,11 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
                                 </h4>
                               </div>
                               <div className="flex items-center gap-2 text-xs">
-                                <span className="text-slate-400">Total: <strong className="text-amber-400">{row.totalTrip} Kali Padam</strong></span>
-                                <span className="text-slate-600">•</span>
-                                <span className="text-slate-400">Panjang: <strong className="text-white">{row.panjangJaringanKms} Kms</strong></span>
-                                <span className="text-slate-600">•</span>
-                                <span className="text-slate-400">Unit: <strong className="text-white">{row.unit}</strong></span>
+                                <span className="text-teal-200/80">Total: <strong className="text-amber-400">{row.totalTrip} Kali Padam</strong></span>
+                                <span className="text-teal-600">•</span>
+                                <span className="text-teal-200/80">Panjang: <strong className="text-white">{row.panjangJaringanKms} Kms</strong></span>
+                                <span className="text-teal-600">•</span>
+                                <span className="text-teal-200/80">Unit: <strong className="text-white">{row.unit}</strong></span>
                               </div>
                             </div>
 
@@ -709,7 +709,7 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left text-[11px] border-collapse">
                                   <thead>
-                                    <tr className="bg-[#151e33] text-slate-400 border-b border-slate-800">
+                                    <tr className="bg-[#023835] text-teal-200 border-b border-teal-500/30">
                                       <th className="py-2 px-3">Tanggal &amp; Jam</th>
                                       <th className="py-2 px-3">Section / Titik Gangguan</th>
                                       <th className="py-2 px-3">Relay &amp; Arus</th>
@@ -718,31 +718,31 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
                                       <th className="py-2 px-3">Detail Lokasi</th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-slate-800/50">
+                                  <tbody className="divide-y divide-teal-500/20">
                                     {row.recentLogs.map((log, lIdx) => (
-                                      <tr key={log.id || `log-${lIdx}`} className="hover:bg-slate-800/40">
-                                        <td className="py-2 px-3 font-mono text-slate-300">
-                                          {log.tanggal || '-'} <span className="text-slate-500">{log.jamKeluar || ''}</span>
+                                      <tr key={log.id || `log-${lIdx}`} className="hover:bg-teal-900/40">
+                                        <td className="py-2 px-3 font-mono text-teal-200">
+                                          {log.tanggal || '-'} <span className="text-teal-400/60">{log.jamKeluar || ''}</span>
                                         </td>
-                                        <td className="py-2 px-3 text-slate-200 font-semibold">{log.section || '-'}</td>
-                                        <td className="py-2 px-3 text-slate-300 font-mono">
+                                        <td className="py-2 px-3 text-slate-100 font-semibold">{log.section || '-'}</td>
+                                        <td className="py-2 px-3 text-teal-200 font-mono">
                                           {log.relayBekerja || '-'} {log.arusIN ? `(IN:${log.arusIN}A)` : ''}
                                         </td>
                                         <td className="py-2 px-3">
                                           <span className="px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 font-bold border border-rose-800 mr-1.5 text-[10px]">
                                             {log.kodeGangguan || 'E-1'}
                                           </span>
-                                          <span className="text-slate-300">{log.penyebab || 'Gangguan Jaringan'}</span>
+                                          <span className="text-slate-200">{log.penyebab || 'Gangguan Jaringan'}</span>
                                         </td>
-                                        <td className="py-2 px-3 font-mono text-slate-300">{log.durasi || '-'}</td>
-                                        <td className="py-2 px-3 text-slate-400">{log.detailLokasi || '-'}</td>
+                                        <td className="py-2 px-3 font-mono text-teal-200">{log.durasi || '-'}</td>
+                                        <td className="py-2 px-3 text-teal-200/70">{log.detailLokasi || '-'}</td>
                                       </tr>
                                     ))}
                                   </tbody>
                                 </table>
                               </div>
                             ) : (
-                              <div className="p-3 bg-[#131b2e] rounded-lg text-xs text-slate-400 flex items-center justify-between">
+                              <div className="p-3 bg-[#012220] rounded-lg text-xs text-teal-200 flex items-center justify-between border border-teal-500/30">
                                 <span>Distribusi historis bulanan tersinkronisasi. Tidak ada data log manual yang tertolak.</span>
                                 <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-bold">
                                   Status Terverifikasi
@@ -761,7 +761,7 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
 
           {/* Table Summary Footer */}
           <tfoot>
-            <tr className="bg-[#0d1424] font-black border-t-2 border-slate-700 text-slate-200 text-xs">
+            <tr className="bg-[#023330] font-black border-t-2 border-teal-500/50 text-slate-100 text-xs">
               <td className="py-3 px-4">
                 <span className="uppercase tracking-wider text-amber-400">Total Trip Seluruh Penyulang</span>
               </td>
@@ -770,14 +770,14 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
                   {sum > 0 ? (
                     <span className="text-amber-300">{sum}</span>
                   ) : (
-                    <span className="text-slate-600">-</span>
+                    <span className="text-teal-600">-</span>
                   )}
                 </td>
               ))}
-              <td className="py-3 px-3 text-center font-mono font-black text-sm text-amber-400 bg-[#162038]">
+              <td className="py-3 px-3 text-center font-mono font-black text-sm text-amber-400 bg-[#024440]">
                 {grandTotalTrip}
               </td>
-              <td className="py-3 px-4 text-center text-[10px] font-bold text-slate-400">
+              <td className="py-3 px-4 text-center text-[10px] font-bold text-teal-200">
                 {countsByStatus.KRITIS > 0 ? (
                   <span className="text-rose-400">{countsByStatus.KRITIS} Feeder Perlu ROW</span>
                 ) : (
@@ -791,23 +791,23 @@ export const MonitoringFrekuensiPenyulangView: React.FC<MonitoringFrekuensiPenyu
 
       {/* Bottom Information Legend & Strategic Directive */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-xs">
-        <div className="p-3 rounded-xl bg-[#0f172a] border border-slate-800 flex items-center gap-2.5">
+        <div className="p-3 rounded-xl bg-[#022e2b] border border-teal-500/30 flex items-center gap-2.5">
           <span className="w-3 h-3 rounded-sm bg-[#3b240a] border border-amber-500/70 shrink-0" />
-          <span className="text-slate-400">
+          <span className="text-teal-200/80">
             <strong className="text-amber-300">1 - 2 Trip:</strong> Gangguan Ringan (Waspada)
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-[#0f172a] border border-slate-800 flex items-center gap-2.5">
+        <div className="p-3 rounded-xl bg-[#022e2b] border border-teal-500/30 flex items-center gap-2.5">
           <span className="w-3 h-3 rounded-sm bg-[#4c0519] border border-rose-600 shrink-0" />
-          <span className="text-slate-400">
+          <span className="text-teal-200/80">
             <strong className="text-rose-300">&ge; 3 Trip/Bln atau &ge; 4 Trip/Thn:</strong> Prioritas Eksekusi ROW &amp; Inspeksi
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-[#0f172a] border border-slate-800 flex items-center gap-2.5">
+        <div className="p-3 rounded-xl bg-[#022e2b] border border-teal-500/30 flex items-center gap-2.5">
           <span className="w-3 h-3 rounded-sm bg-[#022c22] border border-emerald-800 shrink-0" />
-          <span className="text-slate-400">
+          <span className="text-teal-200/80">
             <strong className="text-emerald-300">0 Trip:</strong> Penyulang Handal (*Zero Outage*)
           </span>
         </div>

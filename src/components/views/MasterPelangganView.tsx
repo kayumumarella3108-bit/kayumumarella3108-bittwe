@@ -259,7 +259,7 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
       <div className="bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 p-6 rounded-3xl text-white shadow-xl border border-teal-500/30">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="p-3.5 bg-gradient-to-tr from-emerald-400 to-teal-500 text-slate-950 rounded-2xl shadow-lg shadow-emerald-500/20">
+            <div className="p-3.5 bg-gradient-to-tr from-teal-400 to-emerald-500 text-slate-950 rounded-2xl shadow-lg shadow-teal-500/20">
               <Users className="w-8 h-8" />
             </div>
             <div>
@@ -280,12 +280,12 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
               onClick={handleExportCSV}
               className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition-all flex items-center gap-2 cursor-pointer"
             >
-              <Download className="w-4 h-4 text-emerald-300" />
+              <Download className="w-4 h-4 text-teal-300" />
               <span>Unduh CSV</span>
             </button>
             <button
               onClick={handlePrintPDF}
-              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md shadow-emerald-500/30 flex items-center gap-2 cursor-pointer"
+              className="px-3.5 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md shadow-teal-500/30 flex items-center gap-2 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Cetak Rekap PDF</span>
@@ -413,17 +413,17 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
       {activeTab === 'penyulang' && (
         <div className="space-y-4">
           {/* Filters Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          <div className="bg-[#022623] p-4 rounded-2xl border border-teal-500/30 shadow-lg space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
               {/* Search */}
               <div className="relative lg:col-span-2">
-                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                <Search className="w-4 h-4 absolute left-3 top-3 text-teal-400" />
                 <input
                   type="text"
                   placeholder="Cari nama penyulang, kode ID, atau Gardu Induk..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:bg-white font-medium"
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-teal-500/40 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:bg-slate-900 font-medium text-white placeholder-teal-700"
                 />
               </div>
 
@@ -432,9 +432,9 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
                 <select
                   value={filterUnit}
                   onChange={e => setFilterUnit(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-teal-500"
+                  className="w-full py-2.5 px-3 bg-slate-950 border border-teal-500/40 rounded-xl text-xs font-bold text-white focus:ring-2 focus:ring-teal-500"
                 >
-                  <option value="ALL">Semua ULP</option>
+                  <option value="ALL">Semua Unit (ULP)</option>
                   {DAFTAR_UNIT_PLN.map(u => (
                     <option key={u.kodeUnit} value={u.namaUnit}>
                       {u.namaUnit}
@@ -448,7 +448,7 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
                 <select
                   value={filterGi}
                   onChange={e => setFilterGi(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-teal-500"
+                  className="w-full py-2.5 px-3 bg-slate-950 border border-teal-500/40 rounded-xl text-xs font-bold text-white focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="ALL">Semua Gardu Induk / GI</option>
                   {daftarGi.map((gi, idx) => (
@@ -464,7 +464,7 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
                 <select
                   value={filterKategoriPelanggan}
                   onChange={e => setFilterKategoriPelanggan(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-teal-500"
+                  className="w-full py-2.5 px-3 bg-teal-50/50 border border-teal-100 rounded-xl text-xs font-semibold text-teal-900 focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="ALL">Semua Kategori Beban</option>
                   <option value="JUMBO">Beban Jumbo (&gt; 10.000 Pelanggan)</option>
@@ -981,9 +981,10 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
       <InputPelangganPenyulangModal
         isOpen={isInputModalOpen}
         onClose={() => setIsInputModalOpen(false)}
+        penyulangList={penyulangList}
         onSave={(newData) => {
           // Find existing penyulang to preserve other fields
-          const existing = penyulangList.find(p => p.namaPenyulang === newData.penyulang);
+          const existing = penyulangList.find(p => p.namaPenyulang === newData.namaPenyulang);
           
           if (existing) {
             // Update existing
@@ -991,31 +992,31 @@ export const MasterPelangganView: React.FC<MasterPelangganViewProps> = ({
               onUpdatePenyulang({
                 ...existing,
                 jumlahPelanggan: newData.jumlahPelanggan,
-                unit: newData.ulp,
-                kodeUnit: newData.kodeId
+                unit: newData.unit,
+                kodeUnit: newData.kodeUnit
               });
             }
           } else {
             // If not found in current list, try to find in INITIAL_PENYULANG for template
-            const template = INITIAL_PENYULANG.find(p => p.namaPenyulang === newData.penyulang);
+            const template = INITIAL_PENYULANG.find(p => p.namaPenyulang === newData.namaPenyulang);
             const newPenyulang: Penyulang = template ? {
               ...template,
               id: newData.id,
               jumlahPelanggan: newData.jumlahPelanggan,
-              unit: newData.ulp,
-              kodeUnit: newData.kodeId
+              unit: newData.unit,
+              kodeUnit: newData.kodeUnit
             } : {
               id: newData.id,
               namaGi: 'PLTD/GI',
-              namaPenyulang: newData.penyulang,
+              namaPenyulang: newData.namaPenyulang,
               status: 'Utama',
-              kodeId: newData.kodeId,
+              kodeId: newData.kodeUnit,
               panjangJaringanKms: 0,
               frekuensiGangguan: 0,
               healthIndexStatus: 'Sehat',
               jumlahPelanggan: newData.jumlahPelanggan,
-              unit: newData.ulp,
-              kodeUnit: newData.kodeId
+              unit: newData.unit,
+              kodeUnit: newData.kodeUnit
             };
 
             if (onAddPenyulang) {

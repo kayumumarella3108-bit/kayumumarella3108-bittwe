@@ -264,7 +264,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
         p.jumlahPelanggan || 0,
         p.panjangJaringanKms || 0
       ]);
-      exportToCSV('Master_Data_Penyulang_ULP_Baguala', headers, rows);
+      exportToCSV('Master_Data_Penyulang', headers, rows);
     } else if (activeTab === 'section') {
       const headers = ['Nama Section', 'Nama Penyulang', 'Jml Pelanggan', 'Sistem Operasi', 'Penyulang Di-Supply'];
       const rows = filteredSections.map(s => [
@@ -274,7 +274,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
         s.sistemOperasi || '',
         s.penyulangDiSupply || ''
       ]);
-      exportToCSV('Master_Data_Section_ULP_Baguala', headers, rows);
+      exportToCSV('Master_Data_Section', headers, rows);
     } else if (activeTab === 'log_aktivitas') {
       const headers = ['Waktu', 'User', 'Detail Aktivitas', 'Modul'];
       const rows = filteredActivities.map(a => [
@@ -283,7 +283,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
         a.aktivitas || '',
         a.modul || ''
       ]);
-      exportToCSV('Log_Aktivitas_Sistem_ULP_Baguala', headers, rows);
+      exportToCSV('Log_Aktivitas_Sistem', headers, rows);
     }
   };
 
@@ -291,9 +291,9 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const handleExportPDF = () => {
     const doc = new jsPDF('landscape');
     const title = activeTab === 'penyulang' 
-      ? 'MASTER DATA PENYULANG - PLN ULP BAGUALA' 
+      ? 'MASTER DATA PENYULANG' 
       : activeTab === 'section' 
-      ? 'MASTER DATA SECTION JARINGAN - PLN ULP BAGUALA' 
+      ? 'MASTER DATA SECTION JARINGAN' 
       : 'LOG AKTIVITAS SISTEM OPERASIONAL';
 
     doc.setFontSize(14);
