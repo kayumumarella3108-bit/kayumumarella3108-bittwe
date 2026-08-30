@@ -253,7 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isTransaksiEnergiActive = ['peremajaan_meter', 'meter_sl', 'monitoring_susut'].includes(activeView);
   const isSuratSpkActive = ['perintah_kerja', 'format_surat', 'ba_pemeriksaan_iml', 'cash_flow_bop'].includes(activeView);
   const isSaidiSaifiActive = ['saidi_saifi', 'estimasi_saidi_saifi'].includes(activeView);
-  const isYantekActive = ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket', 'monitoring_lembur'].includes(activeView);
+  const isYantekActive = ['monitoring_yantek', 'peta_pohon', 'row', 'inspeksi_tier1', 'inspeksi_tier1_jtm', 'inspeksi_tier1_gtt', 'inspeksi_tier1_switching', 'inspeksi_tier2', 'inspeksi_tier2_thermovision', 'inspeksi_tier2_ultrasound', 'jadwal_piket', 'monitoring_lembur', 'jadwal_inspeksi_row'].includes(activeView);
   const isManbillActive = ['manbill', 'pembagian_invoice', 'realisasi_tusbung', 'foto_meter'].includes(activeView);
   const isKitActive = ['kit_bbm', 'kit_laporan_beban', 'kit_pemeliharaan_mesin', 'kit_master_data_mesin'].includes(activeView);
   const isK3LActive = ['k3l', 'jadwal_security', 'alker_apd', 'patroli_kelistrikan'].includes(activeView);
@@ -972,6 +972,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {yantekOpen && (
                 <div className="pl-3 mt-1.5 space-y-2 border-l-2 border-teal-500/40 ml-5">
+                  <button
+                    onClick={() => onSelectView('jadwal_inspeksi_row')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all text-left cursor-pointer ${
+                      activeView === 'jadwal_inspeksi_row'
+                        ? 'bg-teal-600/35 text-white font-extrabold border border-teal-400/50 shadow-xs'
+                        : 'text-teal-100 hover:text-white hover:bg-teal-800/50'
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>Jadwal Inspeksi & ROW</span>
+                  </button>
+
                   {/* SUB-MENU: ROW */}
                   <div className="rounded-lg bg-teal-950/40 border border-teal-700/30 overflow-hidden">
                     <button

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, MessageSquare, CloudUpload } from 'lucide-react';
+import { Menu, MessageSquare, CloudUpload, Search } from 'lucide-react';
 import { User as UserType, ViewType } from '../types';
 import { isOwnerUser } from '../utils/permissions';
 import { useSearch } from '../context/SearchContext';
@@ -27,7 +27,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenBackupModal
 }) => {
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
-  const { searchTerm, setSearchTerm } = useSearch();
+  const { searchTerm, setSearchTerm, setIsSearchOpen } = useSearch();
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -62,11 +62,34 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               PAPEDA
             </h1>
           </div>
+
+          {/* New Global Search Trigger */}
+          <div className="hidden lg:flex ml-4">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="flex items-center gap-3 px-4 py-2 bg-teal-950/40 hover:bg-teal-900/60 border border-teal-500/30 rounded-xl text-teal-400 transition-all cursor-pointer group min-w-[280px]"
+            >
+              <Search className="w-4 h-4 group-hover:text-amber-400 transition-colors" />
+              <span className="text-[11px] font-bold text-teal-200/50">Cari penyulang, gardu, atau gangguan...</span>
+              <div className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded bg-teal-800/40 text-[9px] font-black text-teal-500 border border-teal-500/20">
+                <span>CTRL</span>
+                <span>K</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Right Section: Header Navigation Menu */}
       <div className="flex items-center gap-2 sm:gap-3 bg-teal-950/70 border border-teal-500/40 p-1.5 rounded-2xl shadow-inner backdrop-blur-md">
+        {/* Mobile Search Button */}
+        <button
+          onClick={() => setIsSearchOpen(true)}
+          className="lg:hidden p-2.5 rounded-xl text-teal-100 hover:text-white hover:bg-teal-800/70 border border-teal-600/50 transition-all cursor-pointer shadow-md active:scale-95 group"
+          title="Search"
+        >
+          <Search className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        </button>
       </div>
 
     </header>

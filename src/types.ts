@@ -58,7 +58,8 @@ export type ViewType =
   | 'kit_bbm'
   | 'kit_laporan_beban'
   | 'kit_pemeliharaan_mesin'
-  | 'kit_master_data_mesin';
+  | 'kit_master_data_mesin'
+  | 'jadwal_inspeksi_row';
 
 export interface HelpDeskMessage {
   id: string;
@@ -1644,6 +1645,29 @@ export interface MonitoringLemburItem {
   catatanSupervisor?: string;
   approvedBy?: string;
   createdAt?: string;
+}
+
+export interface JadwalInspeksiRow {
+  id: string;
+  ulp: string;
+  kodeUlp: string;
+  penyulang: string;
+  line: string;
+  kms: number;
+  gangguan: number;
+  tahun: number;
+  // Store dates as keys in format "MM-DD" or similar, or just a flat array of marked dates
+  schedule: {
+    [date: string]: { // format: "YYYY-MM-DD"
+      type: 'INSPEKSI' | 'ROW' | 'BOTH';
+      isRealized?: boolean;
+      color?: string; // Optional custom color
+      section?: string;
+      jumlahGawang?: number;
+    }
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 

@@ -133,6 +133,7 @@ import { KitBbmView } from './components/views/KitBbmView';
 import { KitLaporanBebanView } from './components/views/KitLaporanBebanView';
 import { KitPemeliharaanView } from './components/views/KitPemeliharaanView';
 import { KitMasterMesinView } from './components/views/KitMasterMesinView';
+import { JadwalInspeksiRowView } from './components/views/JadwalInspeksiRowView';
 import { CloudBackupModal } from './components/modals/CloudBackupModal';
 
 export default function App() {
@@ -141,8 +142,6 @@ export default function App() {
 
   // Unit Access & Filter State for Owner & Multi-Unit
   const [ownerSelectedUnitFilter, setOwnerSelectedUnitFilter] = useState<string>('SEMUA');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-
   // Active view & navigation state
   const [activeView, setActiveView] = useState<ViewType>('matriks_gangguan');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -3157,6 +3156,10 @@ export default function App() {
               onDeleteLembur={handleDeleteLembur}
               isLoading={isDataLoading}
             />
+          )}
+
+          {activeView === 'jadwal_inspeksi_row' && (
+            <JadwalInspeksiRowView />
           )}
 
           {activeView === 'perintah_kerja' && (
