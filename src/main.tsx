@@ -3,15 +3,25 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// Intercept and filter out cosmetic Firestore future update time warnings caused by client-server clock drift
+// Intercept and filter out cosmetic Firestore future update time warnings and quota log messages
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 
 const shouldSuppress = (args: any[]) => {
-  return args.some(arg => 
-    typeof arg === 'string' && 
-    (arg.includes('Detected an update time that is in the future') || arg.includes('@firebase/firestore: Firestore'))
-  );
+  return args.some(arg => {
+    if (!arg) return false;
+    const str = typeof arg === 'string' ? arg : (arg?.message ? String(arg.message) : String(arg));
+    return (
+      str.includes('Detected an update time that is in the future') ||
+      str.includes('@firebase/firestore: Firestore') ||
+      str.includes('Using maximum backoff delay') ||
+      str.includes('resource-exhausted') ||
+      str.includes('Quota limit exceeded') ||
+      str.includes('Free daily write units') ||
+      str.includes('Free daily read units') ||
+      str.includes('Quota exceeded')
+    );
+  });
 };
 
 console.error = (...args: any[]) => {

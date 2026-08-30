@@ -55,7 +55,7 @@ export const PetaGarduView: React.FC<PetaGarduViewProps> = ({
     });
     return Array.from(optionsMap.values());
   }, [masterUnits]);
-  const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
+  const [mapStyle, setMapStyle] = useState<'satellite' | 'street'>('satellite');
   const [activeGardu, setActiveGardu] = useState<MasterGardu | null>(null);
 
   // Map refs (No clustering, fast lightweight canvas/layer group)
@@ -201,14 +201,11 @@ export const PetaGarduView: React.FC<PetaGarduViewProps> = ({
   }, [masterGarduList, pengukuranList]);
 
   // Helper to get tile url
-  const getTileUrl = (style: 'dark' | 'satellite' | 'street') => {
-    if (style === 'satellite') {
-      return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    }
+  const getTileUrl = (style: 'satellite' | 'street') => {
     if (style === 'street') {
       return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     }
-    return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
   };
 
   // Initialize Map with Leaflet Canvas Renderer Engine
@@ -232,8 +229,8 @@ export const PetaGarduView: React.FC<PetaGarduViewProps> = ({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    const tileLayer = L.tileLayer(getTileUrl('dark'), {
-      attribution: '&copy; OpenStreetMap & CARTO',
+    const tileLayer = L.tileLayer(getTileUrl('satellite'), {
+      attribution: '&copy; OpenStreetMap & Esri',
       maxZoom: 19
     }).addTo(map);
 
@@ -742,15 +739,6 @@ export const PetaGarduView: React.FC<PetaGarduViewProps> = ({
           <div className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-2">
             {/* Map Style Controls */}
             <div className="flex items-center gap-1 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-700 shadow-xl">
-              <button
-                onClick={() => setMapStyle('dark')}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  mapStyle === 'dark' ? 'bg-blue-600 text-white shadow' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <Moon className="w-3.5 h-3.5" />
-                <span>Dark</span>
-              </button>
               <button
                 onClick={() => setMapStyle('satellite')}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${

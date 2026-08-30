@@ -69,7 +69,7 @@ import {
   INITIAL_AUTO_REPLY_RULES,
   INITIAL_CASH_FLOW_BOP
 } from './data/mockData';
-import { db, collection, onSnapshot, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch, query, limit, OperationType, handleFirestoreError, registerDeletedId, filterDeleted } from './lib/firebase';
+import { db, collection, onSnapshot, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch, query, limit, OperationType, handleFirestoreError, registerDeletedId, filterDeleted, onQuotaExceededChange, isFirestoreQuotaExceeded, reconnectFirestoreNetwork } from './lib/firebase';
 import { sanitizeForFirestore } from './utils/firestoreHelper';
 import { isPemasaranUser, isInspeksiUser, canAccessMenu, isOwnerUser } from './utils/permissions';
 import { sendWaNotification } from './utils/whatsappNotifier';
@@ -85,6 +85,7 @@ import { SearchProvider } from './context/SearchContext';
 // Views
 import { DashboardView } from './components/views/DashboardView';
 import { DccView } from './components/views/DccView';
+import { MiniDccView } from './components/views/MiniDccView';
 import { MonitoringOnlineView } from './components/views/MonitoringOnlineView';
 import { PetaPenyulangView } from './components/views/PetaPenyulangView';
 import { InputPetaPenyulangView } from './components/views/InputPetaPenyulangView';
@@ -139,6 +140,16 @@ import { CloudBackupModal } from './components/modals/CloudBackupModal';
 export default function App() {
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
+
+  // Firestore Quota Exceeded State
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
+
+  useEffect(() => {
+    const unsub = onQuotaExceededChange((exceeded) => {
+      setQuotaExceeded(exceeded);
+    });
+    return () => unsub();
+  }, []);
 
   // Unit Access & Filter State for Owner & Multi-Unit
   const [ownerSelectedUnitFilter, setOwnerSelectedUnitFilter] = useState<string>('SEMUA');
@@ -430,6 +441,10 @@ export default function App() {
   // REALTIME FIRESTORE SYNCHRONIZATION
   useEffect(() => {
     const checkAndSeed = async () => {
+      if (isFirestoreQuotaExceeded) {
+        console.log('Firestore quota limit active: skipping seed check and using local state.');
+        return;
+      }
       // 1. Always ensure Owner account is present in Firestore
       try {
         const ownerDocRef = doc(db, 'app_users', 'usr_owner');
@@ -608,7 +623,8 @@ export default function App() {
         localStorage.setItem('perangpadam_seeded', 'true');
         console.log('Seeding completed successfully!');
       } catch (err) {
-        console.error('Error in checkAndSeed:', err);
+        console.warn('Note in checkAndSeed (using cached/local data):', err);
+        localStorage.setItem('perangpadam_seeded', 'true');
       }
     };
 
@@ -1116,27 +1132,29 @@ export default function App() {
     // Immediately update presence when user logs in or switches active view
     updatePresenceInFirestore(user, activeView, 'online');
 
-    // Setup recurring heartbeat every 45 seconds to keep presence fresh
+    // Setup recurring heartbeat every 3 minutes to keep presence fresh without exhausting write quota
     const heartbeatInterval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && !isFirestoreQuotaExceeded) {
         updatePresenceInFirestore(user, activeView, 'online');
-      } else {
-        updatePresenceInFirestore(user, activeView, 'idle');
       }
-    }, 45 * 1000);
+    }, 180 * 1000);
 
     // Handle visibility changes
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        updatePresenceInFirestore(user, activeView, 'online');
-      } else {
-        updatePresenceInFirestore(user, activeView, 'idle');
+      if (!isFirestoreQuotaExceeded) {
+        if (document.visibilityState === 'visible') {
+          updatePresenceInFirestore(user, activeView, 'online');
+        } else {
+          updatePresenceInFirestore(user, activeView, 'idle');
+        }
       }
     };
 
     // Handle window beforeunload / tab close
     const handleUnload = () => {
-      markPresenceOfflineInFirestore(user);
+      if (!isFirestoreQuotaExceeded) {
+        markPresenceOfflineInFirestore(user);
+      }
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
@@ -2665,17 +2683,83 @@ export default function App() {
   // If not logged in, display Login Screen
   if (!user) {
     return (
-      <LoginScreen
-        onLogin={handleLogin}
-        usersList={usersList}
-        onSendHelpDesk={handleSendHelpDeskMessage}
-      />
+      <div className="flex flex-col min-h-screen w-screen">
+        {quotaExceeded && (
+          <div className="bg-amber-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md z-50 border-b border-amber-700">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-200" />
+              <span>
+                <strong>Quota Limit Exceeded:</strong> Batas penulisan/pembacaan harian Firestore (Free Tier) telah tercapai.
+                Aplikasi berjalan dalam mode Offline/Local Cache dan kuota akan otomatis di-reset besok.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={async () => {
+                  const ok = await reconnectFirestoreNetwork();
+                  if (!ok) {
+                    alert('Firestore masih dalam batas kuota harian. Mode offline tetap aktif.');
+                  }
+                }}
+                className="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded text-xs transition-colors font-medium flex items-center gap-1 cursor-pointer"
+              >
+                Cek Koneksi Ulang ⟳
+              </button>
+              <a
+                href="https://console.firebase.google.com/project/robotic-defender-pdw25/firestore/databases/ai-studio-perangpadambagua-eee3ed8e-b24d-400a-b799-44dda3615c9d/data?openUpgradeDialog=true"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded text-xs transition-colors underline flex items-center gap-1"
+              >
+                Kelola Database Console ↗
+              </a>
+            </div>
+          </div>
+        )}
+        <LoginScreen
+          onLogin={handleLogin}
+          usersList={usersList}
+          onSendHelpDesk={handleSendHelpDeskMessage}
+        />
+      </div>
     );
   }
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
       <SearchProvider>
+        {quotaExceeded && (
+          <div className="bg-amber-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md z-50 border-b border-amber-700">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-200" />
+              <span>
+                <strong>Quota Limit Exceeded:</strong> Batas penulisan/pembacaan harian Firestore (Free Tier) telah tercapai.
+                Aplikasi tetap berjalan normal menggunakan <em>Local Offline Cache</em> &amp; kuota akan otomatis di-reset besok.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={async () => {
+                  const ok = await reconnectFirestoreNetwork();
+                  if (!ok) {
+                    alert('Firestore masih dalam batas kuota harian. Mode offline tetap aktif.');
+                  }
+                }}
+                className="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded text-xs transition-colors font-medium flex items-center gap-1 cursor-pointer"
+              >
+                Cek Koneksi Ulang ⟳
+              </button>
+              <a
+                href="https://console.firebase.google.com/project/robotic-defender-pdw25/firestore/databases/ai-studio-perangpadambagua-eee3ed8e-b24d-400a-b799-44dda3615c9d/data?openUpgradeDialog=true"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded text-xs transition-colors underline flex items-center gap-1"
+              >
+                Kelola Database Console ↗
+              </a>
+            </div>
+          </div>
+        )}
         {/* Top Header Navigation */}
         <TopHeader
           user={user}
@@ -2789,8 +2873,8 @@ export default function App() {
             />
           )}
 
-          {activeView === 'dcc' && (
-            <DccView currentUser={user} />
+          {(activeView === 'dcc' || activeView === 'mini_dcc') && (
+            <MiniDccView currentUser={user} />
           )}
 
           {(activeView === 'peta_penyulang' || activeView === 'peta') && (

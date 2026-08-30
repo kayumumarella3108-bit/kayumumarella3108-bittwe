@@ -121,7 +121,7 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
     });
     return Array.from(optionsMap.values());
   }, [masterUnits]);
-  const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
+  const [mapStyle, setMapStyle] = useState<'satellite' | 'street'>('satellite');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fileImporting, setFileImporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -325,10 +325,10 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    const tileUrl = getTileUrl('dark');
+    const tileUrl = getTileUrl('satellite');
     const tileLayer = L.tileLayer(tileUrl, {
       maxZoom: 19,
-      attribution: '&copy; Leaflet | OpenStreetMap contributors & CARTO'
+      attribution: '&copy; Leaflet | OpenStreetMap contributors & Esri'
     }).addTo(map);
 
     tileLayerRef.current = tileLayer;
@@ -342,15 +342,13 @@ export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
     };
   }, []);
 
-  const getTileUrl = (style: 'dark' | 'satellite' | 'street') => {
+  const getTileUrl = (style: 'satellite' | 'street') => {
     switch (style) {
-      case 'satellite':
-        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
       case 'street':
         return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-      case 'dark':
+      case 'satellite':
       default:
-        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     }
   };
 
@@ -1365,16 +1363,6 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
         <div className="absolute top-4 right-4 z-10 flex flex-wrap items-center gap-2">
           {/* Map Base Style Selector */}
           <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-md">
-            <button
-              onClick={() => setMapStyle('dark')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                mapStyle === 'dark'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" /> Dark
-            </button>
             <button
               onClick={() => setMapStyle('satellite')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${

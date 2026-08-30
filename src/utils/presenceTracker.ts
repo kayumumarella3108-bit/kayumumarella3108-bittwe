@@ -1,5 +1,5 @@
 import { User, UserOnlinePresence, ViewType } from '../types';
-import { db, doc, setDoc, updateDoc, deleteDoc } from '../lib/firebase';
+import { db, doc, setDoc, updateDoc, deleteDoc, isFirestoreQuotaExceeded } from '../lib/firebase';
 
 export const getViewDisplayName = (viewKey: ViewType | string): string => {
   const map: Record<string, string> = {
@@ -87,7 +87,7 @@ export const updatePresenceInFirestore = async (
   activeView: ViewType | string,
   status: 'online' | 'idle' | 'offline' = 'online'
 ): Promise<void> => {
-  if (!user || !user.username) return;
+  if (!user || !user.username || isFirestoreQuotaExceeded) return;
 
   try {
     const docId = user.id || user.username;
@@ -126,7 +126,7 @@ export const updatePresenceInFirestore = async (
  * Sets user status to offline on logout or close.
  */
 export const markPresenceOfflineInFirestore = async (user: User | null | undefined): Promise<void> => {
-  if (!user || !user.username) return;
+  if (!user || !user.username || isFirestoreQuotaExceeded) return;
   try {
     const docId = user.id || user.username;
     await updateDoc(doc(db, 'online_users', docId), {

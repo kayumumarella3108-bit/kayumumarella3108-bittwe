@@ -55,7 +55,7 @@ export const PetaKonstruksiView: React.FC<PetaKonstruksiViewProps> = ({
   const [selectedPenyulang, setSelectedPenyulang] = useState<string>('Semua');
   const [selectedKategori, setSelectedKategori] = useState<string>('Semua');
   const [selectedStatus, setSelectedStatus] = useState<string>('Semua');
-  const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
+  const [mapStyle, setMapStyle] = useState<'satellite' | 'street'>('satellite');
   const [activeTab, setActiveTab] = useState<'peta' | 'tabel' | 'proyek'>('peta');
 
   // Modal State
@@ -94,15 +94,13 @@ export const PetaKonstruksiView: React.FC<PetaKonstruksiViewProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const layerGroupRef = useRef<L.FeatureGroup | null>(null);
 
-  const getTileUrl = (style: 'dark' | 'satellite' | 'street') => {
+  const getTileUrl = (style: 'satellite' | 'street') => {
     switch (style) {
-      case 'satellite':
-        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
       case 'street':
         return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-      case 'dark':
+      case 'satellite':
       default:
-        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     }
   };
 
@@ -678,13 +676,6 @@ export const PetaKonstruksiView: React.FC<PetaKonstruksiViewProps> = ({
           {/* Map Layer Mode */}
           {activeTab === 'peta' && (
             <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 ml-auto">
-              <button
-                onClick={() => setMapStyle('dark')}
-                className={`p-1.5 rounded-lg transition-all ${mapStyle === 'dark' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                title="Dark Mode"
-              >
-                <Moon className="w-3.5 h-3.5" />
-              </button>
               <button
                 onClick={() => setMapStyle('satellite')}
                 className={`p-1.5 rounded-lg transition-all ${mapStyle === 'satellite' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}

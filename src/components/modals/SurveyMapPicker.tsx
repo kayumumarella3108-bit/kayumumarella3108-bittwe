@@ -77,7 +77,7 @@ export const SurveyMapPicker: React.FC<SurveyMapPickerProps> = ({
 }) => {
   // Active target mode: 'bangunan' or 'titik_sambung'
   const [activeMode, setActiveMode] = useState<'bangunan' | 'titik_sambung'>('bangunan');
-  const [mapStyle, setMapStyle] = useState<'satellite' | 'dark' | 'street'>('satellite');
+  const [mapStyle, setMapStyle] = useState<'satellite' | 'street'>('satellite');
   const [geoLocating, setGeoLocating] = useState(false);
   const [manualInputOpen, setManualInputOpen] = useState(false);
 
@@ -102,15 +102,13 @@ export const SurveyMapPicker: React.FC<SurveyMapPickerProps> = ({
   const bangunanMarkerRef = useRef<L.Marker | null>(null);
   const sambungMarkerRef = useRef<L.Marker | null>(null);
 
-  const getTileUrl = (style: 'satellite' | 'dark' | 'street') => {
+  const getTileUrl = (style: 'satellite' | 'street') => {
     switch (style) {
-      case 'satellite':
-        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
       case 'street':
         return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-      case 'dark':
+      case 'satellite':
       default:
-        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     }
   };
 
@@ -577,17 +575,6 @@ export const SurveyMapPicker: React.FC<SurveyMapPickerProps> = ({
             }`}
           >
             🛰️ Satelit
-          </button>
-          <button
-            type="button"
-            onClick={() => setMapStyle('dark')}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-              mapStyle === 'dark'
-                ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            🌙 Gelap
           </button>
           <button
             type="button"

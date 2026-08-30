@@ -243,14 +243,14 @@ export const GarduHubungMasterSection: React.FC<GarduHubungMasterSectionProps> =
   const formMapInstanceRef = useRef<L.Map | null>(null);
   const formMarkerRef = useRef<L.Marker | null>(null);
   const formTileLayerRef = useRef<L.TileLayer | null>(null);
-  const [formMapLayerType, setFormMapLayerType] = useState<'street' | 'satellite' | 'dark'>('street');
+  const [formMapLayerType, setFormMapLayerType] = useState<'street' | 'satellite'>('street');
 
   // OVERVIEW GIS MAP FOR ALL GARDU HUBUNG
   const allGhMapContainerRef = useRef<HTMLDivElement>(null);
   const allGhMapInstanceRef = useRef<L.Map | null>(null);
   const allGhMarkersRef = useRef<Record<string, L.Marker>>({});
   const allGhTileLayerRef = useRef<L.TileLayer | null>(null);
-  const [allMapLayerType, setAllMapLayerType] = useState<'street' | 'satellite' | 'dark'>('street');
+  const [allMapLayerType, setAllMapLayerType] = useState<'street' | 'satellite'>('street');
   const [allMapFilterStatus, setAllMapFilterStatus] = useState<string>('Semua');
   const [selectedGhIdOnMap, setSelectedGhIdOnMap] = useState<string | null>(null);
 
@@ -1154,17 +1154,6 @@ export const GarduHubungMasterSection: React.FC<GarduHubungMasterSectionProps> =
                 }`}
               >
                 Satelit
-              </button>
-              <button
-                type="button"
-                onClick={() => setAllMapLayerType('dark')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  allMapLayerType === 'dark'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Voyager
               </button>
             </div>
 

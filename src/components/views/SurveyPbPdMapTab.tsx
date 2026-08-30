@@ -41,7 +41,7 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
   const [selectedPenyulang, setSelectedPenyulang] = useState('Semua');
   const [selectedStatus, setSelectedStatus] = useState('Semua');
   const [selectedJenis, setSelectedJenis] = useState<'Semua' | 'PB' | 'PD'>('Semua');
-  const [mapStyle, setMapStyle] = useState<'satellite' | 'dark' | 'street'>('satellite');
+  const [mapStyle, setMapStyle] = useState<'satellite' | 'street'>('satellite');
   const [selectedItem, setSelectedItem] = useState<SurveyPbPdItem | null>(null);
 
   // Map refs
@@ -50,15 +50,13 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const layerGroupRef = useRef<L.FeatureGroup | null>(null);
 
-  const getTileUrl = (style: 'satellite' | 'dark' | 'street') => {
+  const getTileUrl = (style: 'satellite' | 'street') => {
     switch (style) {
-      case 'satellite':
-        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
       case 'street':
         return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-      case 'dark':
+      case 'satellite':
       default:
-        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     }
   };
 
@@ -403,14 +401,6 @@ export const SurveyPbPdMapTab: React.FC<SurveyPbPdMapTabProps> = ({
               }`}
             >
               Satelit
-            </button>
-            <button
-              onClick={() => setMapStyle('dark')}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
-                mapStyle === 'dark' ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400'
-              }`}
-            >
-              Dark
             </button>
             <button
               onClick={() => setMapStyle('street')}

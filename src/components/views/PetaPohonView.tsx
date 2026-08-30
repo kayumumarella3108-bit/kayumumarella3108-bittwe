@@ -165,7 +165,7 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
     });
     return Array.from(optionsMap.values());
   }, [masterUnits]);
-  const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>('dark');
+  const [mapStyle, setMapStyle] = useState<'satellite' | 'street'>('satellite');
   const [showFeederLayer, setShowFeederLayer] = useState<boolean>(false);
   const [globalIconStyle, setGlobalIconStyle] = useState<string>('default');
   const [activeItemIconMenu, setActiveItemIconMenu] = useState<string | null>(null);
@@ -228,15 +228,13 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
   const markersMapRef = useRef<Record<string, L.Marker>>({});
   const hasInitialFittedRef = useRef(false);
 
-  const getTileUrl = (style: 'dark' | 'satellite' | 'street') => {
+  const getTileUrl = (style: 'satellite' | 'street') => {
     switch (style) {
-      case 'satellite':
-        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
       case 'street':
         return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-      case 'dark':
+      case 'satellite':
       default:
-        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     }
   };
 
@@ -1801,15 +1799,6 @@ export const PetaPohonView: React.FC<PetaPohonViewProps> = ({
             <span className="hidden sm:inline">Fokus Semua</span>
           </button>
           <div className="w-[1px] h-4 bg-slate-700 mx-0.5" />
-          <button
-            onClick={() => setMapStyle('dark')}
-            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-              mapStyle === 'dark' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-            }`}
-            title="Dark Map"
-          >
-            <Moon className="w-3.5 h-3.5" />
-          </button>
           <button
             onClick={() => setMapStyle('satellite')}
             className={`p-1.5 rounded-lg transition-all cursor-pointer ${

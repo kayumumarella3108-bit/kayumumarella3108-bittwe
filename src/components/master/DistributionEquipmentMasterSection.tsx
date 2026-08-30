@@ -308,7 +308,7 @@ export const DistributionEquipmentMasterSection: React.FC<DistributionEquipmentM
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const [mapLayerType, setMapLayerType] = useState<'street' | 'satellite' | 'dark'>('street');
+  const [mapLayerType, setMapLayerType] = useState<'street' | 'satellite'>('street');
 
   // Alert and confirmation modals
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -852,17 +852,6 @@ export const DistributionEquipmentMasterSection: React.FC<DistributionEquipmentM
                     }`}
                   >
                     Satelit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMapLayerType('dark')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      mapLayerType === 'dark'
-                        ? `${type === 'lbs' ? 'bg-amber-600' : type === 'pmcb' ? 'bg-purple-600' : type === 'recloser' ? 'bg-blue-600' : 'bg-rose-600'} text-white shadow-sm`
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Terrain
                   </button>
                 </div>
               </div>
