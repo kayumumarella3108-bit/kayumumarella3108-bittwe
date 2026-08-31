@@ -131,6 +131,190 @@ export const OperationalSldCanvasView: React.FC = () => {
     return { totalDevices, closedDevices, openDevices, trippedDevices };
   }, [layout]);
 
+  // Dynamic live electrical power flow propagation tracing
+  const energizedStatus = useMemo(() => {
+    const energizedLines = new Set<string>();
+    const energizedDevices = new Set<string>();
+    const energizedBusbars = new Set<string>();
+
+    // Initially, let's treat all active busbars as energized power source lines
+    layout.busbars.forEach(b => energizedBusbars.add(b.id));
+
+    // Queue for BFS traversal
+    const queue: { type: 'BUSBAR' | 'LINE' | 'DEVICE'; id: string }[] = [];
+    layout.busbars.forEach(b => queue.push({ type: 'BUSBAR', id: b.id }));
+
+    const visited = new Set<string>();
+    layout.busbars.forEach(b => visited.add(`BUSBAR_${b.id}`));
+
+    // Helper: check if a point is on a busbar with snapping tolerance
+    const isPointOnBusbar = (px: number, py: number, bus: typeof layout.busbars[0]) => {
+      const isHoriz = bus.orientation === 'HORIZONTAL';
+      const tolerance = 35; // Generous snapping tolerance
+      if (isHoriz) {
+        return (
+          Math.abs(py - bus.y) <= tolerance &&
+          px >= bus.x - 30 &&
+          px <= bus.x + bus.length + 30
+        );
+      } else {
+        return (
+          Math.abs(px - bus.x) <= tolerance &&
+          py >= bus.y - 30 &&
+          py <= bus.y + bus.length + 30
+        );
+      }
+    };
+
+    // Helper: distance between two 2D points
+    const getDist = (x1: number, y1: number, x2: number, y2: number) => {
+      return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+    };
+
+    const pointTolerance = 35; // Snap range
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+
+      if (current.type === 'BUSBAR') {
+        const bus = layout.busbars.find(b => b.id === current.id);
+        if (!bus) continue;
+
+        // Find all connected lines
+        layout.lines.forEach(line => {
+          const lineKey = `LINE_${line.id}`;
+          if (!visited.has(lineKey)) {
+            const touches = isPointOnBusbar(line.x1, line.y1, bus) || isPointOnBusbar(line.x2, line.y2, bus);
+            if (touches) {
+              visited.add(lineKey);
+              energizedLines.add(line.id);
+              queue.push({ type: 'LINE', id: line.id });
+            }
+          }
+        });
+
+        // Find all connected devices
+        layout.devices.forEach(dev => {
+          const devKey = `DEVICE_${dev.id}`;
+          if (!visited.has(devKey)) {
+            const touches = isPointOnBusbar(dev.x, dev.y, bus);
+            if (touches) {
+              visited.add(devKey);
+              energizedDevices.add(dev.id);
+              if (dev.status === 'CLOSED') {
+                queue.push({ type: 'DEVICE', id: dev.id });
+              }
+            }
+          }
+        });
+      } else if (current.type === 'LINE') {
+        const line = layout.lines.find(l => l.id === current.id);
+        if (!line) continue;
+
+        const p1 = { x: line.x1, y: line.y1 };
+        const p2 = { x: line.x2, y: line.y2 };
+
+        // Find all other lines touching this line's endpoints
+        layout.lines.forEach(otherLine => {
+          if (otherLine.id === line.id) return;
+          const otherKey = `LINE_${otherLine.id}`;
+          if (!visited.has(otherKey)) {
+            const touches =
+              getDist(otherLine.x1, otherLine.y1, p1.x, p1.y) <= pointTolerance ||
+              getDist(otherLine.x2, otherLine.y2, p1.x, p1.y) <= pointTolerance ||
+              getDist(otherLine.x1, otherLine.y1, p2.x, p2.y) <= pointTolerance ||
+              getDist(otherLine.x2, otherLine.y2, p2.x, p2.y) <= pointTolerance;
+
+            if (touches) {
+              visited.add(otherKey);
+              energizedLines.add(otherLine.id);
+              queue.push({ type: 'LINE', id: otherLine.id });
+            }
+          }
+        });
+
+        // Find all devices touching this line's endpoints
+        layout.devices.forEach(dev => {
+          const devKey = `DEVICE_${dev.id}`;
+          if (!visited.has(devKey)) {
+            const touches =
+              getDist(dev.x, dev.y, p1.x, p1.y) <= pointTolerance ||
+              getDist(dev.x, dev.y, p2.x, p2.y) <= pointTolerance;
+
+            if (touches) {
+              visited.add(devKey);
+              energizedDevices.add(dev.id);
+              if (dev.status === 'CLOSED') {
+                queue.push({ type: 'DEVICE', id: dev.id });
+              }
+            }
+          }
+        });
+
+        // Find all busbars touching this line's endpoints
+        layout.busbars.forEach(bus => {
+          const busKey = `BUSBAR_${bus.id}`;
+          if (!visited.has(busKey)) {
+            const touches = isPointOnBusbar(p1.x, p1.y, bus) || isPointOnBusbar(p2.x, p2.y, bus);
+            if (touches) {
+              visited.add(busKey);
+              energizedBusbars.add(bus.id);
+              queue.push({ type: 'BUSBAR', id: bus.id });
+            }
+          }
+        });
+      } else if (current.type === 'DEVICE') {
+        const dev = layout.devices.find(d => d.id === current.id);
+        if (!dev) continue;
+
+        // CLOSED device propagates current to all adjoining elements
+        layout.lines.forEach(line => {
+          const lineKey = `LINE_${line.id}`;
+          if (!visited.has(lineKey)) {
+            const touches =
+              getDist(line.x1, line.y1, dev.x, dev.y) <= pointTolerance ||
+              getDist(line.x2, line.y2, dev.x, dev.y) <= pointTolerance;
+
+            if (touches) {
+              visited.add(lineKey);
+              energizedLines.add(line.id);
+              queue.push({ type: 'LINE', id: line.id });
+            }
+          }
+        });
+
+        layout.busbars.forEach(bus => {
+          const busKey = `BUSBAR_${bus.id}`;
+          if (!visited.has(busKey)) {
+            const touches = isPointOnBusbar(dev.x, dev.y, bus);
+            if (touches) {
+              visited.add(busKey);
+              energizedBusbars.add(bus.id);
+              queue.push({ type: 'BUSBAR', id: bus.id });
+            }
+          }
+        });
+
+        layout.devices.forEach(otherDev => {
+          if (otherDev.id === dev.id) return;
+          const otherKey = `DEVICE_${otherDev.id}`;
+          if (!visited.has(otherKey)) {
+            const touches = getDist(otherDev.x, otherDev.y, dev.x, dev.y) <= pointTolerance;
+            if (touches) {
+              visited.add(otherKey);
+              energizedDevices.add(otherDev.id);
+              if (otherDev.status === 'CLOSED') {
+                queue.push({ type: 'DEVICE', id: otherDev.id });
+              }
+            }
+          }
+        });
+      }
+    }
+
+    return { energizedLines, energizedDevices, energizedBusbars };
+  }, [layout]);
+
   // Pan / Zoom handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0 || e.button === 1) {
@@ -363,11 +547,7 @@ export const OperationalSldCanvasView: React.FC = () => {
 
               {/* 2. RENDER LINES & CABLES (CLOSED = RED, OPEN = GREEN, matching PMT status) */}
               {layout.lines.map(line => {
-                const connectedDev = layout.devices.find(d => 
-                  Math.abs(d.x - line.x1) < 80 && Math.abs(d.y - line.y1) < 80 ||
-                  Math.abs(d.x - line.x2) < 80 && Math.abs(d.y - line.y2) < 80
-                );
-                const isClosed = connectedDev ? connectedDev.status === 'CLOSED' : line.status === 'ENERGIZED';
+                const isClosed = energizedStatus.energizedLines.has(line.id);
                 const lineCol = isClosed ? '#ef4444' : '#22c55e';
                 const thickness = line.strokeWidth || 3.5;
                 return (
@@ -401,7 +581,7 @@ export const OperationalSldCanvasView: React.FC = () => {
                       textAnchor="middle"
                       className="select-none pointer-events-none"
                     >
-                      {line.name} ({isClosed ? 'CLOSED' : 'OPEN'})
+                      {line.name} ({isClosed ? 'ENERGIZED' : 'OFFLINE'})
                     </text>
                   </g>
                 );
@@ -412,16 +592,19 @@ export const OperationalSldCanvasView: React.FC = () => {
                 const isHoriz = bus.orientation === 'HORIZONTAL';
                 const w = isHoriz ? bus.length : (bus.thickness || 10);
                 const h = isHoriz ? (bus.thickness || 10) : bus.length;
+                const isEnergized = energizedStatus.energizedBusbars.has(bus.id);
+                const busColor = isEnergized ? '#ef4444' : '#10b981';
+                const glowFilter = isEnergized ? 'url(#glow-red)' : 'url(#glow-green)';
                 return (
                   <g key={bus.id} transform={`translate(${bus.x}, ${bus.y})`}>
                     <rect
                       width={w}
                       height={h}
                       rx="4"
-                      fill={bus.color || '#06b6d4'}
+                      fill={busColor}
                       stroke="#ffffff"
                       strokeWidth="1.5"
-                      filter="url(#glow-red)"
+                      filter={glowFilter}
                       className="shadow-xl cursor-pointer"
                     />
                     <rect
@@ -431,7 +614,7 @@ export const OperationalSldCanvasView: React.FC = () => {
                       height="20"
                       rx="6"
                       fill="#020617"
-                      stroke={bus.color || '#06b6d4'}
+                      stroke={busColor}
                       strokeWidth="1.5"
                     />
                     <text
@@ -455,10 +638,10 @@ export const OperationalSldCanvasView: React.FC = () => {
                 const scale = dev.scale || 1.0;
                 const isMatchSearch = searchQuery && (dev.name.toLowerCase().includes(searchQuery.toLowerCase()) || dev.code.toLowerCase().includes(searchQuery.toLowerCase()));
 
-                // Colors per user requirement: CLOSED = Red (#ef4444), OPEN = Green (#22c55e)
-                const deviceBg = isTrip ? '#7f1d1d' : isClosed ? '#7f1d1d' : '#064e3b';
-                const deviceBorder = isTrip ? '#ef4444' : isClosed ? '#ef4444' : '#22c55e';
-                const badgeColor = isTrip ? '#ef4444' : isClosed ? '#ef4444' : '#22c55e';
+                // Precise color matching from the diagram
+                const badgeColor = isClosed ? '#ef4444' : '#10b981';
+                const typeUpper = dev.type?.toUpperCase() || '';
+                const isNoBorderType = ['LBS', 'RECLOSER', 'REC', 'PMCB', 'FCO'].includes(typeUpper);
 
                 return (
                   <g 
@@ -472,61 +655,161 @@ export const OperationalSldCanvasView: React.FC = () => {
                   >
                     {/* Outer selection ring if selected */}
                     {selectedDevice?.id === dev.id && (
-                      <circle cx="0" cy="0" r="28" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeDasharray="4,4" className="animate-spin" />
+                      <rect x="-24" y="-24" width="48" height="48" rx="10" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeDasharray="4,4" className="animate-spin" />
                     )}
 
-                    {/* Device Icon Container - Neatly designed with crisp borders */}
-                    <circle 
-                      cx="0" 
-                      cy="0" 
-                      r="20" 
-                      fill={deviceBg} 
-                      stroke={deviceBorder} 
-                      strokeWidth="3"
-                      className="transition-transform duration-200 group-hover:scale-110 shadow-xl"
-                      filter={isClosed ? 'url(#glow-red)' : 'url(#glow-green)'}
-                    />
+                    {/* RENDER BASED ON DEVICE TYPE */}
+                    {dev.type === 'DS' ? (
+                      // Disconnecting Switch (DS) - Golden Horizontal Switch Box
+                      <g>
+                        <rect x="-24" y="-12" width="48" height="24" rx="6" fill="#020617" stroke="#f59e0b" strokeWidth="2.5" />
+                        <circle cx="-11" cy="0" r="3" fill="#f59e0b" />
+                        <circle cx="11" cy="0" r="3" fill="#f59e0b" />
+                        <line 
+                          x1="-11" 
+                          y1="0" 
+                          x2={isClosed ? '11' : '2'} 
+                          y2={isClosed ? '0' : '-9'} 
+                          stroke="#fbbf24" 
+                          strokeWidth="3.5" 
+                          strokeLinecap="round" 
+                          className="transition-all duration-300"
+                        />
+                        <text x="0" y="2" fill="#f59e0b" fontSize="7" fontWeight="bold" textAnchor="middle">DS</text>
+                      </g>
+                    ) : dev.type === 'COUPLING' ? (
+                      // Coupling / Bus Tie Breaker - Blue Pill representing `<-> KOPEL`
+                      <g>
+                        <rect x="-35" y="-14" width="70" height="28" rx="6" fill="#0284c7" stroke="#38bdf8" strokeWidth="2.5" />
+                        <text x="0" y="3" fill="#ffffff" fontSize="8" fontWeight="bold" textAnchor="middle">⟷ KOPEL</text>
+                        {/* Status Label Box */}
+                        <g transform="translate(0, -24)">
+                          <rect x="-18" y="-7" width="36" height="14" rx="3" fill={isClosed ? '#ef4444' : '#10b981'} stroke="#ffffff" strokeWidth="1" />
+                          <text x="0" y="3.5" fill="#ffffff" fontSize="7" fontWeight="black" textAnchor="middle">{isClosed ? 'CLOSE' : 'OPEN'}</text>
+                        </g>
+                      </g>
+                    ) : dev.type === 'TRAFO' ? (
+                      // Transformer (TRAFO) - Classical Winding Dual Circles
+                      <g>
+                        <circle cx="0" cy="-6" r="12" fill="none" stroke="#f59e0b" strokeWidth="2.5" />
+                        <circle cx="0" cy="6" r="12" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+                        <text x="0" y="3" fill="#ffffff" fontSize="7" fontWeight="bold" textAnchor="middle">TR</text>
+                      </g>
+                    ) : dev.type === 'LBS' ? (
+                      // Load Break Switch (LBS) - Circle Switch with Arching Chamber Arc
+                      <g>
+                        <circle cx="0" cy="0" r="16" fill="#020617" stroke={badgeColor} strokeWidth="2.5" filter={isClosed ? 'url(#glow-red)' : 'url(#glow-green)'} />
+                        <line 
+                          x1="-10" 
+                          y1="0" 
+                          x2={isClosed ? '10' : '2'} 
+                          y2={isClosed ? '0' : '-10'} 
+                          stroke={badgeColor} 
+                          strokeWidth="3.5" 
+                          strokeLinecap="round"
+                          className="transition-all duration-300"
+                        />
+                        <circle cx="-10" cy="0" r="2.5" fill={badgeColor} />
+                        <circle cx="10" cy="0" r="2.5" fill={badgeColor} />
+                        {/* Gas Arc Extinguisher chamber indicator top arc */}
+                        <path d="M -8 -11 A 14 14 0 0 1 8 -11" fill="none" stroke={badgeColor} strokeWidth="1.5" strokeDasharray="2,2" />
+                        <text x="0" y="4" fill="#ffffff" fontSize="7.5" fontWeight="black" textAnchor="middle">LBS</text>
+                      </g>
+                    ) : dev.type === 'RECLOSER' || dev.type === 'REC' ? (
+                      // Auto Recloser (ACR / REC) - Precise Double Ring Square Breaker with "R"
+                      <g>
+                        <rect x="-16" y="-16" width="32" height="32" rx="4" fill="#020617" stroke={badgeColor} strokeWidth="2.5" filter={isClosed ? 'url(#glow-red)' : 'url(#glow-green)'} />
+                        <rect x="-12" y="-12" width="24" height="24" rx="2" fill="none" stroke={badgeColor} strokeWidth="1.2" strokeDasharray="3,1" />
+                        <text x="0" y="5.5" fill="#ffffff" fontSize="13" fontWeight="950" textAnchor="middle" fontFamily="sans-serif">R</text>
+                        {/* Status Label Badge inside the box */}
+                        <circle cx="11" cy="-11" r="4.5" fill={badgeColor} stroke="#020617" strokeWidth="1.5" />
+                      </g>
+                    ) : dev.type === 'PMCB' ? (
+                      // Pole Mounted Circuit Breaker (PMCB) - Hexagonal chamber with an "X" crossed indicator
+                      <g>
+                        <polygon points="0,-16 14,-8 14,8 0,16 -14,8 -14,-8" fill="#020617" stroke={badgeColor} strokeWidth="2.5" filter={isClosed ? 'url(#glow-red)' : 'url(#glow-green)'} />
+                        <line x1="-10" y1="-6" x2="10" y2="6" stroke={badgeColor} strokeWidth="2.5" />
+                        <line x1="10" y1="-6" x2="-10" y2="6" stroke={badgeColor} strokeWidth="2.5" />
+                        <text x="0" y="3" fill="#ffffff" fontSize="7" fontWeight="bold" textAnchor="middle">PMCB</text>
+                      </g>
+                    ) : dev.type === 'FCO' ? (
+                      // Fuse Cut Out (FCO) - Standard Cutout Hook Symbol
+                      <g>
+                        {/* Dual round mounting hooks */}
+                        <circle cx="-13" cy="0" r="3" fill="none" stroke={badgeColor} strokeWidth="2" />
+                        <circle cx="13" cy="0" r="3" fill="none" stroke={badgeColor} strokeWidth="2" />
+                        {/* Swinging Fuse Link element */}
+                        <line 
+                          x1="-10" 
+                          y1="0" 
+                          x2={isClosed ? '10' : '2'} 
+                          y2={isClosed ? '0' : '-13'} 
+                          stroke={badgeColor} 
+                          strokeWidth="3.5" 
+                          strokeLinecap="round" 
+                          className="transition-all duration-300"
+                        />
+                        {/* Small fuse drop-out indicator flag */}
+                        <rect x="-4" y={isClosed ? '-3' : '-9'} width="8" height="6" rx="1.5" fill="#020617" stroke={badgeColor} strokeWidth="1.5" />
+                        <text x="0" y={isClosed ? '2' : '-4'} fill="#ffffff" fontSize="5.5" fontWeight="black" textAnchor="middle">FCO</text>
+                      </g>
+                    ) : (
+                      // Standard Breakers / PMT / Feeder Switch
+                      // Rendered exactly like the clean rounded-rect with "C" or "O" from the user screenshot!
+                      <g>
+                        <rect 
+                          x="-16" 
+                          y="-16" 
+                          width="32" 
+                          height="32" 
+                          rx="6" 
+                          fill={isClosed ? '#ef4444' : '#10b981'} 
+                          stroke={isClosed ? '#f87171' : '#34d399'} 
+                          strokeWidth="2.5"
+                          className="transition-colors duration-200"
+                          filter={isClosed ? 'url(#glow-red)' : 'url(#glow-green)'}
+                        />
+                        <text 
+                          x="0" 
+                          y="5.5" 
+                          fill="#ffffff" 
+                          fontSize="15" 
+                          fontWeight="900" 
+                          textAnchor="middle"
+                          className="pointer-events-none select-none tracking-tighter"
+                        >
+                          {isClosed ? 'C' : 'O'}
+                        </text>
 
-                    {/* Status Indicator Icon or Text */}
-                    <text 
-                      x="0" 
-                      y="5" 
-                      fill="#ffffff" 
-                      fontSize="10" 
-                      fontWeight="900" 
-                      textAnchor="middle"
-                      className="pointer-events-none select-none tracking-tighter"
-                    >
-                      {dev.type === 'BREAKER' || dev.type === 'INCOMING' || dev.type === 'OUTGOING' ? 'PMT' : dev.type === 'LBS' ? 'LBS' : dev.type === 'RECLOSER' ? 'ACR' : dev.type === 'DS' ? 'DS' : dev.type === 'TRAFO' ? 'TR' : 'SW'}
-                    </text>
+                        {/* Top corner status type label badge (like PMT, ACR, LBS) */}
+                        <g transform="translate(0, -22)">
+                          <rect x="-14" y="-5" width="28" height="10" rx="2" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+                          <text x="0" y="3" fill="#94a3b8" fontSize="6.5" fontWeight="black" textAnchor="middle">
+                            {dev.type === 'BREAKER' || dev.type === 'INCOMING' || dev.type === 'OUTGOING' ? 'PMT' : dev.type === 'LBS' ? 'LBS' : dev.type === 'RECLOSER' ? 'ACR' : 'SW'}
+                          </text>
+                        </g>
+                      </g>
+                    )}
 
-                    {/* Status Dot badge */}
-                    <circle 
-                      cx="13" 
-                      cy="-13" 
-                      r="6.5" 
-                      fill={badgeColor} 
-                      stroke="#0f172a"
-                      strokeWidth="2"
-                    />
-
-                    {/* Label tag */}
-                    <g transform="translate(0, 28)">
-                      <rect
-                        x={-(dev.name.length * 3.5 + 12)}
-                        y="-10"
-                        width={dev.name.length * 7 + 24}
-                        height="20"
-                        rx="5"
-                        fill="#020617"
-                        fillOpacity="0.92"
-                        stroke={isMatchSearch ? '#38bdf8' : badgeColor}
-                        strokeWidth={isMatchSearch ? '2' : '1.5'}
-                      />
+                    {/* Label tag below the device with clean coordinates */}
+                    <g transform="translate(0, 26)">
+                      {!isNoBorderType && (
+                        <rect
+                          x={-(dev.name.length * 3.5 + 12)}
+                          y="-8"
+                          width={dev.name.length * 7 + 24}
+                          height="18"
+                          rx="4"
+                          fill="#020617"
+                          fillOpacity="0.95"
+                          stroke={isMatchSearch ? '#38bdf8' : badgeColor}
+                          strokeWidth={isMatchSearch ? '2' : '1.5'}
+                        />
+                      )}
                       <text
                         x="0"
-                        y="3.5"
-                        fill="#ffffff"
+                        y="4"
+                        fill={isNoBorderType ? badgeColor : "#ffffff"}
                         fontSize="9"
                         fontWeight="bold"
                         textAnchor="middle"

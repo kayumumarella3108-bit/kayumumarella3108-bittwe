@@ -430,7 +430,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   ? 'bg-gradient-to-tr from-cyan-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-cyan-400/40 border border-white/80 scale-105'
                   : 'bg-cyan-950/70 text-cyan-200 border border-cyan-600/50 group-hover:bg-cyan-900 group-hover:text-white group-hover:scale-105 shadow-xs'
               }`}>
-                <Workflow className="w-4 h-4 text-cyan-300" />
+                <Radio className="w-4 h-4 text-cyan-300 animate-pulse" />
               </div>
               <span className="font-bold">SLD Custom Operasional</span>
             </div>
