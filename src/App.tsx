@@ -86,6 +86,7 @@ import { SearchProvider } from './context/SearchContext';
 import { DashboardView } from './components/views/DashboardView';
 import { DccView } from './components/views/DccView';
 import { MiniDccView } from './components/views/MiniDccView';
+import { OperationalSldCanvasView } from './components/views/OperationalSldCanvasView';
 import { MonitoringOnlineView } from './components/views/MonitoringOnlineView';
 import { PetaPenyulangView } from './components/views/PetaPenyulangView';
 import { InputPetaPenyulangView } from './components/views/InputPetaPenyulangView';
@@ -2875,6 +2876,10 @@ export default function App() {
 
           {(activeView === 'dcc' || activeView === 'mini_dcc') && (
             <MiniDccView currentUser={user} />
+          )}
+
+          {activeView === 'operational_sld_canvas' && (
+            <OperationalSldCanvasView />
           )}
 
           {(activeView === 'peta_penyulang' || activeView === 'peta') && (

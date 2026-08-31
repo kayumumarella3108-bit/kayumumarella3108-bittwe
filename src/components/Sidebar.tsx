@@ -415,6 +415,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           )}
 
+          {/* Operational Custom Draw Layout SLD Menu */}
+          <button
+            onClick={() => onSelectView('operational_sld_canvas')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer group ${
+              activeView === 'operational_sld_canvas'
+                ? 'bg-gradient-to-r from-cyan-500/35 via-teal-500/25 to-teal-900/10 text-white border-l-4 border-l-cyan-300 border-y border-r border-cyan-500/50 shadow-md shadow-teal-950/60'
+                : 'text-white/95 hover:text-white hover:bg-teal-800/45 border border-cyan-500/20'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                activeView === 'operational_sld_canvas'
+                  ? 'bg-gradient-to-tr from-cyan-400 via-teal-300 to-emerald-300 text-teal-950 shadow-md shadow-cyan-400/40 border border-white/80 scale-105'
+                  : 'bg-cyan-950/70 text-cyan-200 border border-cyan-600/50 group-hover:bg-cyan-900 group-hover:text-white group-hover:scale-105 shadow-xs'
+              }`}>
+                <Workflow className="w-4 h-4 text-cyan-300" />
+              </div>
+              <span className="font-bold">SLD Custom Operasional</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[8px] font-black uppercase tracking-wider border border-cyan-400/30">
+              Draw &amp; Op
+            </span>
+          </button>
+
           {/* 1. MENU MASTER DATA (ACCORDION) */}
           {(canAccessMenu(currentUser, 'master_data') || isOwnerUser(currentUser)) && (
             <div>
