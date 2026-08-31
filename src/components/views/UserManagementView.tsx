@@ -102,6 +102,14 @@ export const MENU_CATEGORIES_CONFIG: MenuCategoryGroup[] = [
         icon: Radio,
         color: 'text-emerald-500 bg-emerald-50 border-emerald-200',
         badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      },
+      {
+        id: 'operational_sld_canvas',
+        label: 'SLD Custom Operasional',
+        desc: 'Interactive Single Line Diagram (SLD) custom dan editor layout kelistrikan operasional',
+        icon: Radio,
+        color: 'text-cyan-500 bg-cyan-50 border-cyan-200',
+        badgeBg: 'bg-cyan-50 text-cyan-700 border-cyan-200'
       }
     ]
   },
@@ -515,6 +523,14 @@ export const MENU_CATEGORIES_CONFIG: MenuCategoryGroup[] = [
         color: 'text-emerald-500 bg-emerald-50 border-emerald-200',
         badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         ownerOnly: true
+      },
+      {
+        id: 'backup_cloud',
+        label: 'Backup Cloud & Sync',
+        desc: 'Ekspor database lokal ke cloud storage / Google Sheets dan pemulihan data',
+        icon: Upload,
+        color: 'text-amber-500 bg-amber-50 border-amber-200',
+        badgeBg: 'bg-amber-50 text-amber-700 border-amber-200'
       }
     ]
   }

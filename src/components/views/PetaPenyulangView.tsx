@@ -32,8 +32,9 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
-import { MapLayerItem, MasterUnitPLN, Penyulang } from '../../types';
+import { MapLayerItem, MasterUnitPLN, Penyulang, User } from '../../types';
 import { getDynamicUnitList } from '../../utils/unitConfig';
+import { isOwnerUser } from '../../utils/permissions';
 import { CustomDropdown } from '../common/CustomDropdown';
 import {
   IconGarduTrafo,
@@ -47,6 +48,7 @@ import {
 } from '../common/ElectricIcons';
 
 interface PetaPenyulangViewProps {
+  currentUser?: User | null;
   layers: MapLayerItem[];
   onToggleLayer: (id: string) => void;
   onDeleteLayer: (id: string) => void;
@@ -59,6 +61,7 @@ interface PetaPenyulangViewProps {
 }
 
 export const PetaPenyulangView: React.FC<PetaPenyulangViewProps> = ({
+  currentUser,
   layers,
   onToggleLayer,
   onDeleteLayer,
@@ -1114,27 +1117,34 @@ const createLeafletDivIcon = (iconType: string | undefined, isCustomNode: boolea
 
           {/* Search & Category Filter Box */}
           <div className="space-y-2">
-            {/* Filter ULP Select Custom Dropdown - Opens Downwards */}
-            <CustomDropdown
-              options={[
-                { value: 'SEMUA', label: '🌐 Filter ULP: Semua Unit' },
-                ...ulpOptions.map((u) => ({
-                  value: u.namaUnit,
-                  label: u.namaUnit,
-                  subLabel: `Kode: ${u.kodeUnit}`,
-                  badge: u.kodeUnit
-                }))
-              ]}
-              value={selectedUlp}
-              onChange={handleUlpChange}
-              icon={<Building2 className="w-3.5 h-3.5 text-amber-500" />}
-              searchable={true}
-              searchPlaceholder="Cari ULP..."
-              placeholder="Filter ULP: Semua Unit"
-              variant="light"
-              className="w-full"
-              buttonClassName="w-full bg-slate-50 border-slate-200 text-slate-800 py-1.5"
-            />
+            {/* Filter ULP Select Custom Dropdown - Locked for non-owner */}
+            {isOwnerUser(currentUser) ? (
+              <CustomDropdown
+                options={[
+                  { value: 'SEMUA', label: '🌐 Filter ULP: Semua Unit' },
+                  ...ulpOptions.map((u) => ({
+                    value: u.namaUnit,
+                    label: u.namaUnit,
+                    subLabel: `Kode: ${u.kodeUnit}`,
+                    badge: u.kodeUnit
+                  }))
+                ]}
+                value={selectedUlp}
+                onChange={handleUlpChange}
+                icon={<Building2 className="w-3.5 h-3.5 text-amber-500" />}
+                searchable={true}
+                searchPlaceholder="Cari ULP..."
+                placeholder="Filter ULP: Semua Unit"
+                variant="light"
+                className="w-full"
+                buttonClassName="w-full bg-slate-50 border-slate-200 text-slate-800 py-1.5"
+              />
+            ) : (
+              <div className="flex items-center gap-2 p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-800">
+                <Building2 className="w-3.5 h-3.5 text-amber-500" />
+                <span>🔒 ULP: {currentUser?.unit || 'ULP Baguala'}</span>
+              </div>
+            )}
 
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

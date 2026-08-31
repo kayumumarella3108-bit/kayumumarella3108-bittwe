@@ -122,19 +122,211 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [selectedFeeder, setSelectedFeeder] = useState<string | null>(null);
   const [selectedFeederForSections, setSelectedFeederForSections] = useState<string | null>(null);
   const [selectedDashboardUlp, setSelectedDashboardUlp] = useState<string>(ownerSelectedUnitFilter);
+  const [selectedDashboardSection, setSelectedDashboardSection] = useState<string>('SEMUA');
   const [isComparisonMode, setIsComparisonMode] = useState<boolean>(false);
   const [selectedComparisonUlps, setSelectedComparisonUlps] = useState<string[]>([]);
   const { searchTerm } = useSearch();
+
+  const [groupingMode, setGroupingMode] = useState<'none' | 'unit' | 'up3'>('none');
+
+  const getUP3ForUnit = (unitName: string, masterUnits?: any[]): string => {
+    if (!unitName) return 'UP3 AMBON';
+    if (masterUnits && masterUnits.length > 0) {
+      const found = masterUnits.find(m => 
+        (m.ulp || '').toLowerCase().trim() === unitName.toLowerCase().trim() ||
+        (m.id || '').toLowerCase().trim() === unitName.toLowerCase().trim()
+      );
+      if (found && found.up3) {
+        return found.up3.toUpperCase();
+      }
+    }
+    const staticFound = DAFTAR_UNIT_PLN.find(u => 
+      u.namaUnit.toLowerCase().trim() === unitName.toLowerCase().trim()
+    );
+    if (staticFound && staticFound.kabupaten) {
+      if (staticFound.kabupaten.toUpperCase().includes('UP3')) {
+        return staticFound.kabupaten.toUpperCase();
+      }
+      if (staticFound.kabupaten.startsWith('Kabupaten') || staticFound.kabupaten.startsWith('Kota')) {
+        return `UP3 SEKTOR ${staticFound.kabupaten.replace('Kabupaten ', '').replace('Kota ', '').toUpperCase()}`;
+      }
+      return staticFound.kabupaten.toUpperCase();
+    }
+    return 'UP3 AMBON';
+  };
+
+  const groupedPerformanceData = useMemo(() => {
+    if (groupingMode === 'none') return [];
+
+    const groups: {
+      [key: string]: {
+        name: string;
+        up3: string;
+        pelanggan: number;
+        gardu: number;
+        penyulangCount: number;
+        frekuensiGangguan: number;
+        durasiGangguan: number;
+        spkSelesai: number;
+        spkTotal: number;
+        surveyTotal: number;
+        surveyLayak: number;
+        avgTegPangkalSum: number;
+        avgTegPangkalCount: number;
+        garduOverload: number;
+      }
+    } = {};
+
+    const getOrCreateGroup = (unitName: string) => {
+      let key = unitName || 'Unknown';
+      if (groupingMode === 'up3') {
+        key = getUP3ForUnit(unitName, masterUnitList);
+      }
+
+      if (!groups[key]) {
+        groups[key] = {
+          name: key,
+          up3: groupingMode === 'up3' ? key : getUP3ForUnit(unitName, masterUnitList),
+          pelanggan: 0,
+          gardu: 0,
+          penyulangCount: 0,
+          frekuensiGangguan: 0,
+          durasiGangguan: 0,
+          spkSelesai: 0,
+          spkTotal: 0,
+          surveyTotal: 0,
+          surveyLayak: 0,
+          avgTegPangkalSum: 0,
+          avgTegPangkalCount: 0,
+          garduOverload: 0
+        };
+      }
+      return groups[key];
+    };
+
+    // 1. Aggregate Customers, Gardu, and Feeders from penyulangList
+    penyulangList.forEach(p => {
+      const unitName = p.unit || 'ULP Baguala';
+      const g = getOrCreateGroup(unitName);
+      g.pelanggan += p.jumlahPelanggan || 0;
+      g.gardu += p.jumlahGardu || 0;
+      g.penyulangCount += 1;
+    });
+
+    // 2. Aggregate Outages from gangguanList
+    gangguanList.forEach(g => {
+      const unitName = g.unit || 'ULP Baguala';
+      const group = getOrCreateGroup(unitName);
+      group.frekuensiGangguan += 1;
+      group.durasiGangguan += parseFloat(g.durasi) || 45;
+    });
+
+    // 3. Aggregate SPKs from spkList
+    spkList.forEach(s => {
+      const unitName = s.unit || 'ULP Baguala';
+      const group = getOrCreateGroup(unitName);
+      group.spkTotal += 1;
+      if (s.status === 'Selesai') {
+        group.spkSelesai += 1;
+      }
+    });
+
+    // 4. Aggregate Surveys from surveyList
+    surveyList.forEach(s => {
+      const unitName = s.unit || 'ULP Baguala';
+      const group = getOrCreateGroup(unitName);
+      group.surveyTotal += 1;
+      if (s.statusKelayakan === 'Layak Sambung' || s.statusKelayakan === 'Selesai Penyambungan') {
+        group.surveyLayak += 1;
+      }
+      if (s.tegPangkal && s.tegPangkal > 0) {
+        group.avgTegPangkalSum += s.tegPangkal;
+        group.avgTegPangkalCount += 1;
+      }
+    });
+
+    // 5. Aggregate Gardu Overloads from pengukuranList
+    pengukuranList.forEach(p => {
+      const unitName = p.unit || 'ULP Baguala';
+      const group = getOrCreateGroup(unitName);
+      const avgCurrent = (p.iRTotal + p.iSTotal + p.iTTotal) / 3;
+      const capacityKva = p.dayaKva || 100;
+      const calculatedLoadKva = (avgCurrent * 380 * 1.732 * 0.85) / 1000;
+      const loadPercent = capacityKva > 0 ? (calculatedLoadKva / capacityKva) * 100 : 0;
+      if (loadPercent > 80) {
+        group.garduOverload += 1;
+      }
+    });
+
+    // Handle edge case of completely empty database (inject mock items grouped by unit/up3 for gorgeous visual look)
+    const resultList = Object.values(groups);
+    if (resultList.length === 0 || resultList.every(r => r.pelanggan === 0 && r.frekuensiGangguan === 0)) {
+      const isOwner = isOwnerUser(currentUser);
+      const userUnit = currentUser?.unit || 'ULP Baguala';
+      const activeUnits = masterUnitList && masterUnitList.length > 0 
+        ? masterUnitList.map(m => m.ulp) 
+        : DAFTAR_UNIT_PLN.filter(u => u.tipe === 'ULP').map(u => u.namaUnit);
+
+      const filteredActiveUnits = isOwner ? activeUnits : activeUnits.filter(u => u === userUnit);
+      const uniqueKeys = new Set(filteredActiveUnits.map(u => groupingMode === 'up3' ? getUP3ForUnit(u, masterUnitList) : u));
+      return Array.from(uniqueKeys).map((key, index) => {
+        const seedValue = isOwner 
+          ? ([48500, 31200, 24500, 20300, 18500, 15000, 12000][index % 7] || 10000)
+          : 12450;
+        return {
+          name: key,
+          up3: groupingMode === 'up3' ? key : 'UP3 AMBON',
+          pelanggan: seedValue,
+          gardu: Math.round(seedValue / 100) || 50,
+          penyulangCount: Math.round(seedValue / 4000) || 3,
+          frekuensiGangguan: [18, 12, 10, 8, 5, 4, 2][index % 7] || 3,
+          durasiGangguan: [810, 540, 450, 360, 225, 180, 90][index % 7] || 120,
+          spkSelesai: [15, 10, 8, 6, 4, 3, 2][index % 7] || 2,
+          spkTotal: [20, 15, 12, 10, 6, 5, 3][index % 7] || 3,
+          surveyTotal: [12, 8, 6, 5, 3, 2, 1][index % 7] || 2,
+          surveyLayak: [8, 6, 4, 3, 2, 1, 1][index % 7] || 1,
+          avgTegPangkalSum: 218,
+          avgTegPangkalCount: 1,
+          garduOverload: [3, 2, 1, 1, 0, 0, 0][index % 7] || 0
+        };
+      });
+    }
+
+    return resultList.sort((a, b) => b.pelanggan - a.pelanggan);
+  }, [groupingMode, penyulangList, gangguanList, spkList, surveyList, pengukuranList, masterUnitList]);
 
   // Update local dashboard filter if prop changes
   React.useEffect(() => {
     setSelectedDashboardUlp(ownerSelectedUnitFilter);
   }, [ownerSelectedUnitFilter]);
 
+  const availableSections = useMemo(() => {
+    const sections = new Set<string>();
+    
+    // Extract from sectionList
+    sectionList.forEach(s => {
+       if (!selectedDashboardUlp || selectedDashboardUlp === 'SEMUA' || s.unit === selectedDashboardUlp) {
+           if (s.namaSection) sections.add(s.namaSection);
+       }
+    });
+
+    // Also extract from gangguanList
+    gangguanList.forEach(g => {
+       if (!selectedDashboardUlp || selectedDashboardUlp === 'SEMUA' || g.unit === selectedDashboardUlp) {
+           if (g.section && g.section.trim() !== '' && g.section.trim() !== '-') sections.add(g.section);
+       }
+    });
+    
+    return Array.from(sections).sort();
+  }, [sectionList, gangguanList, selectedDashboardUlp]);
+
   const filteredGangguanList = useMemo(() => {
     let list = gangguanList;
     if (selectedDashboardUlp !== 'SEMUA') {
         list = list.filter(g => g.unit === selectedDashboardUlp);
+    }
+    if (selectedDashboardSection !== 'SEMUA') {
+        list = list.filter(g => g.section === selectedDashboardSection);
     }
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
@@ -145,7 +337,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       );
     }
     return list;
-  }, [gangguanList, searchTerm, selectedDashboardUlp]);
+  }, [gangguanList, searchTerm, selectedDashboardUlp, selectedDashboardSection]);
 
   // Comparative data for all ULPs
   const comparativeStats = useMemo(() => {
@@ -195,9 +387,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [penyulangList, ownerSelectedUnitFilter]);
 
   const totalPelangganSistemOverall = useMemo(() => {
-    const count = allPenyulangList.reduce((acc, curr) => acc + (curr.jumlahPelanggan || 0), 0);
-    return count || 85250;
-  }, [allPenyulangList]);
+    const isOwner = isOwnerUser(currentUser);
+    const allowedList = isOwner 
+      ? allPenyulangList 
+      : allPenyulangList.filter(p => p.unit === (currentUser?.unit || 'ULP Baguala'));
+    const count = allowedList.reduce((acc, curr) => acc + (curr.jumlahPelanggan || 0), 0);
+    return count || (isOwner ? 85250 : 12450);
+  }, [allPenyulangList, currentUser]);
 
   const customerDistributionData = useMemo(() => {
     const data = penyulangList
@@ -214,12 +410,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       .sort((a, b) => b.pelanggan - a.pelanggan);
 
     if (data.length === 0) {
+      const u = currentUser?.unit || 'ULP Baguala';
       return [
-        { id: 'p_1', name: 'Penyulang Passo', pelanggan: 4850, panjangKms: 45.2, indeksSehat: 'Sehat', jumlahGardu: 38, unit: 'ULP Baguala' },
-        { id: 'p_2', name: 'Penyulang Hunuth', pelanggan: 3120, panjangKms: 32.8, indeksSehat: 'Sempurna', jumlahGardu: 25, unit: 'ULP Baguala' },
-        { id: 'p_3', name: 'Penyulang Tulehu', pelanggan: 2450, panjangKms: 28.5, indeksSehat: 'Sakit', jumlahGardu: 20, unit: 'ULP Baguala' },
-        { id: 'p_4', name: 'Penyulang Suli', pelanggan: 2030, panjangKms: 22.4, indeksSehat: 'Sehat', jumlahGardu: 15, unit: 'ULP Baguala' },
-        { id: 'p_5', name: 'Penyulang Waai', pelanggan: 1850, panjangKms: 18.2, indeksSehat: 'Kronis', jumlahGardu: 12, unit: 'ULP Baguala' }
+        { id: 'p_1', name: 'Penyulang Passo', pelanggan: 4850, panjangKms: 45.2, indeksSehat: 'Sehat', jumlahGardu: 38, unit: u },
+        { id: 'p_2', name: 'Penyulang Hunuth', pelanggan: 3120, panjangKms: 32.8, indeksSehat: 'Sempurna', jumlahGardu: 25, unit: u },
+        { id: 'p_3', name: 'Penyulang Tulehu', pelanggan: 2450, panjangKms: 28.5, indeksSehat: 'Sakit', jumlahGardu: 20, unit: u },
+        { id: 'p_4', name: 'Penyulang Suli', pelanggan: 2030, panjangKms: 22.4, indeksSehat: 'Sehat', jumlahGardu: 15, unit: u },
+        { id: 'p_5', name: 'Penyulang Waai', pelanggan: 1850, panjangKms: 18.2, indeksSehat: 'Kronis', jumlahGardu: 12, unit: u }
       ];
     }
     return data;
@@ -321,6 +518,42 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
     return result;
   }, [gangguanList, ownerSelectedUnitFilter]);
+
+  // Statistik Gangguan Per Bulan (Total per Bulan)
+  const monthlyOverallStats = useMemo(() => {
+    const monthCounts: Record<string, number> = {
+      'Jan': 0, 'Feb': 0, 'Mar': 0, 'Apr': 0, 'May': 0, 'Jun': 0,
+      'Jul': 0, 'Aug': 0, 'Sep': 0, 'Oct': 0, 'Nov': 0, 'Dec': 0
+    };
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    filteredGangguanList.forEach(g => {
+      try {
+        const date = new Date(g.waktuTrip);
+        if (!isNaN(date.getTime())) {
+          const m = months[date.getMonth()];
+          monthCounts[m] = (monthCounts[m] || 0) + 1;
+        }
+      } catch (e) {
+        // ignore
+      }
+    });
+
+    // Jika kosong, injeksi mock data untuk preview UI
+    if (filteredGangguanList.length === 0) {
+      return [
+        { month: 'Jan', total: 12 }, { month: 'Feb', total: 19 }, { month: 'Mar', total: 15 },
+        { month: 'Apr', total: 22 }, { month: 'May', total: 18 }, { month: 'Jun', total: 25 },
+        { month: 'Jul', total: 14 }, { month: 'Aug', total: 9 },  { month: 'Sep', total: 30 },
+        { month: 'Oct', total: 16 }, { month: 'Nov', total: 11 }, { month: 'Dec', total: 8 }
+      ];
+    }
+    
+    return months.map(month => ({
+      month,
+      total: monthCounts[month]
+    }));
+  }, [filteredGangguanList]);
 
   // 4. DASHBOARD PENGUKURAN GARDU DATA CALCULATIONS
   const garduMeasurementStats = useMemo(() => {
@@ -672,27 +905,55 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Control Bar: Filter ULP, Rentang & Cetak PDF / Print (Placed Below Header) */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 relative z-50">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Filter ULP (Custom Dropdown opens downwards) */}
+          {/* Filter ULP (Custom Dropdown locked for non-owner) */}
           <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-2.5 py-1 rounded-xl">
             <Filter className="w-3.5 h-3.5 text-teal-700 shrink-0" />
             <span className="text-[11px] font-extrabold text-teal-950 uppercase tracking-wider whitespace-nowrap">Filter ULP:</span>
+            {isOwnerUser(currentUser) ? (
+              <CustomDropdown
+                options={[
+                  { value: 'SEMUA', label: '🌐 Semua Unit ULP' },
+                  ...DAFTAR_UNIT_PLN.filter(u => u.tipe === 'ULP').map(u => ({
+                    value: u.namaUnit,
+                    label: u.namaUnit,
+                    subLabel: `Kode: ${u.kodeUnit}`,
+                    badge: u.kodeUnit
+                  }))
+                ]}
+                value={ownerSelectedUnitFilter}
+                onChange={(val) => onSelectUnitFilter && onSelectUnitFilter(val)}
+                variant="light"
+                searchable={true}
+                searchPlaceholder="Cari ULP..."
+                placeholder="Semua Unit ULP"
+                buttonClassName="py-1 px-2.5 bg-white text-slate-900 border-slate-300 text-xs font-bold min-w-[170px]"
+              />
+            ) : (
+              <div className="py-1 px-2.5 bg-teal-50/50 text-teal-950 border border-teal-800/20 text-xs font-black rounded-lg flex items-center gap-1">
+                <span>🔒 {currentUser?.unit || 'ULP Baguala'}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Filter Section (Custom Dropdown) */}
+          <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-2.5 py-1 rounded-xl">
+            <Filter className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+            <span className="text-[11px] font-extrabold text-teal-950 uppercase tracking-wider whitespace-nowrap">Filter Section:</span>
             <CustomDropdown
               options={[
-                { value: 'SEMUA', label: '🌐 Semua Unit ULP' },
-                ...DAFTAR_UNIT_PLN.filter(u => u.tipe === 'ULP').map(u => ({
-                  value: u.namaUnit,
-                  label: u.namaUnit,
-                  subLabel: `Kode: ${u.kodeUnit}`,
-                  badge: u.kodeUnit
+                { value: 'SEMUA', label: '🌐 Semua Section' },
+                ...availableSections.map(s => ({
+                  value: s,
+                  label: s
                 }))
               ]}
-              value={ownerSelectedUnitFilter}
-              onChange={(val) => onSelectUnitFilter && onSelectUnitFilter(val)}
+              value={selectedDashboardSection}
+              onChange={(val) => setSelectedDashboardSection(val)}
               variant="light"
               searchable={true}
-              searchPlaceholder="Cari ULP..."
-              placeholder="Semua Unit ULP"
-              buttonClassName="py-1 px-2.5 bg-white text-slate-900 border-slate-300 text-xs font-bold min-w-[170px]"
+              searchPlaceholder="Cari Section..."
+              placeholder="Semua Section"
+              buttonClassName="py-1 px-2.5 bg-white text-slate-900 border-slate-300 text-xs font-bold min-w-[150px]"
             />
           </div>
 
@@ -711,6 +972,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               variant="light"
               placeholder="Pilih Rentang"
               buttonClassName="py-1 px-2.5 bg-white text-slate-900 border-slate-300 text-xs font-bold"
+            />
+          </div>
+
+          {/* Pengelompokan (Custom Dropdown opens downwards) */}
+          <div className="flex items-center gap-2 bg-teal-950/5 border border-teal-800/15 px-2.5 py-1 rounded-xl">
+            <Layers className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+            <span className="text-[11px] font-extrabold text-teal-950 uppercase tracking-wider whitespace-nowrap">Pengelompokan:</span>
+            <CustomDropdown
+              options={[
+                { value: 'none', label: '❌ Tanpa Pengelompokan' },
+                { value: 'unit', label: '🏢 Per Unit (ULP)' },
+                { value: 'up3', label: '⚡ Per UP3 / Sektor' }
+              ]}
+              value={groupingMode}
+              onChange={(val) => setGroupingMode(val as any)}
+              variant="light"
+              placeholder="Pilih Grouping"
+              buttonClassName="py-1 px-2.5 bg-white text-slate-900 border-slate-300 text-xs font-bold min-w-[150px]"
             />
           </div>
         </div>
@@ -732,11 +1011,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4" 
+        className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4" 
         id="main_summary_counter_grid"
       >
         {[
-          { label: 'Total Pelanggan', value: totalPelanggan.toLocaleString(), desc: 'Pelanggan Tersambung', icon: UserCheck, color: 'text-teal-600 bg-teal-50 border-teal-200' },
           { label: 'Total Gardu', value: (sectionList.length || (ownerSelectedUnitFilter === 'SEMUA' ? 150 : 0)).toLocaleString(), desc: 'Gardu Distribusi Aktif', icon: Layers, color: 'text-blue-600 bg-blue-50 border-blue-200' },
           { label: 'Total Penyulang', value: (penyulangList.length || (ownerSelectedUnitFilter === 'SEMUA' ? 24 : 0)).toLocaleString(), desc: 'Feeder SUTM 20kV', icon: Zap, color: 'text-amber-600 bg-amber-50 border-amber-200' },
           { label: 'Yantek SPK Harian', value: yantekPerformanceStats.totalSpk.toString(), desc: 'Penanganan Terbit', icon: Wrench, color: 'text-purple-600 bg-purple-50 border-purple-200' },
@@ -794,173 +1072,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* TAB 0: DASHBOARD RINGKASAN EKSEKUTIF */}
         {activeTab === 'executive' && (
           <div className="space-y-6 animate-fade-in" id="dashboard_ringkasan_eksekutif">
-            
-            {/* KPI Executive row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              
-              {/* Grand Total Systems Customers */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-20 h-20 bg-teal-500/5 rounded-full pointer-events-none" />
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase text-teal-600 tracking-wider">Pelanggan Sistem (Overall)</span>
-                  <h3 className="text-2xl font-black text-slate-800 leading-none">{totalPelangganSistemOverall.toLocaleString()}</h3>
-                  <p className="text-[10px] text-slate-400 mt-1 font-bold">Total seluruh ULP di bawah UP3</p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
-                  <span>Kontribusi UP3 Ambon</span>
-                  <span className="text-teal-600">100% Total</span>
-                </div>
+
+            {/* Visualisasi Statistik Gangguan Per Bulan (Total) */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="mb-4">
+                <h3 className="text-sm font-black text-slate-800">Statistik Gangguan per Bulan</h3>
+                <p className="text-[10px] text-slate-500">Tren akumulasi total gangguan jaringan per bulan (Filter ULP: {selectedDashboardUlp === 'SEMUA' ? 'Semua ULP' : selectedDashboardUlp} | Section: {selectedDashboardSection === 'SEMUA' ? 'Semua Section' : selectedDashboardSection})</p>
               </div>
-
-              {/* Selected Unit Total Customers */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-20 h-20 bg-blue-500/5 rounded-full pointer-events-none" />
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Pelanggan Unit Terpilih</span>
-                  <h3 className="text-2xl font-black text-slate-800 leading-none">{totalPelanggan.toLocaleString()}</h3>
-                  <p className="text-[10px] text-slate-400 mt-1 font-bold">Total pelanggan pada ULP terpilih</p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
-                  <span>Kontribusi ke Sistem</span>
-                  <span className="text-blue-600">
-                    {totalPelangganSistemOverall > 0 
-                      ? ((totalPelanggan / totalPelangganSistemOverall) * 100).toFixed(1) 
-                      : '0.0'}%
-                  </span>
-                </div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={monthlyOverallStats}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10, fill: '#64748b' }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                    />
+                    <Tooltip 
+                      contentStyle={{ fontSize: '11px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                      formatter={(val: number) => [`${val} Kali`, 'Total Gangguan']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="total" 
+                      stroke="#ef4444" 
+                      strokeWidth={3}
+                      fillOpacity={1} 
+                      fill="url(#colorTotal)" 
+                      activeDot={{ r: 6, strokeWidth: 0, fill: '#ef4444' }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-
-              {/* Total Penyulang / Feeders */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-20 h-20 bg-amber-500/5 rounded-full pointer-events-none" />
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Total Penyulang SUTM</span>
-                  <h3 className="text-2xl font-black text-slate-800 leading-none">{customerDistributionData.length} Feeder</h3>
-                  <p className="text-[10px] text-slate-400 mt-1 font-bold">Penyulang aktif termonitor</p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
-                  <span>Panjang SUTM Total</span>
-                  <span className="text-amber-600">
-                    {customerDistributionData.reduce((acc, curr) => acc + curr.panjangKms, 0).toFixed(1)} Kms
-                  </span>
-                </div>
-              </div>
-
-              {/* Density Ratio */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-20 h-20 bg-rose-500/5 rounded-full pointer-events-none" />
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase text-rose-600 tracking-wider">Kepadatan Pelanggan</span>
-                  <h3 className="text-2xl font-black text-slate-800 leading-none">
-                    {customerDistributionData.length > 0 
-                      ? Math.round(totalPelanggan / customerDistributionData.length).toLocaleString() 
-                      : '0'}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 mt-1 font-bold">Rata-rata pelanggan per feeder</p>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500">
-                  <span>Rasio Kepadatan</span>
-                  <span className="text-rose-600">Sangat Tinggi</span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Visual Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              
-              {/* Customer count per feeder visual chart */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs lg:col-span-2 flex flex-col justify-between space-y-4">
-                <div>
-                  <h3 className="text-sm font-black text-slate-800">Visualisasi Jumlah Pelanggan per Penyulang SUTM 20kV</h3>
-                  <p className="text-[10px] text-slate-500">Perbandingan kapasitas beban pelanggan tersambung antar penyulang</p>
-                </div>
-
-                <div className="h-80 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={customerDistributionData}
-                      margin={{ top: 20, right: 10, left: -20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis 
-                        dataKey="name" 
-                        tick={{ fontSize: 9, fill: '#475569', fontWeight: 'bold' }} 
-                        axisLine={false} 
-                        tickLine={false} 
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 9, fill: '#475569' }} 
-                        axisLine={false} 
-                        tickLine={false} 
-                      />
-                      <Tooltip 
-                        contentStyle={{ fontSize: '10px', borderRadius: '8px' }} 
-                        formatter={(val) => [`${Number(val).toLocaleString()} Pelanggan`, 'Pelanggan']}
-                      />
-                      <Bar dataKey="pelanggan" fill="#0d9488" radius={[6, 6, 0, 0]} barSize={35}>
-                        {customerDistributionData.map((entry, index) => {
-                          const colors = ['#0d9488', '#0f766e', '#14b8a6', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
-                          return <Cell key={`cell-bar-${index}`} fill={colors[index % colors.length]} />;
-                        })}
-                        <LabelList 
-                          dataKey="pelanggan" 
-                          position="top" 
-                          formatter={(val: number) => val >= 1000 ? `${(val/1000).toFixed(1)}k` : val} 
-                          style={{ fontSize: 9, fill: '#475569', fontWeight: 'extrabold' }} 
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Pie Chart Representation */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-4">
-                <div>
-                  <h3 className="text-sm font-black text-slate-800">Proporsi Kepadatan Pelanggan</h3>
-                  <p className="text-[10px] text-slate-500">Distribusi persentase sebaran pelanggan di sistem</p>
-                </div>
-
-                <div className="h-64 w-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={customerDistributionData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
-                        paddingAngle={3}
-                        dataKey="pelanggan"
-                      >
-                        {customerDistributionData.map((entry, index) => {
-                          const colors = ['#0f766e', '#0d9488', '#14b8a6', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
-                          return <Cell key={`cell-exec-pie-${index}`} fill={colors[index % colors.length]} />;
-                        })}
-                      </Pie>
-                      <Tooltip formatter={(val) => [`${Number(val).toLocaleString()} Pelanggan`, 'Jumlah']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                  {customerDistributionData.map((item, idx) => {
-                    const pct = totalPelanggan > 0 ? ((item.pelanggan / totalPelanggan) * 100).toFixed(1) : '0';
-                    const colors = ['#0f766e', '#0d9488', '#14b8a6', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
-                    return (
-                      <div key={idx} className="flex items-center justify-between text-[11px] font-bold">
-                        <div className="flex items-center gap-1.5 text-slate-600 truncate">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colors[idx % colors.length] }}></span>
-                          <span className="truncate">{item.name}</span>
-                        </div>
-                        <span className="font-black text-slate-900 shrink-0">{pct}%</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
             </div>
 
             {/* Ringkasan Grafik Batang Gangguan per Bulan Berdasarkan Kategori Gangguan */}
@@ -983,130 +1141,87 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             />
 
             {/* Interactive Grid Table of Feeders */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
-              <div>
-                <h3 className="text-sm font-black text-slate-800">Daftar Kepadatan &amp; Detail Konstruksi per Penyulang</h3>
-                <p className="text-[10px] text-slate-500">Klik baris penyulang untuk menampilkan rincian pelanggan per section jaringan di bawahnya</p>
-              </div>
+            {groupingMode !== 'none' && (
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">
+                    Laporan Analisis Performa per Wilayah Kerja ({groupingMode === 'up3' ? 'UP3 / Sektor' : 'ULP'})
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    Menampilkan agregasi keandalan, beban pelanggan, gardu, pembebanan, dan efisiensi pelayanan teknik per wilayah
+                  </p>
+                </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px]">
-                      <th className="p-3">Nama Penyulang (Feeder)</th>
-                      <th className="p-3 text-right">Jumlah Pelanggan</th>
-                      <th className="p-3 text-center">Proporsi Unit</th>
-                      <th className="p-3 text-center">Panjang Jaringan</th>
-                      <th className="p-3 text-center">Jumlah Gardu</th>
-                      <th className="p-3">Indeks Keandalan</th>
-                      <th className="p-3 text-center">Kepadatan Visual</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customerDistributionData.map((item, idx) => {
-                      const pct = totalPelanggan > 0 ? ((item.pelanggan / totalPelanggan) * 100).toFixed(1) : '0';
-                      const maxPelanggan = Math.max(...customerDistributionData.map(d => d.pelanggan));
-                      const relativeDensity = maxPelanggan > 0 ? (item.pelanggan / maxPelanggan) * 100 : 0;
-                      
-                      let indexColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                      if (item.indeksSehat === 'Kronis' || item.indeksSehat === 'Sakit') {
-                        indexColor = 'bg-rose-50 text-rose-700 border-rose-200';
-                      } else if (item.indeksSehat === 'Sehat') {
-                        indexColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                      }
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px]">
+                        <th className="p-3">Nama Wilayah Kerja ({groupingMode === 'up3' ? 'UP3' : 'ULP'})</th>
+                        <th className="p-3 text-right">Jumlah Pelanggan</th>
+                        <th className="p-3 text-center">Proporsi Beban</th>
+                        <th className="p-3 text-center">Jumlah Gardu</th>
+                        <th className="p-3 text-center">Jumlah Penyulang</th>
+                        <th className="p-3 text-center">Frekuensi Trip</th>
+                        <th className="p-3 text-center">Total Durasi Padam</th>
+                        <th className="p-3 text-center">Gardu Overload</th>
+                        <th className="p-3 text-center">Kinerja SPK Yantek</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupedPerformanceData.map((item, idx) => {
+                        const sumPelanggan = groupedPerformanceData.reduce((acc, curr) => acc + curr.pelanggan, 0);
+                        const pct = sumPelanggan > 0 ? ((item.pelanggan / sumPelanggan) * 100).toFixed(1) : '0';
+                        
+                        let tripColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+                        if (item.frekuensiGangguan >= 15) {
+                          tripColor = 'text-rose-700 bg-rose-50 border-rose-200';
+                        } else if (item.frekuensiGangguan >= 8) {
+                          tripColor = 'text-amber-700 bg-amber-50 border-amber-200';
+                        }
 
-                      const isSelected = selectedFeederForSections === item.name;
+                        const spkPct = item.spkTotal > 0 ? Math.round((item.spkSelesai / item.spkTotal) * 100) : 100;
 
-                      return (
-                        <React.Fragment key={`exec-feeder-row-${idx}`}>
-                          <tr 
-                            onClick={() => setSelectedFeederForSections(isSelected ? null : item.name)}
-                            className={`border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer ${
-                              isSelected ? 'bg-slate-50/70 font-black' : ''
-                            }`}
-                          >
+                        return (
+                          <tr key={`exec-group-row-${idx}`} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                             <td className="p-3 font-extrabold text-slate-800 flex items-center gap-2">
-                              <span className="text-teal-600">⚡</span>
+                              <span className="text-teal-600">🏢</span>
                               <span>{item.name}</span>
-                              {isSelected ? (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-100 text-teal-800 uppercase font-black tracking-wider shrink-0">Aktif</span>
-                              ) : (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase font-bold shrink-0">Detail</span>
-                              )}
                             </td>
                             <td className="p-3 text-right font-black text-slate-800">{item.pelanggan.toLocaleString()}</td>
                             <td className="p-3 text-center font-bold text-slate-500">{pct}%</td>
-                            <td className="p-3 text-center font-bold text-slate-600">{item.panjangKms} Kms</td>
-                            <td className="p-3 text-center font-bold text-slate-600">{item.jumlahGardu} Gardu</td>
-                            <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${indexColor}`}>
-                                {item.indeksSehat}
+                            <td className="p-3 text-center font-bold text-slate-600">{item.gardu} Gardu</td>
+                            <td className="p-3 text-center font-bold text-slate-600">{item.penyulangCount} Feeder</td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${tripColor}`}>
+                                {item.frekuensiGangguan} Trip
                               </span>
                             </td>
-                            <td className="p-3">
-                              <div className="flex items-center gap-2 justify-center">
-                                <div className="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                  <div 
-                                    className="bg-gradient-to-r from-teal-500 to-emerald-500 h-1.5 rounded-full" 
-                                    style={{ width: `${relativeDensity}%` }}
-                                  ></div>
-                                </div>
-                                <span className="text-[10px] font-mono font-bold text-slate-400">{Math.round(relativeDensity)}%</span>
+                            <td className="p-3 text-center font-bold text-slate-600">
+                              {Math.round(item.durasiGangguan)} Menit
+                            </td>
+                            <td className="p-3 text-center">
+                              {item.garduOverload > 0 ? (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                  ⚠️ {item.garduOverload} Gardu
+                                </span>
+                              ) : (
+                                <span className="text-emerald-600 font-bold">✓ Aman</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-bold text-slate-700 text-[11px]">{item.spkSelesai} / {item.spkTotal} SPK</span>
+                                <span className="text-[9px] text-teal-600 font-black">({spkPct}%)</span>
                               </div>
                             </td>
                           </tr>
-
-                          {/* Expanded Section detail table */}
-                          {isSelected && (
-                            <tr className="bg-slate-50/40">
-                              <td colSpan={7} className="p-4 border-b border-slate-200">
-                                <div className="space-y-3 pl-6 pr-6 py-2 border-l-4 border-teal-500 bg-white rounded-r-xl shadow-xs p-4">
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="text-xs font-black text-teal-950 uppercase tracking-wider flex items-center gap-1.5">
-                                      <span>Rincian Section Jaringan (Feeder {item.name})</span>
-                                    </h4>
-                                    <button 
-                                      onClick={() => setSelectedFeederForSections(null)}
-                                      className="text-slate-400 hover:text-slate-600 font-extrabold text-xs"
-                                    >
-                                      Tutup Detail
-                                    </button>
-                                  </div>
-
-                                  {sectionsForSelectedFeeder.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                      {sectionsForSelectedFeeder.map((section, sIdx) => {
-                                        const secPct = item.pelanggan > 0 ? ((section.pelanggan / item.pelanggan) * 100).toFixed(1) : '0';
-                                        return (
-                                          <div key={sIdx} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center shadow-2xs">
-                                            <div>
-                                              <p className="text-xs font-extrabold text-slate-800">{section.name}</p>
-                                              <p className="text-[9px] text-slate-400 font-bold mt-0.5">Sistem Operasi: {section.sistemOperasi}</p>
-                                            </div>
-                                            <div className="text-right">
-                                              <p className="text-xs font-black text-teal-700">{section.pelanggan.toLocaleString()}</p>
-                                              <p className="text-[9px] text-slate-400 font-bold mt-0.5">{secPct}% beban</p>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <div className="text-center py-4 text-xs font-bold text-slate-400">
-                                      ⚠️ Tidak ada rincian section terdaftar untuk penyulang ini.
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
         )}
@@ -1156,17 +1271,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Center Column: Summary Cards of Feeders */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-4 lg:col-span-2">
                 <div>
-                  <h3 className="text-sm font-black text-slate-800">Peringkat Kerawanan Feeder SUTM</h3>
-                  <p className="text-[10px] text-slate-500">Feeder dengan tingkat kejadian trip teratas pada sistem 20kV</p>
+                  <h3 className="text-sm font-black text-slate-800">
+                    {groupingMode !== 'none' ? 'Peringkat Kerawanan Jaringan per Wilayah Kerja' : 'Peringkat Kerawanan Feeder SUTM'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    {groupingMode !== 'none' ? 'Tingkat kejadian trip teratas pada wilayah kerja' : 'Feeder dengan tingkat kejadian trip teratas pada sistem 20kV'}
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {gangguanPangkalStats.slice(0, 6).map((feeder, fIdx) => (
-                    <div key={fIdx} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-                      <div className="text-xs font-bold text-slate-700 truncate" title={feeder.name}>{feeder.name}</div>
-                      <div className="text-lg font-black text-teal-800 mt-1">{feeder.jumlahGangguan} Trip</div>
-                      <div className="text-[10px] text-slate-500 font-medium">{feeder.totalDurasiMenit} m / {feeder.arusMaksimum}A</div>
-                    </div>
-                  ))}
+                  {groupingMode !== 'none' ? (
+                    groupedPerformanceData.slice(0, 6).map((unit, uIdx) => (
+                      <div key={uIdx} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                        <div className="text-xs font-bold text-slate-700 truncate" title={unit.name}>{unit.name}</div>
+                        <div className="text-lg font-black text-rose-800 mt-1">{unit.frekuensiGangguan} Trip</div>
+                        <div className="text-[10px] text-slate-500 font-medium">{Math.round(unit.durasiGangguan)} Menit Padam</div>
+                      </div>
+                    ))
+                  ) : (
+                    gangguanPangkalStats.slice(0, 6).map((feeder, fIdx) => (
+                      <div key={fIdx} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                        <div className="text-xs font-bold text-slate-700 truncate" title={feeder.name}>{feeder.name}</div>
+                        <div className="text-lg font-black text-teal-800 mt-1">{feeder.jumlahGangguan} Trip</div>
+                        <div className="text-[10px] text-slate-500 font-medium">{feeder.totalDurasiMenit} m / {feeder.arusMaksimum}A</div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -1174,45 +1303,83 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Outage Pangkal Summary Table */}
             <div className="bg-[#022e2a]/80 p-5 rounded-2xl border border-teal-500/30 backdrop-blur-md shadow-lg">
-              <h3 className="text-sm font-black text-white mb-4 tracking-wider uppercase drop-shadow-xs">Daftar Frekuensi Trip &amp; Durasi Pemulihan Feeder</h3>
+              <h3 className="text-sm font-black text-white mb-4 tracking-wider uppercase drop-shadow-xs">
+                {groupingMode !== 'none' 
+                  ? `Daftar Frekuensi Trip & Durasi Pemulihan per Wilayah Kerja (${groupingMode === 'up3' ? 'UP3' : 'ULP'})` 
+                  : 'Daftar Frekuensi Trip & Durasi Pemulihan Feeder'}
+              </h3>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-teal-700 bg-[#01221f] text-white font-extrabold uppercase text-[11px]">
-                      <th className="p-3 text-white">Nama Penyulang (Feeder)</th>
+                      <th className="p-3 text-white">
+                        {groupingMode !== 'none' ? `Wilayah Kerja (${groupingMode === 'up3' ? 'UP3' : 'ULP'})` : 'Nama Penyulang (Feeder)'}
+                      </th>
                       <th className="p-3 text-center text-white">Jumlah Outage (Trip)</th>
                       <th className="p-3 text-center text-white">Total Durasi Padam</th>
-                      <th className="p-3 text-center text-white">Arus Gangguan Maksimum</th>
+                      <th className="p-3 text-center text-white">
+                        {groupingMode !== 'none' ? 'Rata-Rata Durasi Per Trip' : 'Arus Gangguan Maksimum'}
+                      </th>
                       <th className="p-3 text-white">Status Kerawanan</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {gangguanPangkalStats.filter(item => !selectedFeeder || item.name === selectedFeeder).map((item, idx) => {
-                      let kerawanan = 'RENDAH';
-                      let color = 'text-emerald-300 bg-emerald-950/80 border-emerald-500/50 font-black';
-                      if (item.jumlahGangguan >= 7) {
-                        kerawanan = 'KRITIS / TINGGI';
-                        color = 'text-rose-200 bg-rose-950/80 border-rose-500/50 font-black';
-                      } else if (item.jumlahGangguan >= 4) {
-                        kerawanan = 'SEDANG';
-                        color = 'text-amber-200 bg-amber-950/80 border-amber-500/50 font-black';
-                      }
+                    {groupingMode !== 'none' ? (
+                      groupedPerformanceData.map((item, idx) => {
+                        let kerawanan = 'RENDAH';
+                        let color = 'text-emerald-300 bg-emerald-950/80 border-emerald-500/50 font-black';
+                        if (item.frekuensiGangguan >= 15) {
+                          kerawanan = 'KRITIS / TINGGI';
+                          color = 'text-rose-200 bg-rose-950/80 border-rose-500/50 font-black';
+                        } else if (item.frekuensiGangguan >= 8) {
+                          kerawanan = 'SEDANG';
+                          color = 'text-amber-200 bg-amber-950/80 border-amber-500/50 font-black';
+                        }
 
-                      return (
-                        <tr key={idx} className="border-b border-teal-800/60 hover:bg-teal-900/40 transition-colors">
-                          <td className="p-3 font-extrabold text-white">{item.name}</td>
-                          <td className="p-3 text-center font-black text-white">{item.jumlahGangguan} kali</td>
-                          <td className="p-3 text-center font-bold text-white">{item.totalDurasiMenit} Menit</td>
-                          <td className="p-3 text-center font-mono font-bold text-white">{item.arusMaksimum} Ampere</td>
-                          <td className="p-3">
-                            <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider border shadow-xs ${color}`}>
-                              {kerawanan}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                        const avgDuration = item.frekuensiGangguan > 0 ? Math.round(item.durasiGangguan / item.frekuensiGangguan) : 0;
+
+                        return (
+                          <tr key={idx} className="border-b border-teal-800/60 hover:bg-teal-900/40 transition-colors">
+                            <td className="p-3 font-extrabold text-white">{item.name}</td>
+                            <td className="p-3 text-center font-black text-white">{item.frekuensiGangguan} kali</td>
+                            <td className="p-3 text-center font-bold text-white">{Math.round(item.durasiGangguan)} Menit</td>
+                            <td className="p-3 text-center font-mono font-bold text-white">{avgDuration} Menit / Trip</td>
+                            <td className="p-3">
+                              <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider border shadow-xs ${color}`}>
+                                {kerawanan}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      gangguanPangkalStats.filter(item => !selectedFeeder || item.name === selectedFeeder).map((item, idx) => {
+                        let kerawanan = 'RENDAH';
+                        let color = 'text-emerald-300 bg-emerald-950/80 border-emerald-500/50 font-black';
+                        if (item.jumlahGangguan >= 7) {
+                          kerawanan = 'KRITIS / TINGGI';
+                          color = 'text-rose-200 bg-rose-950/80 border-rose-500/50 font-black';
+                        } else if (item.jumlahGangguan >= 4) {
+                          kerawanan = 'SEDANG';
+                          color = 'text-amber-200 bg-amber-950/80 border-amber-500/50 font-black';
+                        }
+
+                        return (
+                          <tr key={idx} className="border-b border-teal-800/60 hover:bg-teal-900/40 transition-colors">
+                            <td className="p-3 font-extrabold text-white">{item.name}</td>
+                            <td className="p-3 text-center font-black text-white">{item.jumlahGangguan} kali</td>
+                            <td className="p-3 text-center font-bold text-white">{item.totalDurasiMenit} Menit</td>
+                            <td className="p-3 text-center font-mono font-bold text-white">{item.arusMaksimum} Ampere</td>
+                            <td className="p-3">
+                              <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider border shadow-xs ${color}`}>
+                                {kerawanan}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1379,34 +1546,67 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Right Column: Gardu Kritis Overload */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs lg:col-span-2 flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-black text-slate-800">5 Gardu dengan Pembebanan Tertinggi / Overload</h3>
-                  <p className="text-[10px] text-slate-500">Daftar gardu yang membutuhkan penyeimbangan beban fasa atau up-rating kapasitas daya kVA</p>
+                  <h3 className="text-sm font-black text-slate-800">
+                    {groupingMode !== 'none'
+                      ? (groupingMode === 'up3' ? 'Jumlah Gardu Overload per UP3 / Sektor' : 'Jumlah Gardu Overload per Unit (ULP)')
+                      : '5 Gardu dengan Pembebanan Tertinggi / Overload'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    {groupingMode !== 'none'
+                      ? 'Perbandingan kuantitas trafo distribusi overload (>80%) per wilayah kerja'
+                      : 'Daftar gardu yang membutuhkan penyeimbangan beban fasa atau up-rating kapasitas daya kVA'}
+                  </p>
                 </div>
 
                 <div className="space-y-2 flex-1">
-                  {garduMeasurementStats.criticalGardus.map((gardu, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50/50">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-extrabold text-slate-800">Gardu {gardu.noGardu}</span>
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-mono font-bold text-slate-600 border border-slate-200">
-                            {gardu.dayaKva} kVA
-                          </span>
+                  {groupingMode !== 'none' ? (
+                    groupedPerformanceData.map((unit, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50/50">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-extrabold text-slate-800">{unit.name}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-mono font-bold text-slate-600 border border-slate-200">
+                              Total: {unit.gardu} Gardu
+                            </span>
+                          </div>
+                          <p className="text-[9px] text-slate-400 mt-0.5">Wilayah Kerja: {unit.up3}</p>
                         </div>
-                        <p className="text-[9px] text-slate-400 mt-0.5">Arus Netral: {gardu.neutralCurrent} A • Imbalance: {gardu.diffPercent}%</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-black text-rose-600">{gardu.loadPercent}% Load</span>
-                        <div className="w-24 bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
-                          <div 
-                            className="bg-rose-500 h-1.5 rounded-full" 
-                            style={{ width: `${Math.min(100, gardu.loadPercent)}%` }}
-                          ></div>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-rose-600">{unit.garduOverload} Overload</span>
+                          <div className="w-24 bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
+                            <div 
+                              className="bg-rose-500 h-1.5 rounded-full" 
+                              style={{ width: `${unit.gardu > 0 ? Math.min(100, (unit.garduOverload / unit.gardu) * 100) : 0}%` }}
+                            ></div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {garduMeasurementStats.criticalGardus.length === 0 && (
+                    ))
+                  ) : (
+                    garduMeasurementStats.criticalGardus.map((gardu, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50/50">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-extrabold text-slate-800">Gardu {gardu.noGardu}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[9px] font-mono font-bold text-slate-600 border border-slate-200">
+                              {gardu.dayaKva} kVA
+                            </span>
+                          </div>
+                          <p className="text-[9px] text-slate-400 mt-0.5">Arus Netral: {gardu.neutralCurrent} A • Imbalance: {gardu.diffPercent}%</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-rose-600">{gardu.loadPercent}% Load</span>
+                          <div className="w-24 bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
+                            <div 
+                              className="bg-rose-500 h-1.5 rounded-full" 
+                              style={{ width: `${Math.min(100, gardu.loadPercent)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {groupingMode === 'none' && garduMeasurementStats.criticalGardus.length === 0 && (
                     <div className="h-full flex flex-col justify-center items-center py-8 text-slate-400 font-bold">
                       <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-2" />
                       <p className="text-xs">Hebat! Tidak ada Gardu Overload terdeteksi di Unit ini</p>
@@ -1435,21 +1635,42 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Left Column: Progress status */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-black text-slate-800">Penyelesaian Surat Perintah Kerja (SPK)</h3>
-                  <p className="text-[10px] text-slate-500">Realisasi penugasan tim pemeliharaan preventif &amp; gangguan</p>
+                  <h3 className="text-sm font-black text-slate-800">
+                    {groupingMode !== 'none'
+                      ? (groupingMode === 'up3' ? 'Penyelesaian SPK per UP3 / Sektor' : 'Penyelesaian SPK per Unit (ULP)')
+                      : 'Penyelesaian Surat Perintah Kerja (SPK)'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    {groupingMode !== 'none'
+                      ? 'Perbandingan SPK selesai vs rencana per wilayah kerja'
+                      : 'Realisasi penugasan tim pemeliharaan preventif & gangguan'}
+                  </p>
                 </div>
 
                 <div className="h-44 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={yantekPerformanceStats.spkChartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                    <BarChart 
+                      data={groupingMode !== 'none'
+                        ? groupedPerformanceData.map(u => ({ name: u.name, 'Selesai': u.spkSelesai, 'Total': u.spkTotal }))
+                        : yantekPerformanceStats.spkChartData
+                      } 
+                      margin={{ top: 5, right: 10, left: -25, bottom: 0 }}
+                    >
                       <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#64748b', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={{ fontSize: '10px', borderRadius: '8px' }} />
-                      <Bar dataKey="Jumlah" fill="#8b5cf6" radius={[4, 4, 0, 0]}>
-                        <Cell fill="#10b981" />
-                        <Cell fill="#f59e0b" />
-                        <Cell fill="#64748b" />
-                      </Bar>
+                      {groupingMode !== 'none' ? (
+                        <>
+                          <Bar dataKey="Selesai" fill="#10b981" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="Total" fill="#64748b" radius={[4, 4, 0, 0]} />
+                        </>
+                      ) : (
+                        <Bar dataKey="Jumlah" fill="#8b5cf6" radius={[4, 4, 0, 0]}>
+                          <Cell fill="#10b981" />
+                          <Cell fill="#f59e0b" />
+                          <Cell fill="#64748b" />
+                        </Bar>
+                      )}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1466,27 +1687,51 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Center & Right Column: Team Workload */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs lg:col-span-2 flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-black text-slate-800">Status Tindak Lanjut Gangguan Lapangan</h3>
-                  <p className="text-[10px] text-slate-500">Melihat status antrean aduan gangguan listrik terintegrasi</p>
+                  <h3 className="text-sm font-black text-slate-800">
+                    {groupingMode !== 'none' ? 'Kinerja Tindak Lanjut Gangguan per Wilayah' : 'Status Tindak Lanjut Gangguan Lapangan'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    {groupingMode !== 'none' ? 'Monitoring realisasi SPK dan laporan padam per wilayah kerja' : 'Melihat status antrean aduan gangguan listrik terintegrasi'}
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-auto">
-                  <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-center">
-                    <p className="text-[10px] font-extrabold text-rose-500 uppercase tracking-wider">Total Aduan</p>
-                    <p className="text-3xl font-black text-rose-900 mt-1">{yantekPerformanceStats.totalGangguan}</p>
-                    <p className="text-[9px] text-rose-400 mt-1">Laporan Gangguan Masuk</p>
+                {groupingMode !== 'none' ? (
+                  <div className="space-y-2 flex-1 max-h-[180px] overflow-y-auto pr-1">
+                    {groupedPerformanceData.map((unit, idx) => {
+                      const pct = unit.spkTotal > 0 ? Math.round((unit.spkSelesai / unit.spkTotal) * 100) : 100;
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50/50">
+                          <div>
+                            <span className="text-xs font-extrabold text-slate-800">{unit.name}</span>
+                            <p className="text-[9px] text-slate-400 mt-0.5">Total Aduan Trip: {unit.frekuensiGangguan} • Durasi: {Math.round(unit.durasiGangguan)}m</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-black text-emerald-600">{pct}% SPK Selesai</span>
+                            <p className="text-[9px] text-slate-400 mt-0.5">{unit.spkSelesai} dari {unit.spkTotal} SPK</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-center">
-                    <p className="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">Dalam Penanganan</p>
-                    <p className="text-3xl font-black text-amber-900 mt-1">{yantekPerformanceStats.pendingGangguan}</p>
-                    <p className="text-[9px] text-amber-400 mt-1">Petugas Menuju Lokasi</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-auto">
+                    <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-center">
+                      <p className="text-[10px] font-extrabold text-rose-500 uppercase tracking-wider">Total Aduan</p>
+                      <p className="text-3xl font-black text-rose-900 mt-1">{yantekPerformanceStats.totalGangguan}</p>
+                      <p className="text-[9px] text-rose-400 mt-1">Laporan Gangguan Masuk</p>
+                    </div>
+                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-center">
+                      <p className="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">Dalam Penanganan</p>
+                      <p className="text-3xl font-black text-amber-900 mt-1">{yantekPerformanceStats.pendingGangguan}</p>
+                      <p className="text-[9px] text-amber-400 mt-1">Petugas Menuju Lokasi</p>
+                    </div>
+                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
+                      <p className="text-[10px] font-extrabold text-emerald-500 uppercase tracking-wider">Selesai Normal</p>
+                      <p className="text-3xl font-black text-emerald-900 mt-1">{yantekPerformanceStats.selesaiGangguan}</p>
+                      <p className="text-[9px] text-emerald-400 mt-1">Jaringan Pulih Normal</p>
+                    </div>
                   </div>
-                  <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
-                    <p className="text-[10px] font-extrabold text-emerald-500 uppercase tracking-wider">Selesai Normal</p>
-                    <p className="text-3xl font-black text-emerald-900 mt-1">{yantekPerformanceStats.selesaiGangguan}</p>
-                    <p className="text-[9px] text-emerald-400 mt-1">Jaringan Pulih Normal</p>
-                  </div>
-                </div>
+                )}
 
                 <div className="flex flex-col sm:flex-row gap-2 mt-4">
                   <button
@@ -1518,29 +1763,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Left Column: PB vs PD Pie Chart */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-black text-slate-800">Proporsi Kategori Transaksi PB/PD</h3>
-                  <p className="text-[10px] text-slate-500">Pasang Baru (PB) vs Perubahan Daya (PD) Pelanggan</p>
+                  <h3 className="text-sm font-black text-slate-800">
+                    {groupingMode !== 'none'
+                      ? (groupingMode === 'up3' ? 'Kategori PB/PD per UP3 / Sektor' : 'Kategori PB/PD per Unit (ULP)')
+                      : 'Proporsi Kategori Transaksi PB/PD'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    {groupingMode !== 'none'
+                      ? 'Distribusi total survey layak vs rencana per wilayah kerja'
+                      : 'Pasang Baru (PB) vs Perubahan Daya (PD) Pelanggan'}
+                  </p>
                 </div>
 
                 <div className="h-44 w-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={surveyStatsData.pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={35}
-                        outerRadius={55}
-                        paddingAngle={3}
-                        dataKey="value"
+                  {groupingMode !== 'none' ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={groupedPerformanceData.map(u => ({ name: u.name, 'Total': u.surveyTotal, 'Layak': u.surveyLayak }))}
+                        margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
                       >
-                        {surveyStatsData.pieData.map((entry, index) => (
-                          <Cell key={`cell-survey-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ fontSize: '10px', borderRadius: '8px' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                        <XAxis dataKey="name" tick={{ fontSize: 8, fill: '#64748b', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 8, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ fontSize: '10px', borderRadius: '8px' }} />
+                        <Bar dataKey="Total" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="Layak" fill="#10b981" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={surveyStatsData.pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={35}
+                          outerRadius={55}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {surveyStatsData.pieData.map((entry, index) => (
+                            <Cell key={`cell-survey-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ fontSize: '10px', borderRadius: '8px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -1558,30 +1826,55 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {/* Right Column: Feasibility statuses */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs lg:col-span-2 flex flex-col justify-between space-y-4">
                 <div>
-                  <h3 className="text-sm font-black text-slate-800">Status Kelayakan Penyambungan Jaringan</h3>
-                  <p className="text-[10px] text-slate-500">Melihat hasil survey kelaikan teknis calon pelanggan baru</p>
+                  <h3 className="text-sm font-black text-slate-800">
+                    {groupingMode !== 'none' ? 'Kelayakan PB/PD per Wilayah Kerja' : 'Status Kelayakan Penyambungan Jaringan'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    {groupingMode !== 'none' ? 'Monitoring realisasi kelayakan survey PB/PD per wilayah kerja' : 'Melihat hasil survey kelaikan teknis calon pelanggan baru'}
+                  </p>
                 </div>
 
                 <div className="space-y-2 flex-1">
-                  {surveyStatsData.listStatus.map((status, idx) => {
-                    let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
-                    if (status.name === 'Layak Sambung' || status.name === 'Selesai Penyambungan') {
-                      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                    } else if (status.name === 'Drop Tegangan (Tidak Layak)') {
-                      badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-                    } else if (status.name.includes('WO Survey')) {
-                      badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
-                    }
+                  {groupingMode !== 'none' ? (
+                    groupedPerformanceData.map((unit, idx) => {
+                      const avgTeg = unit.avgTegPangkalCount > 0 
+                        ? Math.round(unit.avgTegPangkalSum / unit.avgTegPangkalCount) 
+                        : 218;
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100">
+                          <div>
+                            <span className="text-xs font-extrabold text-slate-800">{unit.name}</span>
+                            <p className="text-[9px] text-slate-400 mt-0.5">Rata-rata Tegangan Pangkal: {avgTeg}V</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                              {unit.surveyLayak} / {unit.surveyTotal} Layak
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    surveyStatsData.listStatus.map((status, idx) => {
+                      let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+                      if (status.name === 'Layak Sambung' || status.name === 'Selesai Penyambungan') {
+                        badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                      } else if (status.name === 'Drop Tegangan (Tidak Layak)') {
+                        badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+                      } else if (status.name.includes('WO Survey')) {
+                        badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                      }
 
-                    return (
-                      <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100">
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${badgeColor}`}>
-                          {status.name}
-                        </span>
-                        <span className="text-xs font-black text-slate-900">{status.value} Pemohon</span>
-                      </div>
-                    );
-                  })}
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100">
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${badgeColor}`}>
+                            {status.name}
+                          </span>
+                          <span className="text-xs font-black text-slate-900">{status.value} Pemohon</span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
 
                 <button

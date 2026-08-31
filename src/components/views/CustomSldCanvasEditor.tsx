@@ -805,26 +805,35 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
     showToast(`🗂️ ${itemName} dipindah ke ${actionText} [Layer: ${nextZ}]`);
   };
 
+  // Resolve selected element name
+  const selectedElementName = useMemo(() => {
+    if (!selectedElement) return '';
+    if (selectedElement.type === 'BUSBAR') {
+      return layout.busbars.find(b => b.id === selectedElement.id)?.name || 'Busbar';
+    } else if (selectedElement.type === 'LINE') {
+      return layout.lines.find(l => l.id === selectedElement.id)?.name || 'Line';
+    } else if (selectedElement.type === 'DEVICE') {
+      return layout.devices.find(d => d.id === selectedElement.id)?.name || 'Peralatan';
+    } else if (selectedElement.type === 'NODE') {
+      return layout.nodes.find(n => n.id === selectedElement.id)?.name || 'Gardu';
+    }
+    return '';
+  }, [selectedElement, layout]);
+
   // Sync selected element to parent MiniDccView for header layer toolbar
   useEffect(() => {
     if (onSelectedElementChange) {
       if (!selectedElement) {
         onSelectedElementChange(null);
       } else {
-        let name = selectedElement.type;
-        if (selectedElement.type === 'BUSBAR') {
-          name = layout.busbars.find(b => b.id === selectedElement.id)?.name || 'Busbar';
-        } else if (selectedElement.type === 'LINE') {
-          name = layout.lines.find(l => l.id === selectedElement.id)?.name || 'Line';
-        } else if (selectedElement.type === 'DEVICE') {
-          name = layout.devices.find(d => d.id === selectedElement.id)?.name || 'Peralatan';
-        } else if (selectedElement.type === 'NODE') {
-          name = layout.nodes.find(n => n.id === selectedElement.id)?.name || 'Gardu';
-        }
-        onSelectedElementChange({ type: selectedElement.type, name, id: selectedElement.id });
+        onSelectedElementChange({
+          type: selectedElement.type,
+          name: selectedElementName,
+          id: selectedElement.id
+        });
       }
     }
-  }, [selectedElement, layout, onSelectedElementChange]);
+  }, [selectedElement?.id, selectedElement?.type, selectedElementName, onSelectedElementChange]);
 
   // Handle external layer actions dispatched from parent toolbar
   useEffect(() => {

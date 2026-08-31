@@ -154,6 +154,19 @@ export default function App() {
 
   // Unit Access & Filter State for Owner & Multi-Unit
   const [ownerSelectedUnitFilter, setOwnerSelectedUnitFilter] = useState<string>('SEMUA');
+
+  // Enforce ULP restrictions based on the logged-in user profile
+  useEffect(() => {
+    if (!user) {
+      setOwnerSelectedUnitFilter('SEMUA');
+      return;
+    }
+    const isOwner = isOwnerUser(user);
+    if (!isOwner) {
+      // Force selected unit filter to user's assigned unit
+      setOwnerSelectedUnitFilter(user.unit || 'ULP Baguala');
+    }
+  }, [user]);
   // Active view & navigation state
   const [activeView, setActiveView] = useState<ViewType>('matriks_gangguan');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1180,6 +1193,29 @@ export default function App() {
       setUser(null);
     }
   }, [onlineUsersList, user]);
+
+  // Synchronize logged-in user profile & permissions when updated in usersList
+  useEffect(() => {
+    if (!user) return;
+    if (user.username === 'owner') return;
+    const freshUser = usersList.find(u => u.username.toLowerCase() === user.username.toLowerCase());
+    if (freshUser) {
+      const hasChanged = 
+        JSON.stringify(freshUser.allowedMenus) !== JSON.stringify(user.allowedMenus) ||
+        freshUser.role !== user.role ||
+        freshUser.unit !== user.unit ||
+        freshUser.name !== user.name ||
+        freshUser.isBanned !== user.isBanned;
+
+      if (hasChanged) {
+        setUser(freshUser);
+        if (freshUser.isBanned) {
+          setUser(null);
+          alert('Akun Anda telah dinonaktifkan oleh administrator.');
+        }
+      }
+    }
+  }, [usersList, user]);
 
   // Login handler
   const handleLogin = (authenticatedUser: User) => {
@@ -2891,6 +2927,7 @@ export default function App() {
               transition={{ duration: 0.2 }}
             >
               <PetaPenyulangView
+                currentUser={user}
                 layers={filteredMapLayers}
                 onToggleLayer={handleToggleMapLayer}
                 onDeleteLayer={handleDeleteMapLayer}

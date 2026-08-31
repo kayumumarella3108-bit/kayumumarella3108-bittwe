@@ -167,11 +167,6 @@ export const canAccessMenu = (user: User | null | undefined, menuKey: string): b
     return isOwnerUser(user);
   }
 
-  // Live Chat, AI Bot, Help Desk & Kalkulator Listrik is accessible to all logged-in users
-  if (menuKey === 'live_chat' || menuKey === 'chat' || menuKey === 'kalkulator_listrik' || menuKey === 'kalkulator' || menuKey === 'helpdesk' || menuKey === 'help_desk' || menuKey === 'inbox' || menuKey === 'dcc') {
-    return true;
-  }
-
   // Owner has access to all application views
   if (isOwnerUser(user)) {
     return true;
@@ -179,6 +174,17 @@ export const canAccessMenu = (user: User | null | undefined, menuKey: string): b
 
   // 1. Check if explicit allowedMenus is defined for the user (Source of truth from User Management)
   if (user.allowedMenus && Array.isArray(user.allowedMenus)) {
+    // These views don't have checkboxes in the edit modal, so we always grant access
+    if (
+      menuKey === 'live_chat' ||
+      menuKey === 'chat' ||
+      menuKey === 'helpdesk' ||
+      menuKey === 'help_desk' ||
+      menuKey === 'inbox'
+    ) {
+      return true;
+    }
+
     if (user.allowedMenus.length === 0) return false;
     
     // Direct match
@@ -205,6 +211,21 @@ export const canAccessMenu = (user: User | null | undefined, menuKey: string): b
 
   // 2. Fallback default access for legacy accounts without explicit allowedMenus array:
   const roleLower = (user.role || '').toLowerCase().trim();
+
+  // Default true for accessible utilities
+  if (
+    menuKey === 'live_chat' ||
+    menuKey === 'chat' ||
+    menuKey === 'kalkulator_listrik' ||
+    menuKey === 'kalkulator' ||
+    menuKey === 'helpdesk' ||
+    menuKey === 'help_desk' ||
+    menuKey === 'inbox' ||
+    menuKey === 'dcc'
+  ) {
+    return true;
+  }
+
   if (roleLower.includes('koordinator') || roleLower.includes('admin system') || roleLower === 'admin' || roleLower === 'admin aplikasi') {
     return true;
   }
