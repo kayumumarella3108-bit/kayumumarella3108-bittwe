@@ -233,5 +233,10 @@ service cloud.firestore {
       allow get, write: if isValidId(id);
       allow list: if true;
     }
+
+    match /sld_saved_layouts/{id} {
+      allow get, write: if isValidId(id);
+      allow list: if true;
+    }
   }
 }

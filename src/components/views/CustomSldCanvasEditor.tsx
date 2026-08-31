@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { StationData } from './MiniDccView';
+import { db, doc, setDoc, getDocs, collection, deleteDoc, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { 
   Plus, 
   Trash2, 
@@ -50,7 +51,13 @@ import {
   ArrowUpDown,
   MoveHorizontal,
   MoveVertical,
-  Minus
+  Minus,
+  ArrowUpToLine,
+  ArrowDownToLine,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUp,
+  ChevronsDown
 } from 'lucide-react';
 
 export type CustomElementType = 
@@ -79,6 +86,11 @@ export interface CustomBusbar {
   orientation: 'HORIZONTAL' | 'VERTICAL';
   color: string;
   thickness?: number; // 6, 8, 12, 16
+  zIndex?: number; // Layer ordering (higher number = foreground / in front)
+  labelOffsetX?: number; // Shift name label left/right
+  labelOffsetY?: number; // Shift name label up/down
+  fontFamily?: string;   // Font family for busbar name
+  fontSize?: number;     // Font size for busbar name
 }
 
 export interface CustomLine {
@@ -96,6 +108,7 @@ export interface CustomLine {
   strokeWidth?: number; // 2, 3, 4, 6, 8
   fromId?: string;
   toId?: string;
+  zIndex?: number; // Layer ordering (higher number = foreground / in front)
 }
 
 export interface CustomNode {
@@ -107,6 +120,7 @@ export interface CustomNode {
   y: number;
   width: number;
   height: number;
+  zIndex?: number; // Layer ordering (higher number = foreground / in front)
 }
 
 export interface CustomDevice {
@@ -123,6 +137,7 @@ export interface CustomDevice {
   stationId?: string;
   busbar1Id?: string;
   busbar2Id?: string;
+  zIndex?: number; // Layer ordering (higher number = foreground / in front)
 }
 
 export type DragAction = 
@@ -253,6 +268,8 @@ interface CustomSldCanvasEditorProps {
   onClose?: () => void;
   showGridLines?: boolean;
   onToggleGridLines?: () => void;
+  externalLayerAction?: { action: 'BRING_TO_FRONT' | 'SEND_TO_BACK' | 'BRING_FORWARD' | 'SEND_BACKWARD'; timestamp: number } | null;
+  onSelectedElementChange?: (elementInfo: { type: string; name: string; id: string } | null) => void;
 }
 
 export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
@@ -260,7 +277,9 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
   onSaveLayout,
   onClose,
   showGridLines,
-  onToggleGridLines
+  onToggleGridLines,
+  externalLayerAction,
+  onSelectedElementChange
 }) => {
   // 1. Layout State
   const [layout, setLayout] = useState<CustomSldSystemLayout>(() => {
@@ -323,6 +342,93 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
     setTimeout(() => {
       setToastMessage(prev => (prev === msg ? null : prev));
     }, 2800);
+  };
+
+  // Firestore Save & Load Layout Variations State & Handlers
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState<boolean>(false);
+  const [saveLayoutName, setSaveLayoutName] = useState<string>(`Variasi Layout ${new Date().toLocaleDateString()}`);
+  const [saveLayoutDesc, setSaveLayoutDesc] = useState<string>('Layout sistem kelistrikan SCADA');
+  const [isSavingLayout, setIsSavingLayout] = useState<boolean>(false);
+
+  const [isLoadModalOpen, setIsLoadModalOpen] = useState<boolean>(false);
+  const [savedLayoutsList, setSavedLayoutsList] = useState<Array<{ id: string; name: string; description: string; updatedAt: string; layoutData: CustomSldSystemLayout }>>([]);
+  const [isLoadingLayouts, setIsLoadingLayouts] = useState<boolean>(false);
+
+  const handleOpenSaveModal = () => {
+    setSaveLayoutName(`Variasi Layout ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+    setIsSaveModalOpen(true);
+  };
+
+  const handleSaveToFirestore = async () => {
+    if (!saveLayoutName.trim()) {
+      alert('Nama variasi layout wajib diisi.');
+      return;
+    }
+    setIsSavingLayout(true);
+    try {
+      const layoutId = `layout_${Date.now()}`;
+      const docRef = doc(db, 'sld_saved_layouts', layoutId);
+      const payload = {
+        id: layoutId,
+        name: saveLayoutName.trim(),
+        description: saveLayoutDesc.trim(),
+        layoutData: JSON.parse(JSON.stringify(layout)),
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(docRef, payload);
+      showToast(`☁️ Berhasil menyimpan "${saveLayoutName}" ke Firestore!`);
+      setIsSaveModalOpen(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'sld_saved_layouts');
+      alert('Gagal menyimpan layout ke Firestore.');
+    } finally {
+      setIsSavingLayout(false);
+    }
+  };
+
+  const handleOpenLoadModal = async () => {
+    setIsLoadModalOpen(true);
+    setIsLoadingLayouts(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'sld_saved_layouts'));
+      const items: any[] = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data && data.layoutData) {
+          items.push(data);
+        }
+      });
+      items.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      setSavedLayoutsList(items);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.LIST, 'sld_saved_layouts');
+      setSavedLayoutsList([]);
+    } finally {
+      setIsLoadingLayouts(false);
+    }
+  };
+
+  const handleLoadLayoutItem = (layoutData: CustomSldSystemLayout, name: string) => {
+    if (window.confirm(`Muat layout "${name}"? Perubahan saat ini yang belum tersimpan akan diganti.`)) {
+      saveCurrentLayout(layoutData);
+      showToast(`⚡ Berhasil memuat layout "${name}"!`);
+      setIsLoadModalOpen(false);
+      setSelectedElement(null);
+    }
+  };
+
+  const handleDeleteSavedLayoutItem = async (id: string, name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm(`Hapus variasi layout "${name}" dari Firestore?`)) {
+      try {
+        await deleteDoc(doc(db, 'sld_saved_layouts', id));
+        setSavedLayoutsList(prev => prev.filter(item => item.id !== id));
+        showToast(`🗑️ Variasi "${name}" dihapus.`);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, 'sld_saved_layouts');
+        alert('Gagal menghapus layout dari Firestore.');
+      }
+    }
   };
 
   // Viewport, Zoom & Fullscreen
@@ -548,14 +654,213 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
     }
   };
 
-  // GLOBAL KEYBOARD SHORTCUTS LISTENER (Ctrl+C, Ctrl+V, Ctrl+D, Del, Esc)
+  // 🗂️ LAYER ORDERING ACTIONS (BRING TO FRONT / SEND TO BACK / BRING FORWARD / SEND BACKWARD)
+  const handleLayerAction = (
+    action: 'BRING_TO_FRONT' | 'SEND_TO_BACK' | 'BRING_FORWARD' | 'SEND_BACKWARD',
+    target?: { type: 'BUSBAR' | 'LINE' | 'NODE' | 'DEVICE'; id: string } | null
+  ) => {
+    const el = target || selectedElement;
+    if (!el) {
+      showToast('⚠️ Pilih komponen terlebih dahulu untuk mengatur urutan lapisan (Layer).');
+      return;
+    }
+
+    // Collect all elements with their current z-indices
+    const allZIndexes: number[] = [
+      ...layout.nodes.map(n => n.zIndex !== undefined ? n.zIndex : 10),
+      ...layout.lines.map(l => l.zIndex !== undefined ? l.zIndex : 20),
+      ...layout.busbars.map(b => b.zIndex !== undefined ? b.zIndex : 30),
+      ...layout.devices.map(d => d.zIndex !== undefined ? d.zIndex : 40)
+    ];
+
+    const currentMaxZ = allZIndexes.length > 0 ? Math.max(...allZIndexes) : 40;
+    const currentMinZ = allZIndexes.length > 0 ? Math.min(...allZIndexes) : 10;
+
+    let itemName = 'Komponen';
+    let currentZ = 20;
+
+    if (el.type === 'BUSBAR') {
+      const bus = layout.busbars.find(b => b.id === el.id);
+      if (!bus) return;
+      itemName = bus.name;
+      currentZ = bus.zIndex !== undefined ? bus.zIndex : 30;
+    } else if (el.type === 'LINE') {
+      const line = layout.lines.find(l => l.id === el.id);
+      if (!line) return;
+      itemName = line.name;
+      currentZ = line.zIndex !== undefined ? line.zIndex : 20;
+    } else if (el.type === 'DEVICE') {
+      const dev = layout.devices.find(d => d.id === el.id);
+      if (!dev) return;
+      itemName = dev.name;
+      currentZ = dev.zIndex !== undefined ? dev.zIndex : 40;
+    } else if (el.type === 'NODE') {
+      const node = layout.nodes.find(n => n.id === el.id);
+      if (!node) return;
+      itemName = node.name;
+      currentZ = node.zIndex !== undefined ? node.zIndex : 10;
+    }
+
+    let nextZ = currentZ;
+    if (action === 'BRING_TO_FRONT') {
+      nextZ = Math.max(currentMaxZ + 5, currentZ + 5);
+    } else if (action === 'SEND_TO_BACK') {
+      nextZ = Math.max(1, Math.min(currentMinZ - 5, currentZ - 5));
+    } else if (action === 'BRING_FORWARD') {
+      nextZ = currentZ + 2;
+    } else if (action === 'SEND_BACKWARD') {
+      nextZ = Math.max(1, currentZ - 2);
+    }
+
+    // Reorder within category and apply nextZ
+    let newBusbars = [...layout.busbars];
+    let newLines = [...layout.lines];
+    let newDevices = [...layout.devices];
+    let newNodes = [...layout.nodes];
+
+    if (el.type === 'BUSBAR') {
+      const idx = newBusbars.findIndex(b => b.id === el.id);
+      if (idx !== -1) {
+        const item = { ...newBusbars[idx], zIndex: nextZ };
+        newBusbars.splice(idx, 1);
+        if (action === 'BRING_TO_FRONT') {
+          newBusbars.push(item);
+        } else if (action === 'SEND_TO_BACK') {
+          newBusbars.unshift(item);
+        } else if (action === 'BRING_FORWARD') {
+          const insertIdx = Math.min(newBusbars.length, idx + 1);
+          newBusbars.splice(insertIdx, 0, item);
+        } else {
+          const insertIdx = Math.max(0, idx - 1);
+          newBusbars.splice(insertIdx, 0, item);
+        }
+      }
+    } else if (el.type === 'LINE') {
+      const idx = newLines.findIndex(l => l.id === el.id);
+      if (idx !== -1) {
+        const item = { ...newLines[idx], zIndex: nextZ };
+        newLines.splice(idx, 1);
+        if (action === 'BRING_TO_FRONT') {
+          newLines.push(item);
+        } else if (action === 'SEND_TO_BACK') {
+          newLines.unshift(item);
+        } else if (action === 'BRING_FORWARD') {
+          const insertIdx = Math.min(newLines.length, idx + 1);
+          newLines.splice(insertIdx, 0, item);
+        } else {
+          const insertIdx = Math.max(0, idx - 1);
+          newLines.splice(insertIdx, 0, item);
+        }
+      }
+    } else if (el.type === 'DEVICE') {
+      const idx = newDevices.findIndex(d => d.id === el.id);
+      if (idx !== -1) {
+        const item = { ...newDevices[idx], zIndex: nextZ };
+        newDevices.splice(idx, 1);
+        if (action === 'BRING_TO_FRONT') {
+          newDevices.push(item);
+        } else if (action === 'SEND_TO_BACK') {
+          newDevices.unshift(item);
+        } else if (action === 'BRING_FORWARD') {
+          const insertIdx = Math.min(newDevices.length, idx + 1);
+          newDevices.splice(insertIdx, 0, item);
+        } else {
+          const insertIdx = Math.max(0, idx - 1);
+          newDevices.splice(insertIdx, 0, item);
+        }
+      }
+    } else if (el.type === 'NODE') {
+      const idx = newNodes.findIndex(n => n.id === el.id);
+      if (idx !== -1) {
+        const item = { ...newNodes[idx], zIndex: nextZ };
+        newNodes.splice(idx, 1);
+        if (action === 'BRING_TO_FRONT') {
+          newNodes.push(item);
+        } else if (action === 'SEND_TO_BACK') {
+          newNodes.unshift(item);
+        } else if (action === 'BRING_FORWARD') {
+          const insertIdx = Math.min(newNodes.length, idx + 1);
+          newNodes.splice(insertIdx, 0, item);
+        } else {
+          const insertIdx = Math.max(0, idx - 1);
+          newNodes.splice(insertIdx, 0, item);
+        }
+      }
+    }
+
+    saveCurrentLayout({
+      ...layout,
+      busbars: newBusbars,
+      lines: newLines,
+      devices: newDevices,
+      nodes: newNodes
+    });
+
+    const actionText = 
+      action === 'BRING_TO_FRONT' ? 'paling depan (Front)' :
+      action === 'SEND_TO_BACK' ? 'paling belakang (Back)' :
+      action === 'BRING_FORWARD' ? 'maju 1 lapisan (+1)' :
+      'mundur 1 lapisan (-1)';
+
+    showToast(`🗂️ ${itemName} dipindah ke ${actionText} [Layer: ${nextZ}]`);
+  };
+
+  // Sync selected element to parent MiniDccView for header layer toolbar
+  useEffect(() => {
+    if (onSelectedElementChange) {
+      if (!selectedElement) {
+        onSelectedElementChange(null);
+      } else {
+        let name = selectedElement.type;
+        if (selectedElement.type === 'BUSBAR') {
+          name = layout.busbars.find(b => b.id === selectedElement.id)?.name || 'Busbar';
+        } else if (selectedElement.type === 'LINE') {
+          name = layout.lines.find(l => l.id === selectedElement.id)?.name || 'Line';
+        } else if (selectedElement.type === 'DEVICE') {
+          name = layout.devices.find(d => d.id === selectedElement.id)?.name || 'Peralatan';
+        } else if (selectedElement.type === 'NODE') {
+          name = layout.nodes.find(n => n.id === selectedElement.id)?.name || 'Gardu';
+        }
+        onSelectedElementChange({ type: selectedElement.type, name, id: selectedElement.id });
+      }
+    }
+  }, [selectedElement, layout, onSelectedElementChange]);
+
+  // Handle external layer actions dispatched from parent toolbar
+  useEffect(() => {
+    if (externalLayerAction && externalLayerAction.timestamp) {
+      handleLayerAction(externalLayerAction.action);
+    }
+  }, [externalLayerAction]);
+
+  // GLOBAL KEYBOARD SHORTCUTS LISTENER (Ctrl+C, Ctrl+V, Ctrl+D, Layering, Del, Esc)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select') return;
       if (editingBusbarModal || editingLineModal || editingDeviceModal || editingNodeModal) return;
 
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === ']' || e.key === '}')) {
+        if (selectedElement) {
+          e.preventDefault();
+          handleLayerAction('BRING_TO_FRONT');
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === '[' || e.key === '{')) {
+        if (selectedElement) {
+          e.preventDefault();
+          handleLayerAction('SEND_TO_BACK');
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === ']' || e.key === '}')) {
+        if (selectedElement) {
+          e.preventDefault();
+          handleLayerAction('BRING_FORWARD');
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === '[' || e.key === '{')) {
+        if (selectedElement) {
+          e.preventDefault();
+          handleLayerAction('SEND_BACKWARD');
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
         if (selectedElement) {
           e.preventDefault();
           handleCopy();
@@ -1432,6 +1737,68 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
             </button>
           </div>
 
+          {/* 🗂️ Layer Order Controls (Bring to Front / Send to Back) */}
+          <div className="flex items-center bg-[#020612] border border-cyan-500/40 rounded-xl px-2 py-1 gap-1 text-xs">
+            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mr-1">
+              <Layers className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Lapisan:</span>
+            </span>
+
+            <button
+              onClick={() => handleLayerAction('BRING_TO_FRONT')}
+              disabled={!selectedElement}
+              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                selectedElement
+                  ? 'bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
+                  : 'bg-transparent text-slate-600 cursor-not-allowed border border-transparent'
+              }`}
+              title={selectedElement ? "Bawa Komponen ke Paling Depan (Ctrl+Shift+])" : "Pilih komponen terlebih dahulu"}
+            >
+              <ArrowUpToLine className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden md:inline">Paling Depan</span>
+            </button>
+
+            <button
+              onClick={() => handleLayerAction('BRING_FORWARD')}
+              disabled={!selectedElement}
+              className={`p-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedElement
+                  ? 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700'
+                  : 'bg-transparent text-slate-600 cursor-not-allowed'
+              }`}
+              title={selectedElement ? "Maju 1 Lapisan (Ctrl+])" : "Pilih komponen terlebih dahulu"}
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={() => handleLayerAction('SEND_BACKWARD')}
+              disabled={!selectedElement}
+              className={`p-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedElement
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                  : 'bg-transparent text-slate-600 cursor-not-allowed'
+              }`}
+              title={selectedElement ? "Mundur 1 Lapisan (Ctrl+[)" : "Pilih komponen terlebih dahulu"}
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={() => handleLayerAction('SEND_TO_BACK')}
+              disabled={!selectedElement}
+              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                selectedElement
+                  ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700'
+                  : 'bg-transparent text-slate-600 cursor-not-allowed border border-transparent'
+              }`}
+              title={selectedElement ? "Kirim Komponen ke Paling Belakang (Ctrl+Shift+[)" : "Pilih komponen terlebih dahulu"}
+            >
+              <ArrowDownToLine className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden md:inline">Paling Belakang</span>
+            </button>
+          </div>
+
           {/* Snap-to-Grid Quick Settings */}
           <div className="flex items-center bg-[#020612] border border-cyan-500/40 rounded-xl px-2 py-1 gap-1.5 text-xs">
             <button
@@ -1533,6 +1900,24 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Reset Normal</span>
+            </button>
+
+            {/* Firestore Save & Load Layout Variations */}
+            <button
+              onClick={handleOpenSaveModal}
+              className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 border border-cyan-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-lg"
+              title="Simpan Layout ke Firestore"
+            >
+              <Files className="w-3.5 h-3.5" />
+              <span>Simpan Layout</span>
+            </button>
+            <button
+              onClick={handleOpenLoadModal}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-lg"
+              title="Muat Layout dari Firestore"
+            >
+              <ClipboardPaste className="w-3.5 h-3.5" />
+              <span>Muat Layout</span>
             </button>
           </div>
 
@@ -1896,6 +2281,48 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   </div>
                 );
               })()}
+
+              {/* 🗂️ Dedicated Layer Order HUD Controls */}
+              <div className="flex items-center gap-1 bg-slate-900/90 border border-cyan-500/50 rounded-xl px-2 py-1 shrink-0">
+                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mr-1">
+                  <Layers className="w-3 h-3 text-cyan-400" />
+                  <span>Layer:</span>
+                </span>
+
+                <button
+                  onClick={() => handleLayerAction('BRING_TO_FRONT')}
+                  className="px-2 py-0.5 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-300 font-black text-[10px] flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  title="Bawa Komponen ke Lapisan Terdepan (Ctrl+Shift+])"
+                >
+                  <ArrowUpToLine className="w-3 h-3 text-cyan-300" />
+                  <span>Depan (Front)</span>
+                </button>
+
+                <button
+                  onClick={() => handleLayerAction('BRING_FORWARD')}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-[10px] cursor-pointer"
+                  title="Maju 1 Lapisan (+1)"
+                >
+                  <ChevronUp className="w-3 h-3" />
+                </button>
+
+                <button
+                  onClick={() => handleLayerAction('SEND_BACKWARD')}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] cursor-pointer"
+                  title="Mundur 1 Lapisan (-1)"
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+
+                <button
+                  onClick={() => handleLayerAction('SEND_TO_BACK')}
+                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  title="Kirim Komponen ke Lapisan Terbelakang (Ctrl+Shift+[)"
+                >
+                  <ArrowDownToLine className="w-3 h-3 text-slate-400" />
+                  <span>Belakang (Back)</span>
+                </button>
+              </div>
               
               <button
                 onClick={handleDuplicate}
@@ -2015,6 +2442,16 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="rgba(6, 182, 212, 0.08)" strokeWidth="1" />
                   <circle cx="0" cy="0" r="1" fill="rgba(6, 182, 212, 0.25)" />
                 </pattern>
+
+                <style>{`
+                  @keyframes energyFlow {
+                    0% { stroke-dashoffset: 24; }
+                    100% { stroke-dashoffset: 0; }
+                  }
+                  .animate-energy-flow {
+                    animation: energyFlow 0.8s linear infinite;
+                  }
+                `}</style>
               </defs>
 
               {/* Grid Background */}
@@ -2313,12 +2750,15 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                 );
               })}
 
-            {/* RENDER LINES / CONNECTORS (TARIK PANJANG / PENDEK KABEL/JARINGAN) */}
+             {/* RENDER LINES / CONNECTORS (TARIK PANJANG / PENDEK KABEL/JARINGAN) */}
             {layout.lines.map(line => {
               const isSelected = selectedElement?.type === 'LINE' && selectedElement.id === line.id;
               const isKopelLine = line.type === 'BUS_KOPEL';
               const lineThickness = line.strokeWidth || (line.type === 'SUTT_150KV' ? 4 : isKopelLine ? 4.5 : 3);
               const lineLen = Math.round(Math.hypot(line.x2 - line.x1, line.y2 - line.y1));
+
+              const lineStatus = line.status || 'CLOSED';
+              const effectiveColor = lineStatus === 'CLOSED' ? '#ef4444' : lineStatus === 'OPEN' ? '#22c55e' : lineStatus === 'TRIP' ? '#f59e0b' : (line.color || '#ef4444');
 
               return (
                 <g 
@@ -2346,26 +2786,27 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                     y1={line.y1}
                     x2={line.x2}
                     y2={line.y2}
-                    stroke={isSelected ? '#38bdf8' : isKopelLine ? '#06b6d4' : line.color}
+                    stroke={isSelected ? '#38bdf8' : effectiveColor}
                     strokeWidth={isSelected ? '12' : isKopelLine ? '7' : '5'}
-                    strokeOpacity={isSelected ? '0.7' : isKopelLine ? '0.5' : '0.2'}
+                    strokeOpacity={isSelected ? '0.7' : '0.3'}
                   />
 
-                  {/* Main Conductor Line */}
+                   {/* Main Conductor Line */}
                   <line
                     x1={line.x1}
                     y1={line.y1}
                     x2={line.x2}
                     y2={line.y2}
-                    stroke={line.color}
+                    stroke={effectiveColor}
                     strokeWidth={lineThickness}
-                    strokeDasharray={line.style === 'DASHED' ? '6,6' : undefined}
-                    filter={line.type === 'SUTT_150KV' ? 'url(#glow-rose)' : isKopelLine ? 'url(#glow-cyan)' : undefined}
+                    strokeDasharray={lineStatus === 'CLOSED' ? '12,6' : line.style === 'DASHED' ? '6,6' : undefined}
+                    className={lineStatus === 'CLOSED' ? 'animate-energy-flow' : undefined}
+                    filter={line.type === 'SUTT_150KV' ? 'url(#glow-rose)' : isKopelLine ? 'url(#glow-cyan)' : lineStatus === 'CLOSED' ? 'url(#glow-rose)' : undefined}
                   />
 
                   {/* Terminal Node End Dots */}
-                  <circle cx={line.x1} cy={line.y1} r={isSelected ? 4 : 3} fill={line.color} />
-                  <circle cx={line.x2} cy={line.y2} r={isSelected ? 4 : 3} fill={line.color} />
+                  <circle cx={line.x1} cy={line.y1} r={isSelected ? 4 : 3} fill={effectiveColor} />
+                  <circle cx={line.x2} cy={line.y2} r={isSelected ? 4 : 3} fill={effectiveColor} />
 
                   <text
                     x={(line.x1 + line.x2) / 2}
@@ -2545,23 +2986,23 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
 
                   {/* 6. Integrated Voltage Badge & Bus Name Tag */}
                   <rect
-                    x={bus.x}
-                    y={bus.y - 24}
-                    width={bus.name.length * 6.5 + 24}
-                    height="18"
-                    rx="5"
-                    fill="#020617"
+                    x={bus.x + (bus.labelOffsetX || 0)}
+                    y={bus.y + (bus.labelOffsetY || 0) - 24}
+                    width={bus.name.length * (bus.fontSize || 9.5) * 0.7 + 32}
+                    height={Math.max(20, (bus.fontSize || 9.5) * 1.8)}
+                    rx="6"
+                    fill="#081224"
                     stroke={isSelected ? '#38bdf8' : bus.color}
                     strokeWidth="1.5"
-                    className="shadow-lg"
+                    className="shadow-xl"
                   />
                   <text
-                    x={bus.x + 8}
-                    y={bus.y - 11}
+                    x={bus.x + (bus.labelOffsetX || 0) + 8}
+                    y={bus.y + (bus.labelOffsetY || 0) - 10}
                     fill="#ffffff"
-                    fontSize="9.5"
+                    fontSize={bus.fontSize || 9.5}
                     fontWeight="900"
-                    fontFamily="sans-serif"
+                    fontFamily={bus.fontFamily || 'sans-serif'}
                   >
                     ⚡ {bus.name} ({bus.voltageKv}kV)
                   </text>
@@ -2930,6 +3371,94 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Posisi & Styling Label Nama Busbar */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 space-y-2">
+                <label className="text-slate-300 font-bold block">Posisi & Styling Label Nama:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Geser Kiri/Kanan (Offset X):</label>
+                    <input
+                      type="number"
+                      value={editingBusbarModal.labelOffsetX || 0}
+                      onChange={(e) => setEditingBusbarModal({ ...editingBusbarModal, labelOffsetX: Number(e.target.value) })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-white font-bold text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Geser Atas/Bawah (Offset Y):</label>
+                    <input
+                      type="number"
+                      value={editingBusbarModal.labelOffsetY || 0}
+                      onChange={(e) => setEditingBusbarModal({ ...editingBusbarModal, labelOffsetY: Number(e.target.value) })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-white font-bold text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Jenis Font:</label>
+                    <select
+                      value={editingBusbarModal.fontFamily || 'sans-serif'}
+                      onChange={(e) => setEditingBusbarModal({ ...editingBusbarModal, fontFamily: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-white font-bold text-xs"
+                    >
+                      <option value="sans-serif">Sans-Serif (Modern)</option>
+                      <option value="monospace">Monospace (Code)</option>
+                      <option value="serif">Serif (Classic)</option>
+                      <option value="system-ui">System UI</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Ukuran Font:</label>
+                    <select
+                      value={editingBusbarModal.fontSize || 9.5}
+                      onChange={(e) => setEditingBusbarModal({ ...editingBusbarModal, fontSize: Number(e.target.value) })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-white font-bold text-xs"
+                    >
+                      <option value={8}>8 px (Kecil)</option>
+                      <option value={9.5}>9.5 px (Standar)</option>
+                      <option value={11}>11 px (Sedang)</option>
+                      <option value={13}>13 px (Besar)</option>
+                      <option value={16}>16 px (Sangat Besar)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lapisan / Layer Z-Index */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                <label className="text-slate-300 font-bold flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Urutan Lapisan (Z-Index / Layer):</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    value={editingBusbarModal.zIndex !== undefined ? editingBusbarModal.zIndex : 30}
+                    onChange={(e) => setEditingBusbarModal({ ...editingBusbarModal, zIndex: Number(e.target.value) })}
+                    className="w-24 bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-mono font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditingBusbarModal({ ...editingBusbarModal, zIndex: 99 })}
+                    className="px-2.5 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-300 font-bold text-xs cursor-pointer"
+                  >
+                    ⇈ Paling Depan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingBusbarModal({ ...editingBusbarModal, zIndex: 1 })}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+                  >
+                    ⇊ Paling Belakang
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500">Nilai lebih tinggi dirender di atas komponen lain saat bertumpuk/bersilangan.</p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -3033,6 +3562,39 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   </select>
                 </div>
               </div>
+
+              {/* Lapisan / Layer Z-Index */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                <label className="text-slate-300 font-bold flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Urutan Lapisan (Z-Index / Layer):</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    value={editingDeviceModal.zIndex !== undefined ? editingDeviceModal.zIndex : 40}
+                    onChange={(e) => setEditingDeviceModal({ ...editingDeviceModal, zIndex: Number(e.target.value) })}
+                    className="w-24 bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-mono font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditingDeviceModal({ ...editingDeviceModal, zIndex: 99 })}
+                    className="px-2.5 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-300 font-bold text-xs cursor-pointer"
+                  >
+                    ⇈ Paling Depan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingDeviceModal({ ...editingDeviceModal, zIndex: 1 })}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+                  >
+                    ⇊ Paling Belakang
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500">Nilai lebih tinggi dirender di atas komponen lain saat bertumpuk.</p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -3094,6 +3656,19 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                 </select>
               </div>
 
+              <div>
+                <label className="text-slate-400 font-bold block mb-1">Status Saluran / Kabel:</label>
+                <select
+                  value={editingLineModal.status || 'CLOSED'}
+                  onChange={(e) => setEditingLineModal({ ...editingLineModal, status: e.target.value as any })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-bold"
+                >
+                  <option value="CLOSED">CLOSED (Bertegangan / Warna Merah)</option>
+                  <option value="OPEN">OPEN (Padam / Warna Hijau)</option>
+                  <option value="TRIP">TRIP (Gangguan / Warna Kuning)</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-400 font-bold block mb-1">Gaya Line:</label>
@@ -3128,6 +3703,39 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   onChange={(e) => setEditingLineModal({ ...editingLineModal, color: e.target.value })}
                   className="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg p-1 cursor-pointer"
                 />
+              </div>
+
+              {/* Lapisan / Layer Z-Index */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                <label className="text-slate-300 font-bold flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Urutan Lapisan (Z-Index / Layer):</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    value={editingLineModal.zIndex !== undefined ? editingLineModal.zIndex : 20}
+                    onChange={(e) => setEditingLineModal({ ...editingLineModal, zIndex: Number(e.target.value) })}
+                    className="w-24 bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-mono font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditingLineModal({ ...editingLineModal, zIndex: 99 })}
+                    className="px-2.5 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-300 font-bold text-xs cursor-pointer"
+                  >
+                    ⇈ Paling Depan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingLineModal({ ...editingLineModal, zIndex: 1 })}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+                  >
+                    ⇊ Paling Belakang
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500">Nilai lebih tinggi dirender di atas komponen lain saat bertumpuk/bersilangan.</p>
               </div>
             </div>
 
@@ -3222,6 +3830,39 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Lapisan / Layer Z-Index */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                <label className="text-slate-300 font-bold flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Urutan Lapisan (Z-Index / Layer):</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    value={editingNodeModal.zIndex !== undefined ? editingNodeModal.zIndex : 10}
+                    onChange={(e) => setEditingNodeModal({ ...editingNodeModal, zIndex: Number(e.target.value) })}
+                    className="w-24 bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-mono font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditingNodeModal({ ...editingNodeModal, zIndex: 99 })}
+                    className="px-2.5 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-300 font-bold text-xs cursor-pointer"
+                  >
+                    ⇈ Paling Depan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingNodeModal({ ...editingNodeModal, zIndex: 1 })}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+                  >
+                    ⇊ Paling Belakang
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500">Nilai lebih tinggi dirender di atas komponen lain saat bertumpuk/bersilangan.</p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -3242,6 +3883,138 @@ export const CustomSldCanvasEditor: React.FC<CustomSldCanvasEditorProps> = ({
                 className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs"
               >
                 Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. SAVE LAYOUT TO FIRESTORE MODAL */}
+      {isSaveModalOpen && (
+        <div className="fixed inset-0 z-[999999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#081224] border border-cyan-500/50 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <h3 className="text-base font-black text-white flex items-center gap-2">
+              <Files className="w-5 h-5 text-cyan-400" />
+              <span>Simpan Variasi Layout ke Firestore</span>
+            </h3>
+            <p className="text-xs text-slate-400">
+              Simpan kondisi konfigurasi kelistrikan (busbar, saluran, gardu, dan perangkat) ke database awan agar dapat diakses kembali atau dibagikan.
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-400 font-bold block mb-1">Nama Variasi Layout:</label>
+                <input
+                  type="text"
+                  value={saveLayoutName}
+                  onChange={(e) => setSaveLayoutName(e.target.value)}
+                  placeholder="Contoh: Variasi Simulasi Gangguan Feeder Ambon"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-slate-400 font-bold block mb-1">Keterangan / Catatan:</label>
+                <textarea
+                  value={saveLayoutDesc}
+                  onChange={(e) => setSaveLayoutDesc(e.target.value)}
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-normal resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setIsSaveModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-slate-300 font-bold text-xs cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveToFirestore}
+                disabled={isSavingLayout}
+                className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSavingLayout ? 'Menyimpan...' : '☁️ Simpan ke Firestore'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. LOAD LAYOUT FROM FIRESTORE MODAL */}
+      {isLoadModalOpen && (
+        <div className="fixed inset-0 z-[999999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#081224] border border-indigo-500/50 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <ClipboardPaste className="w-5 h-5 text-indigo-400" />
+                <span>Muat Variasi Layout Sistem dari Firestore</span>
+              </h3>
+              <button
+                onClick={() => setIsLoadModalOpen(false)}
+                className="text-slate-400 hover:text-white font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">
+              Pilih salah satu variasi layout sistem kelistrikan yang pernah disimpan sebelumnya di Firestore.
+            </p>
+
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[50vh]">
+              {isLoadingLayouts ? (
+                <div className="text-center py-12 text-slate-400 text-xs animate-pulse font-bold">
+                  Memuat daftar variasi layout dari Firestore...
+                </div>
+              ) : savedLayoutsList.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 text-xs bg-slate-950/40 rounded-xl border border-slate-800">
+                  Belum ada variasi layout tersimpan di Firestore. Gunakan tombol "Simpan Layout" untuk membuat variasi baru.
+                </div>
+              ) : (
+                savedLayoutsList.map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleLoadLayoutItem(item.layoutData, item.name)}
+                    className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-indigo-500/60 hover:bg-slate-900/90 transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-white group-hover:text-indigo-300 transition-colors truncate">
+                        {item.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                        {item.description || 'Tanpa keterangan'}
+                      </div>
+                      <div className="text-[9px] font-mono text-slate-500 mt-1">
+                        Terakhir diperbarui: {new Date(item.updatedAt).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => handleDeleteSavedLayoutItem(item.id, item.name, e)}
+                        className="p-2 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs cursor-pointer"
+                        title="Hapus layout ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow"
+                      >
+                        Muat
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setIsLoadModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-slate-300 font-bold text-xs cursor-pointer"
+              >
+                Tutup
               </button>
             </div>
           </div>

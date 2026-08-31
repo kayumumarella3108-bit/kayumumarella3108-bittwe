@@ -644,6 +644,19 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "mesinId", "namaMesin", "totalRunningHours", "maintenanceInterval"]
+    },
+    "SldSavedLayout": {
+      "title": "SldSavedLayout",
+      "description": "Saved SLD system layout variation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "layoutData": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "layoutData"]
     }
   },
   "firestore": {
@@ -786,6 +799,10 @@
     "master_stok_bbm_kit": {
       "schema": "KitBbmStockItem",
       "description": "KIT fuel stock monitoring"
+    },
+    "sld_saved_layouts": {
+      "schema": "SldSavedLayout",
+      "description": "Saved custom SLD system layout variations"
     }
   }
 }
